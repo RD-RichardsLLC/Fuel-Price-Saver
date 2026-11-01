@@ -2945,6 +2945,11 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
   { date:'2026-11-01', items:[
+    'Version 1.3.50',
+    '**See all prices stays on the main screen once your routes are used up.** It shows up right after the message about your third route, above Upgrade, and stays until your routes reset at midnight',
+    '**Search by state and city together.** Type the state, a space, then the start of the city, like AL C, to see just those stops'
+  ]},
+  { date:'2026-11-01', items:[
     'Version 1.3.49',
     '**Brand colors fixed on the price list.** Love\u2019s is yellow, TA is blue and Petro is green, same as the rest of the app',
     '**The price list is easier to read.** Rows now have a brighter line between them, and every other row is shaded',
@@ -7227,7 +7232,7 @@ function fcDayClose(){
 </script>
 
 <style>
-/* ===== v1.3.49 PLANS: Free / Basic / Pro (Bob, Nov 1) ===== */
+/* ===== v1.3.50 PLANS: Free / Basic / Pro (Bob, Nov 1) ===== */
 body.tier-basic #pinbar button[onclick="addStop()"],
 body.tier-basic #planrow, body.tier-basic #predbtn, body.tier-basic #toolsbtn,
 body.tier-basic #fcline, body.tier-basic #fptick, body.tier-basic #tktip,
@@ -7283,7 +7288,7 @@ body.tier-free #freelist{display:block}
 </div>
 <div id="allprices" role="dialog" aria-modal="true"><div class="apin"><div class="aphd"><button type="button" onclick="fpsAllClose()">Back</button><h2>All diesel prices</h2></div><input id="apsearch" class="apsearch" type="search" placeholder="Search city or state" autocomplete="off" autocapitalize="words" enterkeyhint="search" oninput="fpsApFilter(this)"><div id="aptable"></div></div></div>
 <script>
-/* ===== v1.3.49 PLANS: Free / Basic / Pro =====
+/* ===== v1.3.50 PLANS: Free / Basic / Pro =====
    Plan comes from the access script (j.plan). No plan sent = Pro, so everyone keeps the full app.
    For testing: open the app with ?tier=basic, ?tier=free or ?tier=pro. ?tier=clear goes back to the real plan. */
 (function(){
@@ -7306,6 +7311,7 @@ body.tier-free #freelist{display:block}
     var el=document.getElementById('tierleft'); if(!el) return;
     var o=used('fps_rt_day'), n=Math.max(0,LIMIT-o.keys.length);
     el.innerHTML=(n?'<b>'+n+' route'+(n===1?'':'s')+' left today</b>':'<b>No routes left today.</b> They reset at midnight.')
+      +(n?'':'<button type="button" class="tierall" onclick="fpsAllOpen()">See all prices</button>')
       +'<button type="button" class="tierup" onclick="fpsUpgrade()">Upgrade</button>';
   }
 
@@ -7329,8 +7335,8 @@ body.tier-free #freelist{display:block}
   function stripe(box){ var k=0; [].forEach.call(box.querySelectorAll('tbody tr'),function(tr){ if(tr.style.display!=='none'){ tr.classList.toggle('alt',(k++)%2===1); } }); var n=box.querySelector('.apnone'); if(n) n.style.display=k?'none':'block'; }
   window.fpsApFilter=function(inp){
     var box=inp.id==='apsearch'?document.getElementById('aptable'):document.getElementById('freelist');
-    var q=inp.value.trim().toLowerCase();
-    [].forEach.call(box.querySelectorAll('tbody tr'),function(tr){ tr.style.display=(!q||tr.getAttribute('data-k').indexOf(q)>=0)?'':'none'; });
+    var w=inp.value.trim().toLowerCase().split(/[\s,]+/).filter(function(x){ return x; });
+    [].forEach.call(box.querySelectorAll('tbody tr'),function(tr){ var k=' '+tr.getAttribute('data-k'); tr.style.display=w.every(function(x){ return k.indexOf(' '+x)>=0; })?'':'none'; });
     stripe(box);
   };
   window.fpsAllOpen=function(){ document.getElementById('tierpop').style.display='none'; document.getElementById('aptable').innerHTML=tableHTML(); var si=document.getElementById('apsearch'); si.value=''; fpsApFilter(si); document.getElementById('allprices').classList.add('show'); window.scrollTo(0,0); try{ enterScreen(); }catch(e){} };
