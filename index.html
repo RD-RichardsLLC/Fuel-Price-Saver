@@ -2945,6 +2945,14 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
   { date:'2026-11-01', items:[
+    'Version 1.3.49',
+    '**Brand colors fixed on the price list.** Love\u2019s is yellow, TA is blue and Petro is green, same as the rest of the app',
+    '**The price list is easier to read.** Rows now have a brighter line between them, and every other row is shaded',
+    '**Search the All diesel prices list.** Type a city or state next to the title, like Memphis or TN, and the list narrows to just those stops as you type',
+    '**On Basic, the See all prices button is off the main screen.** It now shows only in the message that comes up when your routes are used up',
+    '**The routes-used-up message now pops up by itself** right after your third route of the day finishes'
+  ]},
+  { date:'2026-11-01', items:[
     'Version 1.3.48',
     '**Plans: Basic now gets 3 routes a day** instead of 2. Rechecking or reversing a route you already ran still doesn\u2019t count',
     '**See all prices on Basic.** A button under Find fuel opens the full price list for every stop, even after your routes are used up',
@@ -7219,7 +7227,7 @@ function fcDayClose(){
 </script>
 
 <style>
-/* ===== v1.3.48 PLANS: Free / Basic / Pro (Bob, Nov 1) ===== */
+/* ===== v1.3.49 PLANS: Free / Basic / Pro (Bob, Nov 1) ===== */
 body.tier-basic #pinbar button[onclick="addStop()"],
 body.tier-basic #planrow, body.tier-basic #predbtn, body.tier-basic #toolsbtn,
 body.tier-basic #fcline, body.tier-basic #fptick, body.tier-basic #tktip,
@@ -7242,20 +7250,27 @@ body.tier-basic #tierleft{display:block}
 #allprices .aphd{display:flex;align-items:center;gap:12px;position:sticky;top:0;background:#0c1a30;padding:4px 0 10px;z-index:3}
 #allprices .aphd button{padding:10px 16px;border:0;border-radius:10px;background:#f26a21!important;color:#fff!important;font-size:16px;font-weight:700}
 #allprices h2{margin:0;font-size:19px;color:#fff}
+.apsearch{display:block;width:100%;box-sizing:border-box;margin:0 0 10px;padding:12px;font-size:17px;border:1.5px solid #4f7bb0;border-radius:10px;background:#1d3a5e;color:#fff}
+.apsearch::placeholder{color:#9fb4ce}
+#allprices .aphd{flex-wrap:nowrap}
+#allprices .aphd h2{flex:none;font-size:17px}
+#allprices .aphd .apsearch{flex:1 1 auto;min-width:0;margin:0;padding:10px;font-size:16px}
+.apnone{display:none;text-align:center;color:#9fb4ce;font-size:15px;padding:16px 0}
 #allprices table,#freelist table{width:100%;border-collapse:collapse;background:#17304f;border-radius:10px;overflow:hidden;font-size:15px;color:#fff}
 #allprices th{background:#10233f;color:#fff;text-align:left;padding:9px 8px;font-size:13px;font-weight:700}
-#allprices td{padding:8px;border-top:1px solid #22406a;color:#fff}
+#allprices td{padding:9px 8px;border-top:2px solid #4f7bb0;color:#fff}
 #allprices td.p{text-align:right;font-weight:700;white-space:nowrap}
 #allprices th.p{text-align:right}
-#allprices .bl{color:#ffd400} #allprices .bt{color:#ff5a4f} #allprices .bp{color:#5aa9ff}
+#allprices tbody tr.alt td,#freelist tbody tr.alt td{background:#1f3d63}
+#allprices .bl{color:#ffd400} #allprices .bt{color:#2f9be8} #allprices .bp{color:#3ab54a}
 #freelist{display:none}
 body.tier-free #freelist{display:block}
 #freelist table{width:100%;border-collapse:collapse;background:#17304f;border-radius:10px;overflow:hidden;font-size:15px;color:#fff}
 #freelist th{background:#10233f;color:#fff;text-align:left;padding:9px 8px;font-size:13px;font-weight:700;position:sticky;top:0}
-#freelist td{padding:8px;border-top:1px solid #22406a;color:#fff}
+#freelist td{padding:9px 8px;border-top:2px solid #4f7bb0;color:#fff}
 #freelist td.p{text-align:right;font-weight:700;white-space:nowrap}
 #freelist th.p{text-align:right}
-#freelist .bl{color:#ffd400} #freelist .bt{color:#ff5a4f} #freelist .bp{color:#5aa9ff}
+#freelist .bl{color:#ffd400} #freelist .bt{color:#2f9be8} #freelist .bp{color:#3ab54a}
 #freelist .fnote{font-size:13px;color:#9fb4ce;text-align:center;margin:0 0 10px}
 #tierpop .popbox{text-align:center}
 </style>
@@ -7266,9 +7281,9 @@ body.tier-free #freelist{display:block}
     <button type="button" class="tierclose" onclick="document.getElementById('tierpop').style.display='none'">Close</button>
   </div>
 </div>
-<div id="allprices" role="dialog" aria-modal="true"><div class="apin"><div class="aphd"><button type="button" onclick="fpsAllClose()">Back</button><h2>All diesel prices</h2></div><div id="aptable"></div></div></div>
+<div id="allprices" role="dialog" aria-modal="true"><div class="apin"><div class="aphd"><button type="button" onclick="fpsAllClose()">Back</button><h2>All diesel prices</h2></div><input id="apsearch" class="apsearch" type="search" placeholder="Search city or state" autocomplete="off" autocapitalize="words" enterkeyhint="search" oninput="fpsApFilter(this)"><div id="aptable"></div></div></div>
 <script>
-/* ===== v1.3.48 PLANS: Free / Basic / Pro =====
+/* ===== v1.3.49 PLANS: Free / Basic / Pro =====
    Plan comes from the access script (j.plan). No plan sent = Pro, so everyone keeps the full app.
    For testing: open the app with ?tier=basic, ?tier=free or ?tier=pro. ?tier=clear goes back to the real plan. */
 (function(){
@@ -7291,7 +7306,6 @@ body.tier-free #freelist{display:block}
     var el=document.getElementById('tierleft'); if(!el) return;
     var o=used('fps_rt_day'), n=Math.max(0,LIMIT-o.keys.length);
     el.innerHTML=(n?'<b>'+n+' route'+(n===1?'':'s')+' left today</b>':'<b>No routes left today.</b> They reset at midnight.')
-      +'<button type="button" class="tierall" onclick="fpsAllOpen()">See all prices</button>'
       +'<button type="button" class="tierup" onclick="fpsUpgrade()">Upgrade</button>';
   }
 
@@ -7302,14 +7316,24 @@ body.tier-free #freelist{display:block}
       .slice().sort(function(a,b){ var x=String(a[2]).localeCompare(String(b[2])); return x||String(a[1]).localeCompare(String(b[1])); });
     function bc(b){ b=String(b).toLowerCase(); return b.indexOf('love')>=0?'bl':b.indexOf('petro')>=0?'bp':'bt'; }
     return '<table><thead><tr><th>State</th><th>City</th><th>Brand</th><th class="p">Price</th></tr></thead><tbody>'
-      +rows.map(function(r){ return '<tr><td>'+esc(String(r[2]).toUpperCase())+'</td><td>'+esc(r[1])+'</td><td class="'+bc(r[0])+'">'+esc(r[0])+'</td><td class="p">$'+(+r[6]).toFixed(3)+'</td></tr>'; }).join('')
-      +'</tbody></table>';
+      +rows.map(function(r){ var st=String(r[2]).toUpperCase(), nm=''; try{ nm=(typeof NAMES!=='undefined'&&NAMES[st])||''; }catch(e){}
+        return '<tr data-k="'+esc((st+' '+nm+' '+r[1]+' '+r[0]).toLowerCase())+'"><td>'+esc(String(r[2]).toUpperCase())+'</td><td>'+esc(r[1])+'</td><td class="'+bc(r[0])+'">'+esc(r[0])+'</td><td class="p">$'+(+r[6]).toFixed(3)+'</td></tr>'; }).join('')
+      +'</tbody></table><p class="apnone">No stops match that search.</p>';
   }
+  function usedUp(){ popup('Routes used up for today','You\u2019ve used your 3 routes for today. Your routes reset at midnight.<br><br>Until then, you can still see every stop\u2019s price. Tap See all prices, or upgrade to Pro for unlimited routes.'
+                +'<button type="button" class="tierall" onclick="fpsAllOpen()">See all prices</button><button type="button" class="tierup" onclick="fpsUpgrade()">Upgrade</button>'); }
   function freeRender(){
-    var box=document.getElementById('freelist'); if(box && tier()==='free') box.innerHTML='<button type="button" class="tierup" onclick="fpsUpgrade()">Upgrade</button>'+tableHTML();
-    var ap=document.getElementById('allprices'); if(ap && ap.classList.contains('show')) document.getElementById('aptable').innerHTML=tableHTML();
+    var box=document.getElementById('freelist'); if(box && tier()==='free') { var fq=document.getElementById('flsearch'), fv=fq?fq.value:''; box.innerHTML='<button type="button" class="tierup" onclick="fpsUpgrade()">Upgrade</button>'+tableHTML(); stripe(box); }
+    var ap=document.getElementById('allprices'); if(ap && ap.classList.contains('show')){ document.getElementById('aptable').innerHTML=tableHTML(); fpsApFilter(document.getElementById('apsearch')); }
   }
-  window.fpsAllOpen=function(){ document.getElementById('tierpop').style.display='none'; document.getElementById('aptable').innerHTML=tableHTML(); document.getElementById('allprices').classList.add('show'); window.scrollTo(0,0); try{ enterScreen(); }catch(e){} };
+  function stripe(box){ var k=0; [].forEach.call(box.querySelectorAll('tbody tr'),function(tr){ if(tr.style.display!=='none'){ tr.classList.toggle('alt',(k++)%2===1); } }); var n=box.querySelector('.apnone'); if(n) n.style.display=k?'none':'block'; }
+  window.fpsApFilter=function(inp){
+    var box=inp.id==='apsearch'?document.getElementById('aptable'):document.getElementById('freelist');
+    var q=inp.value.trim().toLowerCase();
+    [].forEach.call(box.querySelectorAll('tbody tr'),function(tr){ tr.style.display=(!q||tr.getAttribute('data-k').indexOf(q)>=0)?'':'none'; });
+    stripe(box);
+  };
+  window.fpsAllOpen=function(){ document.getElementById('tierpop').style.display='none'; document.getElementById('aptable').innerHTML=tableHTML(); var si=document.getElementById('apsearch'); si.value=''; fpsApFilter(si); document.getElementById('allprices').classList.add('show'); window.scrollTo(0,0); try{ enterScreen(); }catch(e){} };
   window.fpsAllClose=function(){ var ap=document.getElementById('allprices'); if(ap.classList.contains('show')){ ap.classList.remove('show'); try{ if(history.state&&history.state.app) history.back(); }catch(e){} } };
   window.addEventListener('popstate',function(){ var ap=document.getElementById('allprices'); if(ap) ap.classList.remove('show'); });
 
@@ -7340,9 +7364,11 @@ body.tier-free #freelist{display:block}
             var a=(filled.length===2?filled[0]:HERE).toLowerCase(), z=filled[filled.length-1].toLowerCase();
             var key=[a,z].sort().join('|'), o=used('fps_rt_day');
             if(o.keys.indexOf(key)<0){
-              if(o.keys.length>=LIMIT){ popup('Routes used up for today','You\u2019ve used your 3 routes for today. Your routes reset at midnight.<br><br>Until then, you can still see every stop\u2019s price. Tap See all prices, or upgrade to Pro for unlimited routes.'
-                +'<button type="button" class="tierall" onclick="fpsAllOpen()">See all prices</button><button type="button" class="tierup" onclick="fpsUpgrade()">Upgrade</button>'); leftLine(); return; }
+              if(o.keys.length>=LIMIT){ usedUp(); leftLine(); return; }
               o.keys.push(key); save('fps_rt_day',o);
+              if(o.keys.length>=LIMIT){ leftLine(); var pr=ff.apply(this,arguments);
+                Promise.resolve(pr).then(function(){ setTimeout(usedUp,600); },function(){ setTimeout(usedUp,600); });
+                return pr; }
             }
             leftLine();
           }
