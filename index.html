@@ -2947,7 +2947,8 @@ const CHANGELOG = [
   { date:'2026-11-01', items:[
     'Version 1.3.50',
     '**See all prices stays on the main screen once your routes are used up.** It shows up right after the message about your third route, above Upgrade, and stays until your routes reset at midnight',
-    '**Search by state and city together.** Type the state, a space, then the start of the city, like AL C, to see just those stops'
+    '**Search by state and city together.** Type the state, a space, then the start of the city, like AL C, to see just those stops',
+    '**The search box stays put.** On All diesel prices, the title and search box stay at the top while the list scrolls under them'
   ]},
   { date:'2026-11-01', items:[
     'Version 1.3.49',
@@ -7260,6 +7261,10 @@ body.tier-basic #tierleft{display:block}
 #allprices .aphd{flex-wrap:nowrap}
 #allprices .aphd h2{flex:none;font-size:17px}
 #allprices .aphd .apsearch{flex:1 1 auto;min-width:0;margin:0;padding:10px;font-size:16px}
+#allprices.show{display:flex!important;flex-direction:column;overflow:hidden}
+#allprices .apin{display:flex;flex-direction:column;height:100%;width:100%;box-sizing:border-box;padding-bottom:0}
+#allprices .aphd{position:static;flex:none}
+#aptable{flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(30px + env(safe-area-inset-bottom))}
 .apnone{display:none;text-align:center;color:#9fb4ce;font-size:15px;padding:16px 0}
 #allprices table,#freelist table{width:100%;border-collapse:collapse;background:#17304f;border-radius:10px;overflow:hidden;font-size:15px;color:#fff}
 #allprices th{background:#10233f;color:#fff;text-align:left;padding:9px 8px;font-size:13px;font-weight:700}
