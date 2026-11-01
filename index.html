@@ -762,7 +762,7 @@
   function ask(n, quiet){
     fetch(ACCESS_URL+'?code='+encodeURIComponent(code)+'&dev='+encodeURIComponent(dev),{cache:'no-store'})
       .then(function(r){ ls('fps_dbg',(ls('fps_dbg')||'')+' | try '+n+': got reply '+r.status); return r.json(); })
-      .then(function(j){ ls('fps_dbg',(ls('fps_dbg')||'')+' | read: '+JSON.stringify(j)); if(j&&j.ok){ ls('fps_ok','1'); trusted=true; lift(); if(!('fuellog' in j) && n<10){ ls('fps_dbg',(ls('fps_dbg')||'')+' | no fuel log, asking again'); setTimeout(function(){ ask(n+1,true); },3000); return; } flSet(j); ls('fps_dbg',(ls('fps_dbg')||'')+' | saved '+ls('fps_fl')); } else if(!quiet) deny(); })
+      .then(function(j){ ls('fps_dbg',(ls('fps_dbg')||'')+' | read: '+JSON.stringify(j)); if(j&&j.ok){ ls('fps_ok','1'); trusted=true; lift(); if(!('fuellog' in j) && n<10){ ls('fps_dbg',(ls('fps_dbg')||'')+' | no fuel log, asking again'); setTimeout(function(){ ask(n+1,true); },3000); return; } if(j.plan){ ls('fps_tier',String(j.plan).toLowerCase()); if(window.fpsTierApply) window.fpsTierApply(); } flSet(j); ls('fps_dbg',(ls('fps_dbg')||'')+' | saved '+ls('fps_fl')); } else if(!quiet) deny(); })
       .catch(function(e){ ls('fps_dbg',(ls('fps_dbg')||'')+' | try '+n+' FAILED: '+e);
         if(n<10){ setTimeout(function(){ ask(n+1, quiet); }, 3000); return; }
         // no answer (no signal, Google busy): a phone already approved keeps running; a new phone waits
@@ -2944,6 +2944,10 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    To ship an update: add a new block at the TOP of CHANGELOG with the date and the lines.
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
+  { date:'2026-11-01', items:[
+    'Version 1.3.47',
+    '**Plans are set up behind the scenes.** The app can now run as Free, Basic or Pro. Everyone stays on the full version for now, so nothing changes on your screen'
+  ]},
   { date:'2026-10-26', items:[
     'Version 1.3.46',
     '**New: filter by services on the price ticker.** Tap a state, pick an interstate, and a second box appears so you can pick a service like RV dump, showers, CAT scale or truck wash. The list then shows only the stops on that interstate that have it, cheapest first',
@@ -7205,6 +7209,145 @@ function fcDayClose(){
   var q=0; function soon(){ if(q) return; q=setTimeout(function(){ q=0; mk(); },60); }
   if(document.readyState!=='loading') mk(); else document.addEventListener('DOMContentLoaded',mk);
   try{ new MutationObserver(soon).observe(document.documentElement,{childList:true,subtree:true}); }catch(e){} })();
+</script>
+
+<style>
+/* ===== v1.3.47 PLANS: Free / Basic / Pro (Bob, Nov 1) ===== */
+body.tier-basic #pinbar button[onclick="addStop()"],
+body.tier-basic #planrow, body.tier-basic #predbtn, body.tier-basic #toolsbtn,
+body.tier-basic #fcline, body.tier-basic #fptick, body.tier-basic #tktip,
+body.tier-basic #fprow, body.tier-basic .wx, body.tier-basic #predrow{display:none!important}
+body.tier-basic #pinbar{grid-template-columns:1fr!important}
+body.tier-free #fcline, body.tier-free #fptick, body.tier-free #tktip, body.tier-free #predrow,
+body.tier-free .wrap > #routehint, body.tier-free .wrap > #stops, body.tier-free .wrap > #routetools,
+body.tier-free .wrap > #mainbtns, body.tier-free .wrap > #opthint, body.tier-free .wrap > #backres{display:none!important}
+#tierleft{display:none;text-align:center;font-size:14px;color:#9fb4ce;margin:-2px 0 10px}
+body.tier-basic #tierleft{display:block}
+#tierleft b{color:#fff}
+.tierup{display:block;width:100%;margin:0 0 12px;padding:13px;border:0;border-radius:12px;background:#f26a21!important;color:#fff!important;font-size:17px;font-weight:800;cursor:pointer}
+#tierleft .tierup{margin-top:8px}
+#freelist{display:none}
+body.tier-free #freelist{display:block}
+#freelist table{width:100%;border-collapse:collapse;background:#17304f;border-radius:10px;overflow:hidden;font-size:15px;color:#fff}
+#freelist th{background:#10233f;color:#fff;text-align:left;padding:9px 8px;font-size:13px;font-weight:700;position:sticky;top:0}
+#freelist td{padding:8px;border-top:1px solid #22406a;color:#fff}
+#freelist td.p{text-align:right;font-weight:700;white-space:nowrap}
+#freelist th.p{text-align:right}
+#freelist .bl{color:#ffd400} #freelist .bt{color:#ff5a4f} #freelist .bp{color:#5aa9ff}
+#freelist .fnote{font-size:13px;color:#9fb4ce;text-align:center;margin:0 0 10px}
+#tierpop .popbox{text-align:center}
+</style>
+<div id="tierpop" class="popwrap" style="display:none" onclick="if(event.target===this)this.style.display='none'">
+  <div class="popbox">
+    <div class="poptitle" id="tierpoptitle">Upgrade</div>
+    <div class="poptext" id="tierpoptext" style="line-height:1.45"></div>
+    <button class="go" style="padding:10px;margin-top:12px" onclick="document.getElementById('tierpop').style.display='none'">OK</button>
+  </div>
+</div>
+<script>
+/* ===== v1.3.47 PLANS: Free / Basic / Pro =====
+   Plan comes from the access script (j.plan). No plan sent = Pro, so everyone keeps the full app.
+   For testing: open the app with ?tier=basic, ?tier=free or ?tier=pro. ?tier=clear goes back to the real plan. */
+(function(){
+  var CONTACT='rdrichardsllc@gmail.com', LIMIT=2;
+  function ls(k,v){ try{ if(v===undefined) return localStorage.getItem(k); if(v===null) localStorage.removeItem(k); else localStorage.setItem(k,v);}catch(e){} return null; }
+  try{ var q=new URLSearchParams(location.search), t=(q.get('tier')||'').toLowerCase();
+    if(t==='clear') ls('fps_tier_test',null); else if(/^(free|basic|pro)$/.test(t)) ls('fps_tier_test',t);
+    if(t){ q.delete('tier'); var r=q.toString(); history.replaceState(history.state,'',location.pathname+(r?'?'+r:'')+location.hash); } }catch(e){}
+  function tier(){ var t=ls('fps_tier_test')||ls('fps_tier')||'pro'; return /^(free|basic|pro)$/.test(t)?t:'pro'; }
+  window.fpsTier=tier;
+  function today(){ var d=new Date(); return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
+  function used(k){ var o=null; try{ o=JSON.parse(ls(k)||'null'); }catch(e){} if(!o||o.d!==today()) o={d:today(),keys:[],n:0}; return o; }
+  function save(k,o){ ls(k,JSON.stringify(o)); }
+  function popup(title,html){ document.getElementById('tierpoptitle').textContent=title; document.getElementById('tierpoptext').innerHTML=html; document.getElementById('tierpop').style.display='flex'; }
+  window.fpsUpgrade=function(){ popup('Upgrade','Upgrading inside the app is coming soon.<br><br>To upgrade now, email<br><a href="mailto:'+CONTACT+'" style="color:#f26a21;font-weight:700">'+CONTACT+'</a>'); };
+  function esc(x){ return String(x).replace(/[&<>"]/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+  /* Basic: routes left today, shown under Find fuel */
+  function leftLine(){
+    var el=document.getElementById('tierleft'); if(!el) return;
+    var o=used('fps_rt_day'), n=Math.max(0,LIMIT-o.keys.length);
+    el.innerHTML=(n?'<b>'+n+' route'+(n===1?'':'s')+' left today</b>':'<b>No routes left today.</b> They reset at midnight.')
+      +'<button type="button" class="tierup" onclick="fpsUpgrade()">Upgrade</button>';
+  }
+
+  /* Free: plain price list, sorted by state, then city */
+  function freeRender(){
+    var box=document.getElementById('freelist'); if(!box||tier()!=='free') return;
+    if(typeof STATIONS==='undefined'||!STATIONS||!STATIONS.length){ box.innerHTML='<button type="button" class="tierup" onclick="fpsUpgrade()">Upgrade</button><p class="fnote">Loading prices…</p>'; return; }
+    var rows=STATIONS.filter(function(r){ var st=String(r[2]||'').toUpperCase().trim(); return st.length===2 && st!=='ON' && +r[6]>0; })
+      .slice().sort(function(a,b){ var x=String(a[2]).localeCompare(String(b[2])); return x||String(a[1]).localeCompare(String(b[1])); });
+    function bc(b){ b=String(b).toLowerCase(); return b.indexOf('love')>=0?'bl':b.indexOf('petro')>=0?'bp':'bt'; }
+    box.innerHTML='<button type="button" class="tierup" onclick="fpsUpgrade()">Upgrade</button>'
+      +'<table><thead><tr><th>State</th><th>City</th><th>Brand</th><th class="p">Price</th></tr></thead><tbody>'
+      +rows.map(function(r){ return '<tr><td>'+esc(String(r[2]).toUpperCase())+'</td><td>'+esc(r[1])+'</td><td class="'+bc(r[0])+'">'+esc(r[0])+'</td><td class="p">$'+(+r[6]).toFixed(3)+'</td></tr>'; }).join('')
+      +'</tbody></table>';
+  }
+
+  function apply(){
+    var t=tier(), b=document.body; if(!b) return;
+    b.classList.toggle('tier-free',t==='free'); b.classList.toggle('tier-basic',t==='basic'); b.classList.toggle('tier-pro',t==='pro');
+    var wrap=document.querySelector('.wrap');
+    if(wrap && !document.getElementById('freelist')){ var f=document.createElement('div'); f.id='freelist'; wrap.insertBefore(f,wrap.firstChild); }
+    var mb=document.getElementById('mainbtns');
+    if(mb && !document.getElementById('tierleft')){ var d=document.createElement('div'); d.id='tierleft'; mb.parentNode.insertBefore(d,mb.nextSibling); }
+    if(t==='basic') leftLine();
+    if(t==='free') freeRender();
+  }
+  window.fpsTierApply=apply;
+
+  function wrapAll(){
+    /* Find fuel: Basic gets 2 different routes a day, point to point only. Rechecking a route (or reversing it) doesn't count. */
+    var ff=window.findFuel;
+    if(typeof ff==='function' && !ff.__tier){
+      var g=function(){
+        var t=tier();
+        if(t==='free'){ fpsUpgrade(); return; }
+        if(t==='basic'){
+          var ins=[].slice.call(document.querySelectorAll('#stops input')).map(function(i){ return i.value.trim(); });
+          var filled=ins.filter(function(x){ return x; });
+          if(filled.length>2){ popup('Point to point only','Routes with stops in between are part of Pro.<br><br>Remove the extra stops to run this route, or upgrade to Pro.'); return; }
+          if(filled.length===1 || filled.length===2){
+            var a=(filled.length===2?filled[0]:HERE).toLowerCase(), z=filled[filled.length-1].toLowerCase();
+            var key=[a,z].sort().join('|'), o=used('fps_rt_day');
+            if(o.keys.indexOf(key)<0){
+              if(o.keys.length>=LIMIT){ popup('Routes used up for today','You\u2019ve used your 2 routes for today. Rechecking a route you already ran doesn\u2019t count.<br><br>Your routes reset at midnight, or upgrade to Pro for unlimited routes.'); leftLine(); return; }
+              o.keys.push(key); save('fps_rt_day',o);
+            }
+            leftLine();
+          }
+        }
+        return ff.apply(this,arguments);
+      };
+      g.__tier=true; window.findFuel=g; try{ findFuel=g; }catch(e){}
+    }
+    /* Find fuel near me: Basic gets 2 a day. Checking the same typed city again doesn't count. */
+    var fn=window.fuelNear;
+    if(typeof fn==='function' && !fn.__tier){
+      var h=function(){
+        var t=tier();
+        if(t==='free'){ fpsUpgrade(); return; }
+        if(t==='basic'){
+          var typed=((document.getElementById('nearcity')||{}).value||'').trim().toLowerCase();
+          var o=used('fps_near_day');
+          if(!(typed && o.keys.indexOf(typed)>=0)){
+            if(o.n>=LIMIT){ try{ closeNear(); }catch(e){} popup('Fuel near me used up for today','You\u2019ve used your 2 Fuel near me checks for today.<br><br>They reset at midnight, or upgrade to Pro for unlimited checks.'); return; }
+            o.n++; if(typed) o.keys.push(typed); save('fps_near_day',o);
+          }
+        }
+        return fn.apply(this,arguments);
+      };
+      h.__tier=true; window.fuelNear=h; try{ fuelNear=h; }catch(e){}
+    }
+    /* keep the free list fresh when new prices arrive */
+    var tk=window.fpsTicker;
+    if(typeof tk==='function' && !tk.__tier){ var k2=function(){ var r=tk.apply(this,arguments); try{ freeRender(); }catch(e){} return r; }; k2.__tier=true; window.fpsTicker=k2; try{ fpsTicker=k2; }catch(e){} }
+  }
+  function start(){ wrapAll(); apply(); setTimeout(apply,1500); }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',start); else start();
+  window.addEventListener('load',function(){ wrapAll(); apply(); });
+  document.addEventListener('visibilitychange',function(){ if(!document.hidden) apply(); });   // new day: Basic counter resets
+})();
 </script>
 </body>
 </html>
