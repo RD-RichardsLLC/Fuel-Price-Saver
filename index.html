@@ -2945,6 +2945,10 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
   { date:'2026-11-01', items:[
+    'Version 1.3.51',
+    '**The All diesel prices header is pinned for real.** The Back button, the title and the search box stay at the top of the screen, and only the list scrolls under them'
+  ]},
+  { date:'2026-11-01', items:[
     'Version 1.3.50',
     '**See all prices stays on the main screen once your routes are used up.** It shows up right after the message about your third route, above Upgrade, and stays until your routes reset at midnight',
     '**Search by state and city together.** Type the state, a space, then the start of the city, like AL C, to see just those stops',
@@ -7233,7 +7237,7 @@ function fcDayClose(){
 </script>
 
 <style>
-/* ===== v1.3.50 PLANS: Free / Basic / Pro (Bob, Nov 1) ===== */
+/* ===== v1.3.51 PLANS: Free / Basic / Pro (Bob, Nov 1) ===== */
 body.tier-basic #pinbar button[onclick="addStop()"],
 body.tier-basic #planrow, body.tier-basic #predbtn, body.tier-basic #toolsbtn,
 body.tier-basic #fcline, body.tier-basic #fptick, body.tier-basic #tktip,
@@ -7261,10 +7265,9 @@ body.tier-basic #tierleft{display:block}
 #allprices .aphd{flex-wrap:nowrap}
 #allprices .aphd h2{flex:none;font-size:17px}
 #allprices .aphd .apsearch{flex:1 1 auto;min-width:0;margin:0;padding:10px;font-size:16px}
-#allprices.show{display:flex!important;flex-direction:column;overflow:hidden}
-#allprices .apin{display:flex;flex-direction:column;height:100%;width:100%;box-sizing:border-box;padding-bottom:0}
-#allprices .aphd{position:static;flex:none}
-#aptable{flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(30px + env(safe-area-inset-bottom))}
+#allprices.show{display:block!important;overflow-y:auto}
+#allprices .aphd{position:fixed!important;top:0;left:0;right:0;z-index:9601;max-width:560px;margin:0 auto;box-sizing:border-box;padding:calc(10px + env(safe-area-inset-top)) 14px 10px!important;background:#0c1a30!important;box-shadow:0 2px 0 #22406a}
+#allprices .apin{padding-top:calc(72px + env(safe-area-inset-top))!important}
 .apnone{display:none;text-align:center;color:#9fb4ce;font-size:15px;padding:16px 0}
 #allprices table,#freelist table{width:100%;border-collapse:collapse;background:#17304f;border-radius:10px;overflow:hidden;font-size:15px;color:#fff}
 #allprices th{background:#10233f;color:#fff;text-align:left;padding:9px 8px;font-size:13px;font-weight:700}
@@ -7291,9 +7294,9 @@ body.tier-free #freelist{display:block}
     <button type="button" class="tierclose" onclick="document.getElementById('tierpop').style.display='none'">Close</button>
   </div>
 </div>
-<div id="allprices" role="dialog" aria-modal="true"><div class="apin"><div class="aphd"><button type="button" onclick="fpsAllClose()">Back</button><h2>All diesel prices</h2></div><input id="apsearch" class="apsearch" type="search" placeholder="Search city or state" autocomplete="off" autocapitalize="words" enterkeyhint="search" oninput="fpsApFilter(this)"><div id="aptable"></div></div></div>
+<div id="allprices" role="dialog" aria-modal="true"><div class="apin"><div class="aphd"><button type="button" onclick="fpsAllClose()">Back</button><h2>All diesel prices</h2><input id="apsearch" class="apsearch" type="search" placeholder="City or state" autocomplete="off" autocapitalize="words" enterkeyhint="search" oninput="fpsApFilter(this)"></div><div id="aptable"></div></div></div>
 <script>
-/* ===== v1.3.50 PLANS: Free / Basic / Pro =====
+/* ===== v1.3.51 PLANS: Free / Basic / Pro =====
    Plan comes from the access script (j.plan). No plan sent = Pro, so everyone keeps the full app.
    For testing: open the app with ?tier=basic, ?tier=free or ?tier=pro. ?tier=clear goes back to the real plan. */
 (function(){
