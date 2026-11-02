@@ -2945,6 +2945,10 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
   { date:'2026-11-02', items:[
+    'Version 1.3.56',
+    '**Behind the scenes: the app now counts taps on the Fuel stop optimizer button**, so we can see how much it gets used. Nothing changes for you'
+  ]},
+  { date:'2026-11-02', items:[
     'Version 1.3.55',
     '**Big update for everyone.** This brings all the newest features to your app: the fuel stop optimizer, the Fuel plan, tomorrow\u2019s price prediction and more',
     '**New plans: Free, Basic and Pro.** Tap Upgrade to see what each plan includes and sign up'
@@ -6411,7 +6415,7 @@ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded'
   function wrap(n,b){ var f=window[n]; if(typeof f!=='function') return; window[n]=function(){ add(b); return f.apply(this,arguments); }; }
   wrap('openWx','weather'); wrap('openDetail','details'); wrap('openServices','services');
   wrap('wxDay','wx2hr'); wrap('wxHourly','wxhourly'); wrap('askNear','near');
-  wrap('tkOpen','ticker'); /* Bob, Oct 26: count ticker state taps */
+  wrap('tkOpen','ticker'); wrap('openFuelPlan','optimize'); /* v1.3.56: count Fuel stop optimizer taps */ /* Bob, Oct 26: count ticker state taps */
   /* Bob, Oct 26: count tomorrow's fuel price taps */
   document.addEventListener('click',function(e){ if(e.target&&e.target.closest&&e.target.closest('#predbtn')) add('predict'); },true);
   document.addEventListener('click',function(e){
