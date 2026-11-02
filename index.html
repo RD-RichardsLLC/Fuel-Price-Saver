@@ -2945,6 +2945,10 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
   { date:'2026-11-02', items:[
+    'Version 1.3.54',
+    '**Details now opens on Basic.** Tap Details on any stop to see showers, parking, food and the rest of its services'
+  ]},
+  { date:'2026-11-02', items:[
     'Version 1.3.53',
     '**Plans: Basic now gets 4 routes a day** instead of 3',
     '**Basic now has the Details button**, so you can see showers, parking and food at every stop',
@@ -7429,7 +7433,7 @@ body.tier-free #freelist{display:block}
     }
     /* Basic: stop details and services are Pro */
     var od=window.openDetail;
-    if(typeof od==='function' && !od.__tier){ var d2=function(){ if(tier()!=='pro'){ popup('Stop details are part of Pro','Basic shows the price and Map for every stop. Upgrade to Pro to see the full details and services at each stop.<button type="button" class="tierup" onclick="fpsUpgrade()">Upgrade</button>'); return; } return od.apply(this,arguments); }; d2.__tier=true; window.openDetail=d2; try{ openDetail=d2; }catch(e){} }
+    if(typeof od==='function' && !od.__tier){ var d2=function(){ if(tier()==='free'){ popup('Stop details are part of Basic and Pro','Upgrade to Basic or Pro to see the full details and services at each stop.<button type="button" class="tierup" onclick="fpsUpgrade()">Upgrade</button>'); return; } return od.apply(this,arguments); }; d2.__tier=true; window.openDetail=d2; try{ openDetail=d2; }catch(e){} }
     /* keep the free list fresh when new prices arrive */
     var tk=window.fpsTicker;
     if(typeof tk==='function' && !tk.__tier){ var k2=function(){ var r=tk.apply(this,arguments); try{ freeRender(); }catch(e){} return r; }; k2.__tier=true; window.fpsTicker=k2; try{ fpsTicker=k2; }catch(e){} }
