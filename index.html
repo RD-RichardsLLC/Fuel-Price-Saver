@@ -61,6 +61,15 @@
   /* Bob, Oct 26: no prediction button at all while tomorrow's prediction isn't ready */
   #predbtn.fcwait{display:none!important}
     .bbload{display:none} body.from-load .bbload{display:inline}
+  .stpickbtn{display:inline-block;padding:3px 10px;border:1.5px solid #f26a21;border-radius:8px;background:#10233f;color:#fff;cursor:pointer}
+  #sppop{position:fixed;inset:0;z-index:9600;display:none;background:#0c1a30;color:#e8eef6;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 12px 40px}
+  #sppop.show{display:block}
+  #sppop .sphd{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  #sppop .sphd h2{font-size:18px;margin:0;flex:1}
+  #sppop .sphd button{padding:9px 14px;border-radius:9px;border:1.5px solid #4f7bb0;background:#1d3a5e;color:#fff;font-size:15px}
+  #sppop select{display:block;width:100%;margin:0 0 8px;padding:12px;font-size:16px;border-radius:10px;border:1.5px solid #4f7bb0;background:#10233f;color:#fff}
+  #sppop #spsub{color:#9fb4ce;font-size:14px;margin:4px 0 10px}
+  #sppop .card{margin-bottom:10px}
   #tkpop{position:fixed;inset:0;z-index:9600;display:none;background:#0c1a30;color:#e8eef6;overflow-y:auto;-webkit-overflow-scrolling:touch}
   #tkpop.show{display:block}
   #tkpop .tkin{max-width:560px;margin:0 auto;padding:calc(12px + env(safe-area-inset-top)) 14px calc(30px + env(safe-area-inset-bottom))}
@@ -762,7 +771,7 @@
   function ask(n, quiet){
     fetch(ACCESS_URL+'?code='+encodeURIComponent(code)+'&dev='+encodeURIComponent(dev),{cache:'no-store'})
       .then(function(r){ ls('fps_dbg',(ls('fps_dbg')||'')+' | try '+n+': got reply '+r.status); return r.json(); })
-      .then(function(j){ ls('fps_dbg',(ls('fps_dbg')||'')+' | read: '+JSON.stringify(j)); if(j&&j.ok){ ls('fps_ok','1'); trusted=true; lift(); if(!('fuellog' in j) && n<10){ ls('fps_dbg',(ls('fps_dbg')||'')+' | no fuel log, asking again'); setTimeout(function(){ ask(n+1,true); },3000); return; } if(j.plan){ ls('fps_tier',String(j.plan).toLowerCase()); if(window.fpsTierApply) window.fpsTierApply(); } flSet(j); ls('fps_dbg',(ls('fps_dbg')||'')+' | saved '+ls('fps_fl')); } else if(!quiet) deny(); })
+      .then(function(j){ ls('fps_dbg',(ls('fps_dbg')||'')+' | read: '+JSON.stringify(j)); if(j&&j.ok){ ls('fps_ok','1'); trusted=true; lift(); if(!('fuellog' in j) && n<10){ ls('fps_dbg',(ls('fps_dbg')||'')+' | no fuel log, asking again'); setTimeout(function(){ ask(n+1,true); },3000); return; } if(j.plan){ ls('fps_tier',String(j.plan).toLowerCase()); ls('fps_comp',j.comp?'1':'0'); if(window.fpsTierApply) window.fpsTierApply(); } flSet(j); ls('fps_dbg',(ls('fps_dbg')||'')+' | saved '+ls('fps_fl')); } else if(!quiet) deny(); })
       .catch(function(e){ ls('fps_dbg',(ls('fps_dbg')||'')+' | try '+n+' FAILED: '+e);
         if(n<10){ setTimeout(function(){ ask(n+1, quiet); }, 3000); return; }
         // no answer (no signal, Google busy): a phone already approved keeps running; a new phone waits
@@ -861,6 +870,9 @@
       <div id="predrow" onclick="closeSettings();openFc()" style="margin-top:16px;padding:12px;border-radius:10px;background:#1d3a5e;cursor:pointer;display:none;align-items:center">
         <span><b>Tomorrow's prediction</b><small style="display:block;color:#9fb4ce;margin-top:2px">What we expect fuel to do tomorrow</small></span>
       </div>
+      <div id="upgrow" onclick="closeSettings();fpsUpgrade()" style="margin-top:16px;padding:12px;border-radius:10px;background:#f26a21;cursor:pointer;display:none;align-items:center">
+        <span><b>See plans and upgrade</b><small style="display:block;color:#fff;opacity:.9;margin-top:2px">Basic and Pro, monthly, cancel any time</small></span>
+        <span style="margin-left:auto;color:#fff;font-size:20px">&rsaquo;</span></div>
       <div id="histrow" onclick="closeSettings();openNews()" style="margin-top:16px;padding:12px;border-radius:10px;background:#1d3a5e;cursor:pointer;display:flex;align-items:center">
         <span><b>History of changes</b><small style="display:block;color:#9fb4ce;margin-top:2px">Everything that's been updated, newest first</small></span>
         <span style="margin-left:auto;color:var(--orange);font-size:20px">&rsaquo;</span></div>
@@ -1693,6 +1705,9 @@ function rankVal(h){ return RANKBY==='disc' ? h.disc : h.pre; }
 function rankWord(){ return RANKBY==='disc' ? 'Discounted price' : 'Pre-tax price'; }
 function openSettings(){ try{buildAmenPick();}catch(e){}
   document.querySelectorAll('input[name=rankby]').forEach(r=>r.checked=(r.value===RANKBY));
+  try{ var t=(window.fpsTier?fpsTier():'pro'), comp=localStorage.getItem('fps_comp')==='1', up=document.getElementById('upgrow');
+    if(up) up.style.display=(t!=='pro' && !comp)?'flex':'none';   /* v1.3.58: Upgrade only in Settings, only after the trial, never for comps */
+    document.body.classList.toggle('fpscomp',comp); }catch(e){}
   document.getElementById('setpop').style.display='flex';
 }
 function closeSettings(){ document.getElementById('setpop').style.display='none'; }
@@ -2506,10 +2521,10 @@ function render(hits){
     const LB=legBits(key);
     h+='<div class="stgrp" id="stg_'+key+'">';
     if(multi){
-      h+='<button class="sthead'+LB[0]+'" aria-expanded="false" onclick="toggleState(\''+key+'\')">'+LB[1]+'<span class="stname"><b>'+(NAMES[st]||st)+'</b><small>'+idx.length+' stops</small></span>'+LB[2]
+      h+='<button class="sthead'+LB[0]+'" aria-expanded="false" onclick="toggleState(\''+key+'\')">'+LB[1]+'<span class="stname"><b>'+stBtn(st,NAMES[st]||st)+'</b><small>'+idx.length+' stops</small></span>'+LB[2]
         +'<span class="stx" aria-label="Show stops"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path fill=\"currentColor\" d=\"M12 3a1.2 1.2 0 0 1 1.2 1.2v12.3l4.0-4.0a1.2 1.2 0 1 1 1.7 1.7l-6.0 6.05a1.2 1.2 0 0 1-1.7 0l-6.05-6.05a1.2 1.2 0 1 1 1.7-1.7l4.05 4.0V4.2A1.2 1.2 0 0 1 12 3z\"/></svg></span></button>';
     } else {
-      h+='<div class="sthead'+LB[0]+'">'+LB[1]+'<span class="stname"><b>'+(NAMES[st]||st)+'</b><small>1 stop</small></span>'+LB[2]+'</div>';
+      h+='<div class="sthead'+LB[0]+'">'+LB[1]+'<span class="stname"><b>'+stBtn(st,NAMES[st]||st)+'</b><small>1 stop</small></span>'+LB[2]+'</div>';
     }
     idx.forEach((i,k)=>{
     if(k===1) h+='<div class="stmore">';
@@ -2723,6 +2738,72 @@ function wxHourly(k){
 }
 function closeWxHr(){ const el=document.getElementById('wxhr'); if(el) el.classList.remove('on'); }
 function closeWx(){ closeWxHr(); const pop=document.getElementById('wxpop'); if(pop) pop.classList.remove('on'); }
+
+/* ===== v1.3.64 (Pro): tap a state on Find fuel results -> filter that state's stops by interstate, then services ===== */
+function stBtn(st,name){
+  var pro=true; try{ pro=(window.fpsTier?fpsTier():'pro')==='pro'; }catch(e){}
+  if(!pro) return esc(name);
+  return '<span class="stpickbtn" role="button" tabindex="0" onclick="event.stopPropagation();stPick(\''+st+'\')">'+esc(name)+' <span style="font-size:12px">&#9662;</span></span>';
+}
+var SP_ST='', SP_ALL=[];
+function stPick(st){
+  try{
+    SP_ST=st;
+    SP_ALL=(LASTHITS||[]).map(function(s,i){ return {s:s,i:i}; }).filter(function(o){ return o.s.st===st; }).map(function(o){
+      var inf=null, ir=[]; try{ inf=stopInfo(o.s); if(inf&&inf.exit) ir=parseRoads(inf.exit).roads.filter(function(x){return x.k==='I';}).map(function(x){return 'I-'+x.n;}); }catch(e){}
+      o.inf=inf; o.ir=ir; return o; });
+    var cnt={}; SP_ALL.forEach(function(o){ o.ir.forEach(function(k){ cnt[k]=(cnt[k]||0)+1; }); });
+    var ks=Object.keys(cnt).sort(function(a,b){ return (+a.slice(2))-(+b.slice(2)); });
+    var p=document.getElementById('sppop');
+    if(!p){ p=document.createElement('div'); p.id='sppop'; document.body.appendChild(p); }
+    var NAMES={}; try{ for(var k in STATES) NAMES[STATES[k]]=k; }catch(e){}
+    p.innerHTML='<div class="sphd"><button type="button" onclick="stPickClose()">Back</button><h2>'+esc(NAMES[st]||st)+' stops on your route</h2></div>'
+      +'<select id="spif" onchange="spSvcSync();spFilter()">'+'<option value="">All interstates</option>'+ks.map(function(k){ return '<option value="'+k+'">'+k+' ('+cnt[k]+' stop'+(cnt[k]===1?'':'s')+')</option>'; }).join('')+'</select>'
+      +'<select id="spsv" onchange="spFilter()" hidden></select>'
+      +'<p id="spsub"></p><div id="spbody"></div>';
+    spSvcSync(); spFilter();
+    p.scrollTop=0; p.classList.add('show'); document.documentElement.style.overflow='hidden'; document.body.style.overflow='hidden';
+    try{ history.pushState({sp:1},''); }catch(e){}
+  }catch(e){}
+}
+function spHas(o,k){ var d=AMEN_DEFS[k]; return !!(d&&o.inf&&d.get(o.inf)); }
+function spSvcSync(){
+  var f=document.getElementById('spif').value, sv=document.getElementById('spsv');
+  sv.innerHTML=''; sv.value='';
+  if(!f){ sv.hidden=true; return; }
+  var L=SP_ALL.filter(function(o){ return o.ir.indexOf(f)>=0; });
+  var ks=AMEN_ORDER.filter(function(k){ return L.some(function(o){ return spHas(o,k); }); });
+  sv.innerHTML='<option value="">All services</option>'+ks.map(function(k){ var n=L.filter(function(o){ return spHas(o,k); }).length;
+    return '<option value="'+k+'">'+esc(AMEN_DEFS[k].label)+' ('+n+' stop'+(n===1?'':'s')+')</option>'; }).join('');
+  sv.hidden=!ks.length;
+}
+function spFilter(){
+  var f=document.getElementById('spif').value, sv=document.getElementById('spsv'), v=(f&&!sv.hidden)?sv.value:'';
+  var L=SP_ALL.filter(function(o){ return (!f||o.ir.indexOf(f)>=0) && (!v||spHas(o,v)); });
+  var dOn=RANKBY==='disc';
+  document.getElementById('spsub').textContent=L.length+' stop'+(L.length===1?'':'s')+(f?' on '+f:'')+(v?' with '+AMEN_DEFS[v].label:'');
+  document.getElementById('spbody').innerHTML=L.length?L.map(function(o,n){ var x=o.s, bc=brandClass(x.b);
+    return '<div class="card '+bc+'"><div class="cardhead"><b>'+(n+1)+'.</b><span class="brandtag '+bc+'">'+esc(x.b)+'</span> <span class="cardtown">'+esc(x.c)+'</span></div>'
+      +roadsHTML(x,22)
+      +'<div class="priceline pricerow"><span class="onep"><span class="plabel">'+(dOn?'Discounted price':'Pre-tax price')+'</span> <span class="pval">$'+fmt(dOn?x.disc:x.pre)+'</span></span>'
+      +'<span class="cardbtns"><button class="seebtn" type="button" onclick="stPickClose(1);enterScreen();openDetail('+o.i+')">Details</button></span></div></div>'; }).join('')
+    :'<p style="color:#9fb4ce;text-align:center">No stops match. Try another interstate or service.</p>';
+}
+function stPickClose(quiet){
+  var p=document.getElementById('sppop'); if(!p||!p.classList.contains('show')) return;
+  p.classList.remove('show'); document.documentElement.style.overflow=''; document.body.style.overflow='';
+  if(!quiet){ try{ if(history.state&&history.state.sp) history.back(); }catch(e){} }
+}
+window.addEventListener('popstate',function(){ var p=document.getElementById('sppop'); if(p&&p.classList.contains('show')){ p.classList.remove('show'); document.documentElement.style.overflow=''; document.body.style.overflow=''; } });
+
+
+/* v1.3.65: pin State lookup just under the app's sticky title bar */
+function flHdr(){ try{ var box=document.getElementById('freelist'), h=document.querySelector('header'); if(!box||!h) return;
+  var st=getComputedStyle(h).position, ht=(st==='sticky'||st==='fixed')?h.offsetHeight:0; box.style.setProperty('--flhdr',ht+'px');
+  var fb=document.getElementById('flbar'); if(fb) box.style.setProperty('--flbar',fb.offsetHeight+'px'); }catch(e){} }
+window.addEventListener('resize',flHdr); window.addEventListener('scroll',function(){ if(!window.__flh){ window.__flh=1; requestAnimationFrame(function(){ window.__flh=0; flHdr(); }); } },{passive:true});
+setInterval(flHdr,1500);
+
 function toggleState(st){
   const g=document.getElementById('stg_'+st); if(!g) return;
   const open=g.classList.toggle('open');
@@ -2944,6 +3025,70 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    To ship an update: add a new block at the TOP of CHANGELOG with the date and the lines.
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
+  { date:'2026-11-03', items:[
+    'Version 1.3.70',
+    '**The fuel gauge is easier to read.** The filled part of the gauge is a brighter orange, and the drag instructions now sit under the gauge on two short lines',
+    '**The gallon boxes are side by side.** Fuel now on the left, End of trip on the right, right under the gauge'
+  ]},
+  { date:'2026-11-03', items:[
+    'Version 1.3.69',
+    '**New fuel gauge in the Fuel stop optimizer.** Drag the orange knob to the fuel you have now and the green knob to what you want left at the end of your trip, just like the gauge on your dash. Or type the gallons in the boxes'
+  ]},
+  { date:'2026-11-03', items:[
+    'Version 1.3.67',
+    '**The price list header is now its own bar right under the Fuel Price Saver title.** State lookup, Upgrade and the column labels stay locked at the top while you scroll'
+  ]},
+  { date:'2026-11-03', items:[
+    'Version 1.3.66',
+    '**State lookup, Upgrade and the column labels now sit in a second header that never scrolls away**, no matter how long the price list is'
+  ]},
+  { date:'2026-11-03', items:[
+    'Version 1.3.65',
+    '**State lookup now stays put** just under the title bar while you scroll the price list'
+  ]},
+  { date:'2026-11-03', items:[
+    'Version 1.3.64',
+    '**Tap a state name in your fuel stops to filter it.** Pick an interstate, then a service like showers or parking, and see just the stops that match, each with a Details button (Pro)'
+  ]},
+  { date:'2026-11-03', items:[
+    'Version 1.3.63',
+    '**State lookup and Upgrade now stay at the top** while you scroll the price list'
+  ]},
+  { date:'2026-11-03', items:[
+    'Version 1.3.62',
+    '**The price list now shows both prices.** Your discount price in green, the pump retail price in red, so you can see what you save'
+  ]},
+  { date:'2026-11-03', items:[
+    'Version 1.3.61',
+    '**State lookup is now half width, with an Upgrade button beside it** on the price list'
+  ]},
+  { date:'2026-11-03', items:[
+    'Version 1.3.60',
+    '**State lookup box on the price list.** Type a state name or its two letters, like Missouri or MO, at the top of the list to see just that state'
+  ]},
+  { date:'2026-11-03', items:[
+    'Version 1.3.59',
+    '**The price list search is now State lookup.** Type a state name or its two letters, like Missouri or MO, to see every stop in that state'
+  ]},
+  { date:'2026-11-03', items:[
+    'Version 1.3.58',
+    '**The Upgrade button moved to Settings.** Tap the gear and choose See plans and upgrade',
+    '**The plans page opens faster and more reliably.** It now lives on the Fuel Price Saver site'
+  ]},
+  { date:'2026-11-03', items:[
+    'Version 1.3.57',
+    '**Basic now has unlimited routes.** Run as many point-to-point routes as you need, no daily count',
+    '**Signing up is easier.** When you tap Upgrade and pick a plan, your account is matched to your payment automatically'
+  ]},
+  { date:'2026-11-02', items:[
+    'Version 1.3.56',
+    '**Behind the scenes: the app now counts taps on the Fuel stop optimizer button**, so we can see how much it gets used. Nothing changes for you'
+  ]},
+  { date:'2026-11-02', items:[
+    'Version 1.3.55',
+    '**Big update for everyone.** This brings all the newest features to your app: the fuel stop optimizer, the Fuel plan, tomorrow\u2019s price prediction and more',
+    '**New plans: Free, Basic and Pro.** Tap Upgrade to see what each plan includes and sign up'
+  ]},
   { date:'2026-11-02', items:[
     'Version 1.3.54',
     '**Details now opens on Basic.** Tap Details on any stop to see showers, parking, food and the rest of its services'
@@ -6406,7 +6551,7 @@ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded'
   function wrap(n,b){ var f=window[n]; if(typeof f!=='function') return; window[n]=function(){ add(b); return f.apply(this,arguments); }; }
   wrap('openWx','weather'); wrap('openDetail','details'); wrap('openServices','services');
   wrap('wxDay','wx2hr'); wrap('wxHourly','wxhourly'); wrap('askNear','near');
-  wrap('tkOpen','ticker'); /* Bob, Oct 26: count ticker state taps */
+  wrap('tkOpen','ticker'); wrap('openFuelPlan','optimize'); /* v1.3.56: count Fuel stop optimizer taps */ /* Bob, Oct 26: count ticker state taps */
   /* Bob, Oct 26: count tomorrow's fuel price taps */
   document.addEventListener('click',function(e){ if(e.target&&e.target.closest&&e.target.closest('#predbtn')) add('predict'); },true);
   document.addEventListener('click',function(e){
@@ -6852,6 +6997,53 @@ function fqEnd(f){
   document.getElementById('fqend').value=f?Math.round(tk*f):(+t.res||25); document.getElementById('fqerr').textContent='';
 }
 function fqClose(){ document.getElementById('fqpop').classList.remove('show'); }
+
+/* ===== v1.3.68: two-needle fuel gauge in the Fuel plan questions. Orange = fuel now (grab the knob), green = end of trip (grab anywhere inside) ===== */
+var FG={v:0.5,w:0.25,drag:0,ok:false};
+function fgTank(){ var t=getTruck()||TRUCK_DEF, f=parseFloat((document.getElementById('fqtank')||{}).value); return (f>=20&&f<=400)?f:(+t.tank||200); }
+function fgSet(id,a,b,c,d){ var e=document.getElementById(id); if(!e) return; e.setAttribute('x1',a.toFixed(1)); e.setAttribute('y1',b.toFixed(1)); e.setAttribute('x2',c.toFixed(1)); e.setAttribute('y2',d.toFixed(1)); }
+function fgPt(x,r){ var a=Math.PI*(1-x); return [160+r*Math.cos(a),170-r*Math.sin(a),Math.cos(a),Math.sin(a)]; }
+function fgName(x){ var N=['Empty','1/8','1/4','3/8','1/2','5/8','3/4','7/8','Full'], n=Math.round(x*8); return Math.abs(x*8-n)<0.15?(n===0?'Empty':n===8?'Full':N[n]+' tank'):(Math.floor(x*8)===0?'Under 1/8':N[Math.floor(x*8)]+'+'); }
+function fgDraw(src){
+  if(!document.getElementById('fgsvg')) return;
+  var T=fgTank(), p=fgPt(FG.v,136), c=p[2], s=p[3];
+  fgSet('fgnd',160,170,160+119*c,170-119*s);
+  var kc=document.getElementById('fgkc'); kc.setAttribute('cx',p[0].toFixed(1)); kc.setAttribute('cy',p[1].toFixed(1));
+  [-6,0,6].forEach(function(o,j){ var bx=p[0]+o*c, by=p[1]-o*s; fgSet('fgk'+(j+1),bx+7*s,by+7*c,bx-7*s,by-7*c); });
+  var q=fgPt(FG.v,100); document.getElementById('fgarc').setAttribute('d',FG.v<0.005?'':'M60 170 A100 100 0 0 1 '+q[0].toFixed(1)+' '+q[1].toFixed(1));
+  var g=fgPt(FG.w,100); fgSet('fggn',160,170,g[0],g[1]); var gk=document.getElementById('fggk'); gk.setAttribute('cx',g[0].toFixed(1)); gk.setAttribute('cy',g[1].toFixed(1));
+  document.getElementById('fgnow').textContent=fgName(FG.v); document.getElementById('fgend').textContent=fgName(FG.w);
+  if(src!==1) document.getElementById('fqnow').value=Math.round(FG.v*T);
+  if(src!==2) document.getElementById('fqend').value=Math.round(FG.w*T);
+  var e=document.getElementById('fqerr'); if(e && src!==1 && src!==2) e.textContent='';
+}
+function fgInit(){
+  var svg=document.getElementById('fgsvg'); if(!svg) return;
+  if(!FG.ok){ FG.ok=true;
+    var lab={2:'1/4',4:'1/2',6:'3/4'}, h='';
+    for(var i=1;i<8;i++){ var a=Math.PI*(1-i/8), maj=!(i%2), r2=maj?64:72;
+      h+='<line x1="'+(160+82*Math.cos(a))+'" y1="'+(170-82*Math.sin(a))+'" x2="'+(160+r2*Math.cos(a))+'" y2="'+(170-r2*Math.sin(a))+'" stroke="'+(maj?'#c9d6e6':'#4f7bb0')+'" stroke-width="'+(maj?3:2)+'"/>';
+      if(lab[i]) h+='<text x="'+(160+48*Math.cos(a)).toFixed(1)+'" y="'+(170-48*Math.sin(a)+5).toFixed(1)+'" fill="#c9d6e6" font-size="14" font-weight="700" text-anchor="middle">'+lab[i]+'</text>'; }
+    document.getElementById('fgticks').innerHTML=h;
+    function at(e){ var b=svg.getBoundingClientRect(), px=(e.clientX-b.left)*320/b.width, py=(e.clientY-b.top)*200/b.height, a=Math.atan2(170-py,px-160);
+      if(a<0) a=px<160?Math.PI:0; return {x:Math.min(1,Math.max(0,1-a/Math.PI)),px:px,py:py}; }
+    svg.addEventListener('pointerdown',function(e){ var r=at(e), k=fgPt(FG.v,136);
+      FG.drag=(Math.hypot(r.px-k[0],r.py-k[1])<30)?1:(Math.hypot(r.px-160,r.py-170)>118?0:2);
+      if(!FG.drag) return; try{ svg.setPointerCapture(e.pointerId); }catch(x){} if(FG.drag===1) FG.v=r.x; else FG.w=r.x; fgDraw(); });
+    svg.addEventListener('pointermove',function(e){ if(!FG.drag) return; var r=at(e); if(FG.drag===1) FG.v=r.x; else FG.w=r.x; fgDraw(); });
+    svg.addEventListener('pointerup',function(){ FG.drag=0; }); svg.addEventListener('pointercancel',function(){ FG.drag=0; });
+    document.getElementById('fqnow').addEventListener('input',function(){ var x=parseFloat(this.value), T=fgTank(); if(x>=0){ FG.v=Math.min(1,x/T); fgDraw(1); } });
+    document.getElementById('fqend').addEventListener('input',function(){ var x=parseFloat(this.value), T=fgTank(); if(x>=0){ FG.w=Math.min(1,x/T); fgDraw(2); } });
+    var tk=document.getElementById('fqtank'); if(tk) tk.addEventListener('input',function(){ fgDraw(); });
+  }
+  var t=getTruck()||TRUCK_DEF, T=fgTank();
+  FG.v=(t.lastnow>=0&&t.lastnow!=='')?Math.min(1,t.lastnow/T):0.5;
+  var ev=parseFloat(document.getElementById('fqend').value); FG.w=(ev>=0)?Math.min(1,ev/T):0.25;
+  fgDraw();
+}
+(function(){ var o=window.openFuelPlan; if(typeof o!=='function') return;
+  openFuelPlan=function(){ var r=o.apply(this,arguments); try{ if(document.getElementById('fqpop').classList.contains('show')) fgInit(); }catch(e){} return r; }; window.openFuelPlan=openFuelPlan; })();
+
 function fpOpenReal(){
   var t=getTruck()||TRUCK_DEF, sel=document.getElementById('fplvl');
   if(!sel.options.length) NF_LVLS.forEach(function(v){ var o=document.createElement('option'); o.value=v[0]; o.textContent=v[1]; sel.appendChild(o); });
@@ -7046,6 +7238,8 @@ FPS_TIPCUR=null;document.getElementById('fpstip').classList.remove('show');}
 #fqpop label{display:block;margin:10px 0 4px;color:#9fb4ce;font-size:16px}
 #fqpop input{width:100%;box-sizing:border-box;padding:11px;font-size:19px;border-radius:9px;border:1px solid #4f7bb0;background:#1d3a5e;color:#e8eef6}
 #fqpop .row{display:flex;gap:10px;margin-top:16px}
+#fqpop input.fqg{display:inline-block;width:76px;padding:0;height:36px;text-align:center;font-size:19px;background:#0c1a30;-moz-appearance:textfield}
+#fqpop input.fqg::-webkit-outer-spin-button,#fqpop input.fqg::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 #fqpop button{flex:1;padding:12px;border:0;border-radius:10px;font-size:18px;font-weight:700}
 #fqfr button,#fqer button{flex:1;padding:10px 0;border:1px solid #4f7bb0;border-radius:9px;background:#1d3a5e;color:#e8eef6;font-size:18px;font-weight:700}
 #fqerr{color:#e25a4f;font-size:15px;min-height:18px;margin-top:8px}
@@ -7054,11 +7248,24 @@ FPS_TIPCUR=null;document.getElementById('fpstip').classList.remove('show');}
 <div id="fqfirst"><div style="color:#9fb4ce;font-size:15px">First time only. These save to Your truck.</div>
 <label for="fqtank">Tank size (gallons, both tanks)</label><input id="fqtank" type="number" inputmode="decimal">
 <label for="fqmpg">Miles per gallon</label><input id="fqmpg" type="number" inputmode="decimal" step="0.1"></div>
-<label for="fqnow">How many gallons do you have now?</label>
-<div id="fqfr" style="display:flex;gap:6px;margin-bottom:8px"><button type="button" onclick="fqFr(.125)">&#8539;</button><button type="button" onclick="fqFr(.25)">&frac14;</button><button type="button" onclick="fqFr(.5)">&frac12;</button><button type="button" onclick="fqFr(.75)">&frac34;</button><button type="button" onclick="fqFr(1)">Full</button></div><input id="fqnow" type="number" inputmode="decimal">
-<label for="fqend">How much fuel do you want in your tank when you arrive?</label>
-<div style="color:#9fb4ce;font-size:14px;margin:-2px 0 6px">Not every delivery has a fuel stop next door.</div>
-<div id="fqer" style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap"><button type="button" onclick="fqEnd(0)" style="flex:2;font-size:15px">Just my reserve</button><button type="button" onclick="fqEnd(.25)">&frac14;</button><button type="button" onclick="fqEnd(.5)">&frac12;</button><button type="button" onclick="fqEnd(.75)">&frac34;</button><button type="button" onclick="fqEnd(1)">Full</button></div><input id="fqend" type="number" inputmode="decimal">
+<div id="fggauge" style="margin:6px 0 2px">
+<svg id="fgsvg" viewBox="0 0 320 200" style="width:100%;max-width:360px;display:block;margin:0 auto;touch-action:none;cursor:pointer" role="img" aria-label="Fuel gauge">
+<path d="M60 170 A100 100 0 0 1 260 170" fill="none" stroke="#33557d" stroke-width="24" stroke-linecap="round"/>
+<path id="fgarc" d="" fill="none" stroke="#f79a5e" stroke-width="24" stroke-linecap="round"/>
+<g id="fgticks"></g>
+<text x="40" y="194" fill="#ff6b6b" font-size="18" font-weight="700" text-anchor="middle">E</text>
+<text x="280" y="194" fill="#3ab54a" font-size="18" font-weight="700" text-anchor="middle">F</text>
+<line id="fggn" stroke="#3ab54a" stroke-width="4" stroke-linecap="round"/>
+<line id="fgnd" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
+<circle cx="160" cy="170" r="10" fill="#fff"/>
+<circle id="fggk" r="13" fill="#3ab54a" stroke="#fff" stroke-width="3"/>
+<circle id="fgkc" r="17" fill="#f26a21" stroke="#fff" stroke-width="3"/>
+<line id="fgk1" stroke="#fff" stroke-width="2" stroke-linecap="round"/><line id="fgk2" stroke="#fff" stroke-width="2" stroke-linecap="round"/><line id="fgk3" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+</svg>
+<div style="display:flex;justify-content:space-around;font-size:15px;font-weight:700;margin-top:2px"><span style="color:#ffb070">Now: <span id="fgnow">-</span></span><span style="color:#7fe08f">End of trip: <span id="fgend">-</span></span></div>
+<div style="color:#9fb4ce;font-size:14px;text-align:center;line-height:1.4;margin:6px 0 4px"><div style="white-space:nowrap">Drag the <b style="color:#f26a21">orange knob</b> to your fuel now</div><div style="white-space:nowrap">and the <b style="color:#3ab54a">green knob</b> to your end-of-trip fuel</div></div></div>
+<div id="fqgal" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><div style="background:#10233f;border:1.5px solid #f26a21;border-radius:10px;padding:6px 6px 8px;text-align:center"><label for="fqnow" style="color:#ffb070;font-size:13px;font-weight:700;margin:0 0 4px">Fuel now</label><input id="fqnow" class="fqg" type="number" inputmode="decimal"> <span style="font-size:13px;color:#9fb4ce">gal</span></div><div style="background:#10233f;border:1.5px solid #3ab54a;border-radius:10px;padding:6px 6px 8px;text-align:center"><label for="fqend" style="color:#7fe08f;font-size:13px;font-weight:700;margin:0 0 4px">End of trip, at least</label><input id="fqend" class="fqg" type="number" inputmode="decimal"> <span style="font-size:13px;color:#9fb4ce">gal</span></div></div><div style="color:#9fb4ce;font-size:13px;text-align:center;margin:8px 0 2px">Not every delivery has a fuel stop next door.</div>
+<div id="fqfr" style="display:none;gap:6px;margin-bottom:8px"><button type="button" onclick="fqFr(.125)">&#8539;</button><button type="button" onclick="fqFr(.25)">&frac14;</button><button type="button" onclick="fqFr(.5)">&frac12;</button><button type="button" onclick="fqFr(.75)">&frac34;</button><button type="button" onclick="fqFr(1)">Full</button></div><div id="fqer" style="display:none;gap:6px;margin-bottom:8px;flex-wrap:wrap"><button type="button" onclick="fqEnd(0)" style="flex:2;font-size:15px">Just my reserve</button><button type="button" onclick="fqEnd(.25)">&frac14;</button><button type="button" onclick="fqEnd(.5)">&frac12;</button><button type="button" onclick="fqEnd(.75)">&frac34;</button><button type="button" onclick="fqEnd(1)">Full</button></div>
 <div id="fqerr"></div>
 <div class="row"><button style="background:#2b4a70;color:#e8eef6" onclick="fqClose()">Cancel</button><button style="background:#f26a21;color:#fff" onclick="fqGo()">Go</button></div></div></div>
 <script>
@@ -7263,6 +7470,7 @@ body.tier-free .wrap > #mainbtns, body.tier-free .wrap > #opthint, body.tier-fre
 #tierleft{display:none;text-align:center;font-size:14px;color:#9fb4ce;margin:-2px 0 10px}
 body.tier-basic #tierleft{display:block}
 #tierleft b{color:#fff}
+.fpscomp .tierup{display:none!important}
 .tierup{display:block;width:100%;margin:0 0 12px;padding:13px;border:0;border-radius:12px;background:#f26a21!important;color:#fff!important;font-size:17px;font-weight:800;cursor:pointer}
 #tierleft .tierup{margin-top:8px}
 .tierall{display:block;width:100%;margin:8px 0 0;padding:12px;border:1.5px solid #f26a21!important;border-radius:12px;background:#17304f!important;color:#fff!important;font-size:16px;font-weight:700;cursor:pointer}
@@ -7291,11 +7499,23 @@ body.tier-basic #tierleft{display:block}
 #allprices th.p{text-align:right}
 #allprices tbody tr.alt td,#freelist tbody tr.alt td{background:#1f3d63}
 #allprices .bl{color:#ffd400} #allprices .bt{color:#2f9be8} #allprices .bp{color:#3ab54a}
+#flhead{display:none;position:sticky;top:var(--hdrh,0px);z-index:49;background:var(--navy,#0c1a30);padding:8px 16px 0;text-align:left}
+#flhead>div{max-width:528px;margin-left:auto;margin-right:auto}
+body.tier-free:not(.on-results):not(.on-plan):not(.on-tools):not(.on-svc):not(.on-news):not(.on-detail):not(.on-trip):not(.on-vspec):not(.on-vspec2):not(.on-flog) #flhead{display:block}
+#flhead .flrow1{display:flex;gap:8px}
+#flhead input{flex:1 1 50%;min-width:0;width:50%;margin:0;padding:12px;border-radius:10px;border:1.5px solid #4f7bb0;background:#10233f;color:#fff;font-size:16px}
+#flhead .tierup{flex:1 1 50%;width:50%;margin:0;padding:12px}
+#flhead .flcols{display:grid;grid-template-columns:12% 33% 19% 18% 18%;margin-top:8px;background:#10233f;border-radius:10px 10px 0 0;font-size:13px;font-weight:700;color:#fff}
+#flhead .flcols span{padding:9px 5px}#flhead .flcols .p{text-align:right}
+#freelist thead{display:none}
+#freelist table{table-layout:fixed}
+#freelist td:nth-child(1){width:12%}#freelist td:nth-child(2){width:33%;overflow-wrap:anywhere}#freelist td:nth-child(3){width:19%;overflow-wrap:anywhere}#freelist td:nth-child(4),#freelist td:nth-child(5){width:18%;font-size:14px}
 #freelist{display:none}
 body.tier-free #freelist{display:block}
 #freelist table{width:100%;border-collapse:collapse;background:#17304f;border-radius:10px;overflow:hidden;font-size:15px;color:#fff}
-#freelist th{background:#10233f;color:#fff;text-align:left;padding:9px 8px;font-size:13px;font-weight:700;position:sticky;top:0}
-#freelist td{padding:9px 8px;border-top:2px solid #4f7bb0;color:#fff}
+#freelist th{background:#10233f;color:#fff;text-align:left;padding:9px 8px;font-size:13px;font-weight:700;position:sticky;top:calc(var(--flhdr,0px) + var(--flbar,64px));z-index:44}
+#freelist table{overflow:visible!important}
+#freelist td{padding:9px 5px;border-top:2px solid #4f7bb0;color:#fff}
 #freelist td.p{text-align:right;font-weight:700;white-space:nowrap}
 #freelist th.p{text-align:right}
 #freelist .bl{color:#ffd400} #freelist .bt{color:#2f9be8} #freelist .bp{color:#3ab54a}
@@ -7309,58 +7529,74 @@ body.tier-free #freelist{display:block}
     <button type="button" class="tierclose" onclick="document.getElementById('tierpop').style.display='none'">Close</button>
   </div>
 </div>
-<div id="allprices" role="dialog" aria-modal="true"><div class="apin"><div class="aphd"><button type="button" onclick="fpsAllClose()">Back</button><h2>All diesel prices</h2><input id="apsearch" class="apsearch" type="search" placeholder="City or state" autocomplete="off" autocapitalize="words" enterkeyhint="search" oninput="fpsApFilter(this)"></div><div id="aptable"></div></div></div>
+<div id="allprices" role="dialog" aria-modal="true"><div class="apin"><div class="aphd"><button type="button" onclick="fpsAllClose()">Back</button><h2>All diesel prices</h2><input id="apsearch" class="apsearch" type="search" placeholder="State lookup" autocomplete="off" autocapitalize="words" enterkeyhint="search" oninput="fpsApFilter(this)"></div><div id="aptable"></div></div></div>
 <script>
 /* ===== v1.3.52 PLANS: Free / Basic / Pro =====
    Plan comes from the access script (j.plan). No plan sent = Pro, so everyone keeps the full app.
    For testing: open the app with ?tier=basic, ?tier=free or ?tier=pro. ?tier=clear goes back to the real plan. */
 (function(){
-  var CONTACT='rdrichardsllc@gmail.com', LIMIT=4, NLIMIT=2;
+  var CONTACT='rdrichardsllc@gmail.com', LIMIT=25, NLIMIT=2;   /* v1.3.57: Basic = unlimited point-to-point (25/day hidden safety ceiling) */
   function ls(k,v){ try{ if(v===undefined) return localStorage.getItem(k); if(v===null) localStorage.removeItem(k); else localStorage.setItem(k,v);}catch(e){} return null; }
   try{ var q=new URLSearchParams(location.search), t=(q.get('tier')||'').toLowerCase();
-    if(t==='clear') ls('fps_tier_test',null); else if(/^(free|basic|pro)$/.test(t)) ls('fps_tier_test',t);
+    if(t==='clear') ls('fps_tier_test',null); else if(/^(free|basic|pro)$/.test(t)){ ls('fps_tier_test',t); ls('fps_tier_test_at',String(Date.now())); }
     if(t){ q.delete('tier'); var r=q.toString(); history.replaceState(history.state,'',location.pathname+(r?'?'+r:'')+location.hash); } }catch(e){}
-  function tier(){ var t=ls('fps_tier_test')||ls('fps_tier')||'pro'; return /^(free|basic|pro)$/.test(t)?t:'pro'; }
+  function tier(){ if(ls('fps_tier_test') && !(Date.now()-(+ls('fps_tier_test_at')||0) < 36e5)){ ls('fps_tier_test',null); ls('fps_tier_test_at',null); }   /* v1.3.59: ?tier= test turns itself off after an hour */
+    var t=ls('fps_tier_test')||'pro';   /* STAGING: staging access script has no plans, so staging is always Pro (unless a ?tier= test is on) */ return /^(free|basic|pro)$/.test(t)?t:'pro'; }
   window.fpsTier=tier;
   function today(){ var d=new Date(); return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
   function used(k){ var o=null; try{ o=JSON.parse(ls(k)||'null'); }catch(e){} if(!o||o.d!==today()) o={d:today(),keys:[],n:0}; return o; }
   function save(k,o){ ls(k,JSON.stringify(o)); }
   function popup(title,html){ document.getElementById('tierpoptitle').textContent=title; document.getElementById('tierpoptext').innerHTML=html; document.getElementById('tierpop').style.display='flex'; }
-  var PRICING='https://script.google.com/macros/s/AKfycbyR5zyILyw7FZ19dIs_Sz27bMeYHe-j9ST-0d-F0R2lU9a9aFqO2zlYLZR9criLJDpi/exec?page=pricing';
-  window.fpsUpgrade=function(){ try{ window.open(PRICING,'_blank'); }catch(e){ location.href=PRICING; } };   // v1.3.53: opens the plans page
+  var PRICING='pricing.html';   /* v1.3.58: plans page lives on our own site, not Google */
+  window.fpsUpgrade=function(){ var c=''; try{ c=localStorage.getItem('fps_code')||''; }catch(e){} var u=PRICING+(c?'?c='+encodeURIComponent(c):''); try{ window.open(u,'_blank'); }catch(e){ location.href=u; } };   // v1.3.57: sends the driver's code so Stripe can match his payment   // v1.3.53: opens the plans page
   function esc(x){ return String(x).replace(/[&<>"]/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
 
   /* Basic: routes left today, shown under Find fuel */
   function leftLine(){
     var el=document.getElementById('tierleft'); if(!el) return;
     var o=used('fps_rt_day'), n=Math.max(0,LIMIT-o.keys.length);
-    el.innerHTML=(n?'<b>'+n+' route'+(n===1?'':'s')+' left today</b>':'<b>No routes left today.</b> They reset at midnight.')
+    el.innerHTML=(n?'':'<b>No routes left today.</b> They reset at midnight.')
       +(n?'':'<button type="button" class="tierall" onclick="fpsAllOpen()">See all prices</button>')
-      +'<button type="button" class="tierup" onclick="fpsUpgrade()">Upgrade</button>';
+      ;
   }
 
+
+  /* v1.3.66: Free second header inside the sticky title bar: State lookup + Upgrade, then the column labels */
+  function flHead(){
+    var hd=document.querySelector('header'); if(!hd) return;
+    var f=document.getElementById('flhead'); if(f) return;
+    f=document.createElement('div'); f.id='flhead';
+    f.innerHTML='<div class="flrow1"><input id="flsearch" type="search" placeholder="State lookup" autocomplete="off" autocapitalize="words" enterkeyhint="search" oninput="fpsApFilter(this)"><button type="button" class="tierup" onclick="fpsUpgrade()">Upgrade</button></div>'
+      +'<div class="flcols"><span>State</span><span>City</span><span>Brand</span><span class="p" style="color:#3ab54a">Discount</span><span class="p" style="color:#ff6b6b">Retail</span></div>';
+    hd.parentNode.insertBefore(f, hd.nextSibling); flHdrH();
+  }
+
+  /* v1.3.67: second bar sits right under the title bar; keep it docked to the title bar's height */
+  function flHdrH(){ try{ var hd=document.querySelector('header'), f=document.getElementById('flhead'); if(!hd||!f) return;
+    var st=getComputedStyle(hd).position; f.style.setProperty('--hdrh',((st==='sticky'||st==='fixed')?hd.offsetHeight:0)+'px'); }catch(e){} }
+  window.addEventListener('resize',flHdrH); setInterval(flHdrH,1000);
   /* Free: plain price list, sorted by state, then city (also used by See all prices on Basic) */
   function tableHTML(){
     if(typeof STATIONS==='undefined'||!STATIONS||!STATIONS.length) return '<p class="fnote" style="color:#9fb4ce;text-align:center">Loading prices…</p>';
     var rows=STATIONS.filter(function(r){ var st=String(r[2]||'').toUpperCase().trim(); return st.length===2 && st!=='ON' && +r[6]>0; })
       .slice().sort(function(a,b){ var x=String(a[2]).localeCompare(String(b[2])); return x||String(a[1]).localeCompare(String(b[1])); });
     function bc(b){ b=String(b).toLowerCase(); return b.indexOf('love')>=0?'bl':b.indexOf('petro')>=0?'bp':'bt'; }
-    return '<table><thead><tr><th>State</th><th>City</th><th>Brand</th><th class="p">Price</th></tr></thead><tbody>'
+    return '<table><thead><tr><th>State</th><th>City</th><th>Brand</th><th class="p" style="color:#3ab54a">Discount</th><th class="p" style="color:#ff6b6b">Retail</th></tr></thead><tbody>'
       +rows.map(function(r){ var st=String(r[2]).toUpperCase(), nm=''; try{ nm=(typeof NAMES!=='undefined'&&NAMES[st])||''; }catch(e){}
-        return '<tr data-k="'+esc((st+' '+nm+' '+r[1]+' '+r[0]).toLowerCase())+'"><td>'+esc(String(r[2]).toUpperCase())+'</td><td>'+esc(r[1])+'</td><td class="'+bc(r[0])+'">'+esc(r[0])+'</td><td class="p">$'+(+r[6]).toFixed(3)+'</td></tr>'; }).join('')
+        return '<tr data-k="'+esc((st+' '+nm+' '+r[1]+' '+r[0]).toLowerCase())+'" data-s="'+esc((st+' '+nm).toLowerCase())+'"><td>'+esc(String(r[2]).toUpperCase())+'</td><td>'+esc(r[1])+'</td><td class="'+bc(r[0])+'">'+esc(r[0])+'</td><td class="p" style="color:#3ab54a">$'+(+r[6]).toFixed(3)+'</td><td class="p" style="color:#ff6b6b">'+(+r[5]>0?'$'+(+r[5]).toFixed(3):'')+'</td></tr>'; }).join('')
       +'</tbody></table><p class="apnone">No stops match that search.</p>';
   }
   function usedUp(){ popup('Routes used up for today','You\u2019ve used your 4 routes for today. Your routes reset at midnight.<br><br>Until then, you can still see every stop\u2019s price. Tap See all prices, or upgrade to Pro for unlimited routes.'
                 +'<button type="button" class="tierall" onclick="fpsAllOpen()">See all prices</button><button type="button" class="tierup" onclick="fpsUpgrade()">Upgrade</button>'); }
   function freeRender(){
-    var box=document.getElementById('freelist'); if(box && tier()==='free') { var fq=document.getElementById('flsearch'), fv=fq?fq.value:''; box.innerHTML='<button type="button" class="tierup" onclick="fpsUpgrade()">Upgrade</button>'+tableHTML(); stripe(box); }
+    var box=document.getElementById('freelist'); if(box && tier()==='free') { flHead(); box.innerHTML=tableHTML(); var nq=document.getElementById('flsearch'); if(nq&&nq.value){ fpsApFilter(nq); } else stripe(box); }   /* v1.3.66: search, Upgrade and column labels live in a second locked header */
     var ap=document.getElementById('allprices'); if(ap && ap.classList.contains('show')){ document.getElementById('aptable').innerHTML=tableHTML(); fpsApFilter(document.getElementById('apsearch')); }
   }
   function stripe(box){ var k=0; [].forEach.call(box.querySelectorAll('tbody tr'),function(tr){ if(tr.style.display!=='none'){ tr.classList.toggle('alt',(k++)%2===1); } }); var n=box.querySelector('.apnone'); if(n) n.style.display=k?'none':'block'; }
   window.fpsApFilter=function(inp){
     var box=inp.id==='apsearch'?document.getElementById('aptable'):document.getElementById('freelist');
     var w=inp.value.trim().toLowerCase().split(/[\s,]+/).filter(function(x){ return x; });
-    [].forEach.call(box.querySelectorAll('tbody tr'),function(tr){ var k=' '+tr.getAttribute('data-k'); tr.style.display=w.every(function(x){ return k.indexOf(' '+x)>=0; })?'':'none'; });
+    [].forEach.call(box.querySelectorAll('tbody tr'),function(tr){ var k=' '+tr.getAttribute('data-k'); var sk=' '+(tr.getAttribute('data-s')||''); tr.style.display=w.every(function(x){ return sk.indexOf(' '+x)>=0; })?'':'none'; });   /* v1.3.59: state lookup only (state code or name), no city search */
     stripe(box);
   };
   /* keep the list screen sized to what's actually visible, even with the keyboard up, and hold the page behind it still */
@@ -7384,6 +7620,7 @@ body.tier-free #freelist{display:block}
     if(t==='free') freeRender();
   }
   window.fpsTierApply=apply;
+  try{ document.body.classList.toggle('fpscomp',localStorage.getItem('fps_comp')==='1'); }catch(e){}
 
   function wrapAll(){
     /* Find fuel: Basic gets 2 different routes a day, point to point only. Rechecking a route (or reversing it) doesn't count. */
