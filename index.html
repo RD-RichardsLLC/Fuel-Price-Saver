@@ -2951,6 +2951,10 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
   { date:'2026-11-03', items:[
+    'Version 1.3.59',
+    '**The price list search is now State lookup.** Type a state name or its two letters, like Missouri or MO, to see every stop in that state'
+  ]},
+  { date:'2026-11-03', items:[
     'Version 1.3.58',
     '**The Upgrade button moved to Settings.** Tap the gear and choose See plans and upgrade',
     '**The plans page opens faster and more reliably.** It now lives on the Fuel Price Saver site'
@@ -7335,7 +7339,7 @@ body.tier-free #freelist{display:block}
     <button type="button" class="tierclose" onclick="document.getElementById('tierpop').style.display='none'">Close</button>
   </div>
 </div>
-<div id="allprices" role="dialog" aria-modal="true"><div class="apin"><div class="aphd"><button type="button" onclick="fpsAllClose()">Back</button><h2>All diesel prices</h2><input id="apsearch" class="apsearch" type="search" placeholder="City or state" autocomplete="off" autocapitalize="words" enterkeyhint="search" oninput="fpsApFilter(this)"></div><div id="aptable"></div></div></div>
+<div id="allprices" role="dialog" aria-modal="true"><div class="apin"><div class="aphd"><button type="button" onclick="fpsAllClose()">Back</button><h2>All diesel prices</h2><input id="apsearch" class="apsearch" type="search" placeholder="State lookup" autocomplete="off" autocapitalize="words" enterkeyhint="search" oninput="fpsApFilter(this)"></div><div id="aptable"></div></div></div>
 <script>
 /* ===== v1.3.52 PLANS: Free / Basic / Pro =====
    Plan comes from the access script (j.plan). No plan sent = Pro, so everyone keeps the full app.
@@ -7344,9 +7348,10 @@ body.tier-free #freelist{display:block}
   var CONTACT='rdrichardsllc@gmail.com', LIMIT=25, NLIMIT=2;   /* v1.3.57: Basic = unlimited point-to-point (25/day hidden safety ceiling) */
   function ls(k,v){ try{ if(v===undefined) return localStorage.getItem(k); if(v===null) localStorage.removeItem(k); else localStorage.setItem(k,v);}catch(e){} return null; }
   try{ var q=new URLSearchParams(location.search), t=(q.get('tier')||'').toLowerCase();
-    if(t==='clear') ls('fps_tier_test',null); else if(/^(free|basic|pro)$/.test(t)) ls('fps_tier_test',t);
+    if(t==='clear') ls('fps_tier_test',null); else if(/^(free|basic|pro)$/.test(t)){ ls('fps_tier_test',t); ls('fps_tier_test_at',String(Date.now())); }
     if(t){ q.delete('tier'); var r=q.toString(); history.replaceState(history.state,'',location.pathname+(r?'?'+r:'')+location.hash); } }catch(e){}
-  function tier(){ var t=ls('fps_tier_test')||ls('fps_tier')||'pro'; return /^(free|basic|pro)$/.test(t)?t:'pro'; }
+  function tier(){ if(ls('fps_tier_test') && !(Date.now()-(+ls('fps_tier_test_at')||0) < 36e5)){ ls('fps_tier_test',null); ls('fps_tier_test_at',null); }   /* v1.3.59: ?tier= test turns itself off after an hour */
+    var t=ls('fps_tier_test')||ls('fps_tier')||'pro'; return /^(free|basic|pro)$/.test(t)?t:'pro'; }
   window.fpsTier=tier;
   function today(){ var d=new Date(); return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate(); }
   function used(k){ var o=null; try{ o=JSON.parse(ls(k)||'null'); }catch(e){} if(!o||o.d!==today()) o={d:today(),keys:[],n:0}; return o; }
@@ -7373,7 +7378,7 @@ body.tier-free #freelist{display:block}
     function bc(b){ b=String(b).toLowerCase(); return b.indexOf('love')>=0?'bl':b.indexOf('petro')>=0?'bp':'bt'; }
     return '<table><thead><tr><th>State</th><th>City</th><th>Brand</th><th class="p">Price</th></tr></thead><tbody>'
       +rows.map(function(r){ var st=String(r[2]).toUpperCase(), nm=''; try{ nm=(typeof NAMES!=='undefined'&&NAMES[st])||''; }catch(e){}
-        return '<tr data-k="'+esc((st+' '+nm+' '+r[1]+' '+r[0]).toLowerCase())+'"><td>'+esc(String(r[2]).toUpperCase())+'</td><td>'+esc(r[1])+'</td><td class="'+bc(r[0])+'">'+esc(r[0])+'</td><td class="p">$'+(+r[6]).toFixed(3)+'</td></tr>'; }).join('')
+        return '<tr data-k="'+esc((st+' '+nm+' '+r[1]+' '+r[0]).toLowerCase())+'" data-s="'+esc((st+' '+nm).toLowerCase())+'"><td>'+esc(String(r[2]).toUpperCase())+'</td><td>'+esc(r[1])+'</td><td class="'+bc(r[0])+'">'+esc(r[0])+'</td><td class="p">$'+(+r[6]).toFixed(3)+'</td></tr>'; }).join('')
       +'</tbody></table><p class="apnone">No stops match that search.</p>';
   }
   function usedUp(){ popup('Routes used up for today','You\u2019ve used your 4 routes for today. Your routes reset at midnight.<br><br>Until then, you can still see every stop\u2019s price. Tap See all prices, or upgrade to Pro for unlimited routes.'
@@ -7386,7 +7391,7 @@ body.tier-free #freelist{display:block}
   window.fpsApFilter=function(inp){
     var box=inp.id==='apsearch'?document.getElementById('aptable'):document.getElementById('freelist');
     var w=inp.value.trim().toLowerCase().split(/[\s,]+/).filter(function(x){ return x; });
-    [].forEach.call(box.querySelectorAll('tbody tr'),function(tr){ var k=' '+tr.getAttribute('data-k'); tr.style.display=w.every(function(x){ return k.indexOf(' '+x)>=0; })?'':'none'; });
+    [].forEach.call(box.querySelectorAll('tbody tr'),function(tr){ var k=' '+tr.getAttribute('data-k'); var sk=' '+(tr.getAttribute('data-s')||''); tr.style.display=w.every(function(x){ return sk.indexOf(' '+x)>=0; })?'':'none'; });   /* v1.3.59: state lookup only (state code or name), no city search */
     stripe(box);
   };
   /* keep the list screen sized to what's actually visible, even with the keyboard up, and hold the page behind it still */
