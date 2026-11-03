@@ -2944,6 +2944,11 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    To ship an update: add a new block at the TOP of CHANGELOG with the date and the lines.
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
+  { date:'2026-11-03', items:[
+    'Version 1.3.57',
+    '**Basic now has unlimited routes.** Run as many point-to-point routes as you need, no daily count',
+    '**Signing up is easier.** When you tap Upgrade and pick a plan, your account is matched to your payment automatically'
+  ]},
   { date:'2026-11-02', items:[
     'Version 1.3.56',
     '**Behind the scenes: the app now counts taps on the Fuel stop optimizer button**, so we can see how much it gets used. Nothing changes for you'
@@ -7324,7 +7329,7 @@ body.tier-free #freelist{display:block}
    Plan comes from the access script (j.plan). No plan sent = Pro, so everyone keeps the full app.
    For testing: open the app with ?tier=basic, ?tier=free or ?tier=pro. ?tier=clear goes back to the real plan. */
 (function(){
-  var CONTACT='rdrichardsllc@gmail.com', LIMIT=4, NLIMIT=2;
+  var CONTACT='rdrichardsllc@gmail.com', LIMIT=25, NLIMIT=2;   /* v1.3.57: Basic = unlimited point-to-point (25/day hidden safety ceiling) */
   function ls(k,v){ try{ if(v===undefined) return localStorage.getItem(k); if(v===null) localStorage.removeItem(k); else localStorage.setItem(k,v);}catch(e){} return null; }
   try{ var q=new URLSearchParams(location.search), t=(q.get('tier')||'').toLowerCase();
     if(t==='clear') ls('fps_tier_test',null); else if(/^(free|basic|pro)$/.test(t)) ls('fps_tier_test',t);
@@ -7336,14 +7341,14 @@ body.tier-free #freelist{display:block}
   function save(k,o){ ls(k,JSON.stringify(o)); }
   function popup(title,html){ document.getElementById('tierpoptitle').textContent=title; document.getElementById('tierpoptext').innerHTML=html; document.getElementById('tierpop').style.display='flex'; }
   var PRICING='https://script.google.com/macros/s/AKfycbyR5zyILyw7FZ19dIs_Sz27bMeYHe-j9ST-0d-F0R2lU9a9aFqO2zlYLZR9criLJDpi/exec?page=pricing';
-  window.fpsUpgrade=function(){ try{ window.open(PRICING,'_blank'); }catch(e){ location.href=PRICING; } };   // v1.3.53: opens the plans page
+  window.fpsUpgrade=function(){ var c=''; try{ c=localStorage.getItem('fps_code')||''; }catch(e){} var u=PRICING+(c?'&c='+encodeURIComponent(c):''); try{ window.open(u,'_blank'); }catch(e){ location.href=u; } };   // v1.3.57: sends the driver's code so Stripe can match his payment   // v1.3.53: opens the plans page
   function esc(x){ return String(x).replace(/[&<>"]/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
 
   /* Basic: routes left today, shown under Find fuel */
   function leftLine(){
     var el=document.getElementById('tierleft'); if(!el) return;
     var o=used('fps_rt_day'), n=Math.max(0,LIMIT-o.keys.length);
-    el.innerHTML=(n?'<b>'+n+' route'+(n===1?'':'s')+' left today</b>':'<b>No routes left today.</b> They reset at midnight.')
+    el.innerHTML=(n?'<b>Unlimited routes</b>':'<b>No routes left today.</b> They reset at midnight.')
       +(n?'':'<button type="button" class="tierall" onclick="fpsAllOpen()">See all prices</button>')
       +'<button type="button" class="tierup" onclick="fpsUpgrade()">Upgrade</button>';
   }
