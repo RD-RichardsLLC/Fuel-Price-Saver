@@ -3026,7 +3026,12 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
   { date:'2026-11-03', items:[
-    'Version 1.3.68',
+    'Version 1.3.70',
+    '**The fuel gauge is easier to read.** The filled part of the gauge is a brighter orange, and the drag instructions now sit under the gauge on two short lines',
+    '**The gallon boxes are side by side.** Fuel now on the left, End of trip on the right, right under the gauge'
+  ]},
+  { date:'2026-11-03', items:[
+    'Version 1.3.69',
     '**New fuel gauge in the Fuel stop optimizer.** Drag the orange knob to the fuel you have now and the green knob to what you want left at the end of your trip, just like the gauge on your dash. Or type the gallons in the boxes'
   ]},
   { date:'2026-11-03', items:[
@@ -7233,6 +7238,8 @@ FPS_TIPCUR=null;document.getElementById('fpstip').classList.remove('show');}
 #fqpop label{display:block;margin:10px 0 4px;color:#9fb4ce;font-size:16px}
 #fqpop input{width:100%;box-sizing:border-box;padding:11px;font-size:19px;border-radius:9px;border:1px solid #4f7bb0;background:#1d3a5e;color:#e8eef6}
 #fqpop .row{display:flex;gap:10px;margin-top:16px}
+#fqpop input.fqg{display:inline-block;width:76px;padding:0;height:36px;text-align:center;font-size:19px;background:#0c1a30;-moz-appearance:textfield}
+#fqpop input.fqg::-webkit-outer-spin-button,#fqpop input.fqg::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 #fqpop button{flex:1;padding:12px;border:0;border-radius:10px;font-size:18px;font-weight:700}
 #fqfr button,#fqer button{flex:1;padding:10px 0;border:1px solid #4f7bb0;border-radius:9px;background:#1d3a5e;color:#e8eef6;font-size:18px;font-weight:700}
 #fqerr{color:#e25a4f;font-size:15px;min-height:18px;margin-top:8px}
@@ -7241,10 +7248,10 @@ FPS_TIPCUR=null;document.getElementById('fpstip').classList.remove('show');}
 <div id="fqfirst"><div style="color:#9fb4ce;font-size:15px">First time only. These save to Your truck.</div>
 <label for="fqtank">Tank size (gallons, both tanks)</label><input id="fqtank" type="number" inputmode="decimal">
 <label for="fqmpg">Miles per gallon</label><input id="fqmpg" type="number" inputmode="decimal" step="0.1"></div>
-<div id="fggauge" style="margin:6px 0 2px"><div style="color:#9fb4ce;font-size:14px;text-align:center">Drag the <b style="color:#f26a21">orange knob</b> to your fuel now and the <b style="color:#3ab54a">green knob</b> to what you want at the end of your trip</div>
+<div id="fggauge" style="margin:6px 0 2px">
 <svg id="fgsvg" viewBox="0 0 320 200" style="width:100%;max-width:360px;display:block;margin:0 auto;touch-action:none;cursor:pointer" role="img" aria-label="Fuel gauge">
-<path d="M60 170 A100 100 0 0 1 260 170" fill="none" stroke="#23415f" stroke-width="24" stroke-linecap="round"/>
-<path id="fgarc" d="" fill="none" stroke="#f26a21" stroke-opacity=".55" stroke-width="24" stroke-linecap="round"/>
+<path d="M60 170 A100 100 0 0 1 260 170" fill="none" stroke="#33557d" stroke-width="24" stroke-linecap="round"/>
+<path id="fgarc" d="" fill="none" stroke="#f79a5e" stroke-width="24" stroke-linecap="round"/>
 <g id="fgticks"></g>
 <text x="40" y="194" fill="#ff6b6b" font-size="18" font-weight="700" text-anchor="middle">E</text>
 <text x="280" y="194" fill="#3ab54a" font-size="18" font-weight="700" text-anchor="middle">F</text>
@@ -7255,12 +7262,10 @@ FPS_TIPCUR=null;document.getElementById('fpstip').classList.remove('show');}
 <circle id="fgkc" r="17" fill="#f26a21" stroke="#fff" stroke-width="3"/>
 <line id="fgk1" stroke="#fff" stroke-width="2" stroke-linecap="round"/><line id="fgk2" stroke="#fff" stroke-width="2" stroke-linecap="round"/><line id="fgk3" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
 </svg>
-<div style="display:flex;justify-content:space-around;font-size:15px;font-weight:700;margin-top:2px"><span style="color:#ffb070">Now: <span id="fgnow">-</span></span><span style="color:#7fe08f">End of trip: <span id="fgend">-</span></span></div></div>
-<label for="fqnow" style="color:#ffb070">Fuel now (gallons)</label>
-<div id="fqfr" style="display:none;gap:6px;margin-bottom:8px"><button type="button" onclick="fqFr(.125)">&#8539;</button><button type="button" onclick="fqFr(.25)">&frac14;</button><button type="button" onclick="fqFr(.5)">&frac12;</button><button type="button" onclick="fqFr(.75)">&frac34;</button><button type="button" onclick="fqFr(1)">Full</button></div><input id="fqnow" type="number" inputmode="decimal">
-<label for="fqend" style="color:#7fe08f">At the end of your trip, at least (gallons)</label>
-<div style="color:#9fb4ce;font-size:14px;margin:-2px 0 6px">Not every delivery has a fuel stop next door.</div>
-<div id="fqer" style="display:none;gap:6px;margin-bottom:8px;flex-wrap:wrap"><button type="button" onclick="fqEnd(0)" style="flex:2;font-size:15px">Just my reserve</button><button type="button" onclick="fqEnd(.25)">&frac14;</button><button type="button" onclick="fqEnd(.5)">&frac12;</button><button type="button" onclick="fqEnd(.75)">&frac34;</button><button type="button" onclick="fqEnd(1)">Full</button></div><input id="fqend" type="number" inputmode="decimal">
+<div style="display:flex;justify-content:space-around;font-size:15px;font-weight:700;margin-top:2px"><span style="color:#ffb070">Now: <span id="fgnow">-</span></span><span style="color:#7fe08f">End of trip: <span id="fgend">-</span></span></div>
+<div style="color:#9fb4ce;font-size:14px;text-align:center;line-height:1.4;margin:6px 0 4px"><div style="white-space:nowrap">Drag the <b style="color:#f26a21">orange knob</b> to your fuel now</div><div style="white-space:nowrap">and the <b style="color:#3ab54a">green knob</b> to your end-of-trip fuel</div></div></div>
+<div id="fqgal" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px"><div style="background:#10233f;border:1.5px solid #f26a21;border-radius:10px;padding:6px 6px 8px;text-align:center"><label for="fqnow" style="color:#ffb070;font-size:13px;font-weight:700;margin:0 0 4px">Fuel now</label><input id="fqnow" class="fqg" type="number" inputmode="decimal"> <span style="font-size:13px;color:#9fb4ce">gal</span></div><div style="background:#10233f;border:1.5px solid #3ab54a;border-radius:10px;padding:6px 6px 8px;text-align:center"><label for="fqend" style="color:#7fe08f;font-size:13px;font-weight:700;margin:0 0 4px">End of trip, at least</label><input id="fqend" class="fqg" type="number" inputmode="decimal"> <span style="font-size:13px;color:#9fb4ce">gal</span></div></div><div style="color:#9fb4ce;font-size:13px;text-align:center;margin:8px 0 2px">Not every delivery has a fuel stop next door.</div>
+<div id="fqfr" style="display:none;gap:6px;margin-bottom:8px"><button type="button" onclick="fqFr(.125)">&#8539;</button><button type="button" onclick="fqFr(.25)">&frac14;</button><button type="button" onclick="fqFr(.5)">&frac12;</button><button type="button" onclick="fqFr(.75)">&frac34;</button><button type="button" onclick="fqFr(1)">Full</button></div><div id="fqer" style="display:none;gap:6px;margin-bottom:8px;flex-wrap:wrap"><button type="button" onclick="fqEnd(0)" style="flex:2;font-size:15px">Just my reserve</button><button type="button" onclick="fqEnd(.25)">&frac14;</button><button type="button" onclick="fqEnd(.5)">&frac12;</button><button type="button" onclick="fqEnd(.75)">&frac34;</button><button type="button" onclick="fqEnd(1)">Full</button></div>
 <div id="fqerr"></div>
 <div class="row"><button style="background:#2b4a70;color:#e8eef6" onclick="fqClose()">Cancel</button><button style="background:#f26a21;color:#fff" onclick="fqGo()">Go</button></div></div></div>
 <script>
