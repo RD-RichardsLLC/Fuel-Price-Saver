@@ -2796,6 +2796,14 @@ function stPickClose(quiet){
 }
 window.addEventListener('popstate',function(){ var p=document.getElementById('sppop'); if(p&&p.classList.contains('show')){ p.classList.remove('show'); document.documentElement.style.overflow=''; document.body.style.overflow=''; } });
 
+
+/* v1.3.65: pin State lookup just under the app's sticky title bar */
+function flHdr(){ try{ var box=document.getElementById('freelist'), h=document.querySelector('header'); if(!box||!h) return;
+  var st=getComputedStyle(h).position, ht=(st==='sticky'||st==='fixed')?h.offsetHeight:0; box.style.setProperty('--flhdr',ht+'px');
+  var fb=document.getElementById('flbar'); if(fb) box.style.setProperty('--flbar',fb.offsetHeight+'px'); }catch(e){} }
+window.addEventListener('resize',flHdr); window.addEventListener('scroll',function(){ if(!window.__flh){ window.__flh=1; requestAnimationFrame(function(){ window.__flh=0; flHdr(); }); } },{passive:true});
+setInterval(flHdr,1500);
+
 function toggleState(st){
   const g=document.getElementById('stg_'+st); if(!g) return;
   const open=g.classList.toggle('open');
@@ -3017,6 +3025,10 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    To ship an update: add a new block at the TOP of CHANGELOG with the date and the lines.
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
+  { date:'2026-11-03', items:[
+    'Version 1.3.65',
+    '**State lookup now stays put** just under the title bar while you scroll the price list'
+  ]},
   { date:'2026-11-03', items:[
     'Version 1.3.64',
     '**Tap a state name in your fuel stops to filter it.** Pick an interstate, then a service like showers or parking, and see just the stops that match, each with a Details button (Pro)'
@@ -7411,7 +7423,8 @@ body.tier-basic #tierleft{display:block}
 #freelist{display:none}
 body.tier-free #freelist{display:block}
 #freelist table{width:100%;border-collapse:collapse;background:#17304f;border-radius:10px;overflow:hidden;font-size:15px;color:#fff}
-#freelist th{background:#10233f;color:#fff;text-align:left;padding:9px 8px;font-size:13px;font-weight:700;position:sticky;top:var(--flbar,64px);z-index:4}
+#freelist th{background:#10233f;color:#fff;text-align:left;padding:9px 8px;font-size:13px;font-weight:700;position:sticky;top:calc(var(--flhdr,0px) + var(--flbar,64px));z-index:44}
+#freelist table{overflow:visible!important}
 #freelist td{padding:9px 5px;border-top:2px solid #4f7bb0;color:#fff}
 #freelist td.p{text-align:right;font-weight:700;white-space:nowrap}
 #freelist th.p{text-align:right}
@@ -7471,7 +7484,7 @@ body.tier-free #freelist{display:block}
   function usedUp(){ popup('Routes used up for today','You\u2019ve used your 4 routes for today. Your routes reset at midnight.<br><br>Until then, you can still see every stop\u2019s price. Tap See all prices, or upgrade to Pro for unlimited routes.'
                 +'<button type="button" class="tierall" onclick="fpsAllOpen()">See all prices</button><button type="button" class="tierup" onclick="fpsUpgrade()">Upgrade</button>'); }
   function freeRender(){
-    var box=document.getElementById('freelist'); if(box && tier()==='free') { var fq=document.getElementById('flsearch'), fv=fq?fq.value:''; box.innerHTML='<div id="flbar" style="display:flex;gap:8px;margin:0 0 10px;align-items:stretch;position:sticky;top:0;z-index:5;background:#0c1a30;padding:8px 0"><input id="flsearch" class="apsearch" type="search" placeholder="State lookup" autocomplete="off" autocapitalize="words" enterkeyhint="search" oninput="fpsApFilter(this)" style="flex:1 1 50%;min-width:0;width:50%;margin:0;padding:12px;border-radius:10px;border:1.5px solid #4f7bb0;background:#10233f;color:#fff;font-size:16px"><button type="button" class="tierup" onclick="fpsUpgrade()" style="flex:1 1 50%;width:50%;margin:0;padding:12px">Upgrade</button></div>'+tableHTML(); var fb=document.getElementById('flbar'); if(fb) box.style.setProperty('--flbar',fb.offsetHeight+'px'); var nq=document.getElementById('flsearch'); if(fv){ nq.value=fv; fpsApFilter(nq); } else stripe(box); }   /* v1.3.59: State lookup box on the Free list */
+    var box=document.getElementById('freelist'); if(box && tier()==='free') { var fq=document.getElementById('flsearch'), fv=fq?fq.value:''; box.innerHTML='<div id="flbar" style="display:flex;gap:8px;margin:0 0 10px;align-items:stretch;position:sticky;top:var(--flhdr,0px);z-index:45;background:#0c1a30;padding:8px 0"><input id="flsearch" class="apsearch" type="search" placeholder="State lookup" autocomplete="off" autocapitalize="words" enterkeyhint="search" oninput="fpsApFilter(this)" style="flex:1 1 50%;min-width:0;width:50%;margin:0;padding:12px;border-radius:10px;border:1.5px solid #4f7bb0;background:#10233f;color:#fff;font-size:16px"><button type="button" class="tierup" onclick="fpsUpgrade()" style="flex:1 1 50%;width:50%;margin:0;padding:12px">Upgrade</button></div>'+tableHTML(); var fb=document.getElementById('flbar'); if(fb) box.style.setProperty('--flbar',fb.offsetHeight+'px'); flHdr(); var nq=document.getElementById('flsearch'); if(fv){ nq.value=fv; fpsApFilter(nq); } else stripe(box); }   /* v1.3.59: State lookup box on the Free list */
     var ap=document.getElementById('allprices'); if(ap && ap.classList.contains('show')){ document.getElementById('aptable').innerHTML=tableHTML(); fpsApFilter(document.getElementById('apsearch')); }
   }
   function stripe(box){ var k=0; [].forEach.call(box.querySelectorAll('tbody tr'),function(tr){ if(tr.style.display!=='none'){ tr.classList.toggle('alt',(k++)%2===1); } }); var n=box.querySelector('.apnone'); if(n) n.style.display=k?'none':'block'; }
