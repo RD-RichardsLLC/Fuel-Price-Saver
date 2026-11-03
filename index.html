@@ -3026,6 +3026,10 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
   { date:'2026-11-03', items:[
+    'Version 1.3.68',
+    '**New fuel gauge in the Fuel stop optimizer.** Drag the orange knob to the fuel you have now and the green knob to what you want left at the end of your trip, just like the gauge on your dash. Or type the gallons in the boxes'
+  ]},
+  { date:'2026-11-03', items:[
     'Version 1.3.67',
     '**The price list header is now its own bar right under the Fuel Price Saver title.** State lookup, Upgrade and the column labels stay locked at the top while you scroll'
   ]},
@@ -6988,6 +6992,53 @@ function fqEnd(f){
   document.getElementById('fqend').value=f?Math.round(tk*f):(+t.res||25); document.getElementById('fqerr').textContent='';
 }
 function fqClose(){ document.getElementById('fqpop').classList.remove('show'); }
+
+/* ===== v1.3.68: two-needle fuel gauge in the Fuel plan questions. Orange = fuel now (grab the knob), green = end of trip (grab anywhere inside) ===== */
+var FG={v:0.5,w:0.25,drag:0,ok:false};
+function fgTank(){ var t=getTruck()||TRUCK_DEF, f=parseFloat((document.getElementById('fqtank')||{}).value); return (f>=20&&f<=400)?f:(+t.tank||200); }
+function fgSet(id,a,b,c,d){ var e=document.getElementById(id); if(!e) return; e.setAttribute('x1',a.toFixed(1)); e.setAttribute('y1',b.toFixed(1)); e.setAttribute('x2',c.toFixed(1)); e.setAttribute('y2',d.toFixed(1)); }
+function fgPt(x,r){ var a=Math.PI*(1-x); return [160+r*Math.cos(a),170-r*Math.sin(a),Math.cos(a),Math.sin(a)]; }
+function fgName(x){ var N=['Empty','1/8','1/4','3/8','1/2','5/8','3/4','7/8','Full'], n=Math.round(x*8); return Math.abs(x*8-n)<0.15?(n===0?'Empty':n===8?'Full':N[n]+' tank'):(Math.floor(x*8)===0?'Under 1/8':N[Math.floor(x*8)]+'+'); }
+function fgDraw(src){
+  if(!document.getElementById('fgsvg')) return;
+  var T=fgTank(), p=fgPt(FG.v,136), c=p[2], s=p[3];
+  fgSet('fgnd',160,170,160+119*c,170-119*s);
+  var kc=document.getElementById('fgkc'); kc.setAttribute('cx',p[0].toFixed(1)); kc.setAttribute('cy',p[1].toFixed(1));
+  [-6,0,6].forEach(function(o,j){ var bx=p[0]+o*c, by=p[1]-o*s; fgSet('fgk'+(j+1),bx+7*s,by+7*c,bx-7*s,by-7*c); });
+  var q=fgPt(FG.v,100); document.getElementById('fgarc').setAttribute('d',FG.v<0.005?'':'M60 170 A100 100 0 0 1 '+q[0].toFixed(1)+' '+q[1].toFixed(1));
+  var g=fgPt(FG.w,100); fgSet('fggn',160,170,g[0],g[1]); var gk=document.getElementById('fggk'); gk.setAttribute('cx',g[0].toFixed(1)); gk.setAttribute('cy',g[1].toFixed(1));
+  document.getElementById('fgnow').textContent=fgName(FG.v); document.getElementById('fgend').textContent=fgName(FG.w);
+  if(src!==1) document.getElementById('fqnow').value=Math.round(FG.v*T);
+  if(src!==2) document.getElementById('fqend').value=Math.round(FG.w*T);
+  var e=document.getElementById('fqerr'); if(e && src!==1 && src!==2) e.textContent='';
+}
+function fgInit(){
+  var svg=document.getElementById('fgsvg'); if(!svg) return;
+  if(!FG.ok){ FG.ok=true;
+    var lab={2:'1/4',4:'1/2',6:'3/4'}, h='';
+    for(var i=1;i<8;i++){ var a=Math.PI*(1-i/8), maj=!(i%2), r2=maj?64:72;
+      h+='<line x1="'+(160+82*Math.cos(a))+'" y1="'+(170-82*Math.sin(a))+'" x2="'+(160+r2*Math.cos(a))+'" y2="'+(170-r2*Math.sin(a))+'" stroke="'+(maj?'#c9d6e6':'#4f7bb0')+'" stroke-width="'+(maj?3:2)+'"/>';
+      if(lab[i]) h+='<text x="'+(160+48*Math.cos(a)).toFixed(1)+'" y="'+(170-48*Math.sin(a)+5).toFixed(1)+'" fill="#c9d6e6" font-size="14" font-weight="700" text-anchor="middle">'+lab[i]+'</text>'; }
+    document.getElementById('fgticks').innerHTML=h;
+    function at(e){ var b=svg.getBoundingClientRect(), px=(e.clientX-b.left)*320/b.width, py=(e.clientY-b.top)*200/b.height, a=Math.atan2(170-py,px-160);
+      if(a<0) a=px<160?Math.PI:0; return {x:Math.min(1,Math.max(0,1-a/Math.PI)),px:px,py:py}; }
+    svg.addEventListener('pointerdown',function(e){ var r=at(e), k=fgPt(FG.v,136);
+      FG.drag=(Math.hypot(r.px-k[0],r.py-k[1])<30)?1:(Math.hypot(r.px-160,r.py-170)>118?0:2);
+      if(!FG.drag) return; try{ svg.setPointerCapture(e.pointerId); }catch(x){} if(FG.drag===1) FG.v=r.x; else FG.w=r.x; fgDraw(); });
+    svg.addEventListener('pointermove',function(e){ if(!FG.drag) return; var r=at(e); if(FG.drag===1) FG.v=r.x; else FG.w=r.x; fgDraw(); });
+    svg.addEventListener('pointerup',function(){ FG.drag=0; }); svg.addEventListener('pointercancel',function(){ FG.drag=0; });
+    document.getElementById('fqnow').addEventListener('input',function(){ var x=parseFloat(this.value), T=fgTank(); if(x>=0){ FG.v=Math.min(1,x/T); fgDraw(1); } });
+    document.getElementById('fqend').addEventListener('input',function(){ var x=parseFloat(this.value), T=fgTank(); if(x>=0){ FG.w=Math.min(1,x/T); fgDraw(2); } });
+    var tk=document.getElementById('fqtank'); if(tk) tk.addEventListener('input',function(){ fgDraw(); });
+  }
+  var t=getTruck()||TRUCK_DEF, T=fgTank();
+  FG.v=(t.lastnow>=0&&t.lastnow!=='')?Math.min(1,t.lastnow/T):0.5;
+  var ev=parseFloat(document.getElementById('fqend').value); FG.w=(ev>=0)?Math.min(1,ev/T):0.25;
+  fgDraw();
+}
+(function(){ var o=window.openFuelPlan; if(typeof o!=='function') return;
+  openFuelPlan=function(){ var r=o.apply(this,arguments); try{ if(document.getElementById('fqpop').classList.contains('show')) fgInit(); }catch(e){} return r; }; window.openFuelPlan=openFuelPlan; })();
+
 function fpOpenReal(){
   var t=getTruck()||TRUCK_DEF, sel=document.getElementById('fplvl');
   if(!sel.options.length) NF_LVLS.forEach(function(v){ var o=document.createElement('option'); o.value=v[0]; o.textContent=v[1]; sel.appendChild(o); });
@@ -7190,11 +7241,26 @@ FPS_TIPCUR=null;document.getElementById('fpstip').classList.remove('show');}
 <div id="fqfirst"><div style="color:#9fb4ce;font-size:15px">First time only. These save to Your truck.</div>
 <label for="fqtank">Tank size (gallons, both tanks)</label><input id="fqtank" type="number" inputmode="decimal">
 <label for="fqmpg">Miles per gallon</label><input id="fqmpg" type="number" inputmode="decimal" step="0.1"></div>
-<label for="fqnow">How many gallons do you have now?</label>
-<div id="fqfr" style="display:flex;gap:6px;margin-bottom:8px"><button type="button" onclick="fqFr(.125)">&#8539;</button><button type="button" onclick="fqFr(.25)">&frac14;</button><button type="button" onclick="fqFr(.5)">&frac12;</button><button type="button" onclick="fqFr(.75)">&frac34;</button><button type="button" onclick="fqFr(1)">Full</button></div><input id="fqnow" type="number" inputmode="decimal">
-<label for="fqend">How much fuel do you want in your tank when you arrive?</label>
+<div id="fggauge" style="margin:6px 0 2px"><div style="color:#9fb4ce;font-size:14px;text-align:center">Drag the <b style="color:#f26a21">orange knob</b> to your fuel now and the <b style="color:#3ab54a">green knob</b> to what you want at the end of your trip</div>
+<svg id="fgsvg" viewBox="0 0 320 200" style="width:100%;max-width:360px;display:block;margin:0 auto;touch-action:none;cursor:pointer" role="img" aria-label="Fuel gauge">
+<path d="M60 170 A100 100 0 0 1 260 170" fill="none" stroke="#23415f" stroke-width="24" stroke-linecap="round"/>
+<path id="fgarc" d="" fill="none" stroke="#f26a21" stroke-opacity=".55" stroke-width="24" stroke-linecap="round"/>
+<g id="fgticks"></g>
+<text x="40" y="194" fill="#ff6b6b" font-size="18" font-weight="700" text-anchor="middle">E</text>
+<text x="280" y="194" fill="#3ab54a" font-size="18" font-weight="700" text-anchor="middle">F</text>
+<line id="fggn" stroke="#3ab54a" stroke-width="4" stroke-linecap="round"/>
+<line id="fgnd" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
+<circle cx="160" cy="170" r="10" fill="#fff"/>
+<circle id="fggk" r="13" fill="#3ab54a" stroke="#fff" stroke-width="3"/>
+<circle id="fgkc" r="17" fill="#f26a21" stroke="#fff" stroke-width="3"/>
+<line id="fgk1" stroke="#fff" stroke-width="2" stroke-linecap="round"/><line id="fgk2" stroke="#fff" stroke-width="2" stroke-linecap="round"/><line id="fgk3" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+</svg>
+<div style="display:flex;justify-content:space-around;font-size:15px;font-weight:700;margin-top:2px"><span style="color:#ffb070">Now: <span id="fgnow">-</span></span><span style="color:#7fe08f">End of trip: <span id="fgend">-</span></span></div></div>
+<label for="fqnow" style="color:#ffb070">Fuel now (gallons)</label>
+<div id="fqfr" style="display:none;gap:6px;margin-bottom:8px"><button type="button" onclick="fqFr(.125)">&#8539;</button><button type="button" onclick="fqFr(.25)">&frac14;</button><button type="button" onclick="fqFr(.5)">&frac12;</button><button type="button" onclick="fqFr(.75)">&frac34;</button><button type="button" onclick="fqFr(1)">Full</button></div><input id="fqnow" type="number" inputmode="decimal">
+<label for="fqend" style="color:#7fe08f">At the end of your trip, at least (gallons)</label>
 <div style="color:#9fb4ce;font-size:14px;margin:-2px 0 6px">Not every delivery has a fuel stop next door.</div>
-<div id="fqer" style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap"><button type="button" onclick="fqEnd(0)" style="flex:2;font-size:15px">Just my reserve</button><button type="button" onclick="fqEnd(.25)">&frac14;</button><button type="button" onclick="fqEnd(.5)">&frac12;</button><button type="button" onclick="fqEnd(.75)">&frac34;</button><button type="button" onclick="fqEnd(1)">Full</button></div><input id="fqend" type="number" inputmode="decimal">
+<div id="fqer" style="display:none;gap:6px;margin-bottom:8px;flex-wrap:wrap"><button type="button" onclick="fqEnd(0)" style="flex:2;font-size:15px">Just my reserve</button><button type="button" onclick="fqEnd(.25)">&frac14;</button><button type="button" onclick="fqEnd(.5)">&frac12;</button><button type="button" onclick="fqEnd(.75)">&frac34;</button><button type="button" onclick="fqEnd(1)">Full</button></div><input id="fqend" type="number" inputmode="decimal">
 <div id="fqerr"></div>
 <div class="row"><button style="background:#2b4a70;color:#e8eef6" onclick="fqClose()">Cancel</button><button style="background:#f26a21;color:#fff" onclick="fqGo()">Go</button></div></div></div>
 <script>
