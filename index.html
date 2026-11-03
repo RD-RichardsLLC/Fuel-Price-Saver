@@ -61,6 +61,15 @@
   /* Bob, Oct 26: no prediction button at all while tomorrow's prediction isn't ready */
   #predbtn.fcwait{display:none!important}
     .bbload{display:none} body.from-load .bbload{display:inline}
+  .stpickbtn{display:inline-block;padding:3px 10px;border:1.5px solid #f26a21;border-radius:8px;background:#10233f;color:#fff;cursor:pointer}
+  #sppop{position:fixed;inset:0;z-index:9600;display:none;background:#0c1a30;color:#e8eef6;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 12px 40px}
+  #sppop.show{display:block}
+  #sppop .sphd{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+  #sppop .sphd h2{font-size:18px;margin:0;flex:1}
+  #sppop .sphd button{padding:9px 14px;border-radius:9px;border:1.5px solid #4f7bb0;background:#1d3a5e;color:#fff;font-size:15px}
+  #sppop select{display:block;width:100%;margin:0 0 8px;padding:12px;font-size:16px;border-radius:10px;border:1.5px solid #4f7bb0;background:#10233f;color:#fff}
+  #sppop #spsub{color:#9fb4ce;font-size:14px;margin:4px 0 10px}
+  #sppop .card{margin-bottom:10px}
   #tkpop{position:fixed;inset:0;z-index:9600;display:none;background:#0c1a30;color:#e8eef6;overflow-y:auto;-webkit-overflow-scrolling:touch}
   #tkpop.show{display:block}
   #tkpop .tkin{max-width:560px;margin:0 auto;padding:calc(12px + env(safe-area-inset-top)) 14px calc(30px + env(safe-area-inset-bottom))}
@@ -2512,10 +2521,10 @@ function render(hits){
     const LB=legBits(key);
     h+='<div class="stgrp" id="stg_'+key+'">';
     if(multi){
-      h+='<button class="sthead'+LB[0]+'" aria-expanded="false" onclick="toggleState(\''+key+'\')">'+LB[1]+'<span class="stname"><b>'+(NAMES[st]||st)+'</b><small>'+idx.length+' stops</small></span>'+LB[2]
+      h+='<button class="sthead'+LB[0]+'" aria-expanded="false" onclick="toggleState(\''+key+'\')">'+LB[1]+'<span class="stname"><b>'+stBtn(st,NAMES[st]||st)+'</b><small>'+idx.length+' stops</small></span>'+LB[2]
         +'<span class="stx" aria-label="Show stops"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path fill=\"currentColor\" d=\"M12 3a1.2 1.2 0 0 1 1.2 1.2v12.3l4.0-4.0a1.2 1.2 0 1 1 1.7 1.7l-6.0 6.05a1.2 1.2 0 0 1-1.7 0l-6.05-6.05a1.2 1.2 0 1 1 1.7-1.7l4.05 4.0V4.2A1.2 1.2 0 0 1 12 3z\"/></svg></span></button>';
     } else {
-      h+='<div class="sthead'+LB[0]+'">'+LB[1]+'<span class="stname"><b>'+(NAMES[st]||st)+'</b><small>1 stop</small></span>'+LB[2]+'</div>';
+      h+='<div class="sthead'+LB[0]+'">'+LB[1]+'<span class="stname"><b>'+stBtn(st,NAMES[st]||st)+'</b><small>1 stop</small></span>'+LB[2]+'</div>';
     }
     idx.forEach((i,k)=>{
     if(k===1) h+='<div class="stmore">';
@@ -2729,6 +2738,64 @@ function wxHourly(k){
 }
 function closeWxHr(){ const el=document.getElementById('wxhr'); if(el) el.classList.remove('on'); }
 function closeWx(){ closeWxHr(); const pop=document.getElementById('wxpop'); if(pop) pop.classList.remove('on'); }
+
+/* ===== v1.3.64 (Pro): tap a state on Find fuel results -> filter that state's stops by interstate, then services ===== */
+function stBtn(st,name){
+  var pro=true; try{ pro=(window.fpsTier?fpsTier():'pro')==='pro'; }catch(e){}
+  if(!pro) return esc(name);
+  return '<span class="stpickbtn" role="button" tabindex="0" onclick="event.stopPropagation();stPick(\''+st+'\')">'+esc(name)+' <span style="font-size:12px">&#9662;</span></span>';
+}
+var SP_ST='', SP_ALL=[];
+function stPick(st){
+  try{
+    SP_ST=st;
+    SP_ALL=(LASTHITS||[]).map(function(s,i){ return {s:s,i:i}; }).filter(function(o){ return o.s.st===st; }).map(function(o){
+      var inf=null, ir=[]; try{ inf=stopInfo(o.s); if(inf&&inf.exit) ir=parseRoads(inf.exit).roads.filter(function(x){return x.k==='I';}).map(function(x){return 'I-'+x.n;}); }catch(e){}
+      o.inf=inf; o.ir=ir; return o; });
+    var cnt={}; SP_ALL.forEach(function(o){ o.ir.forEach(function(k){ cnt[k]=(cnt[k]||0)+1; }); });
+    var ks=Object.keys(cnt).sort(function(a,b){ return (+a.slice(2))-(+b.slice(2)); });
+    var p=document.getElementById('sppop');
+    if(!p){ p=document.createElement('div'); p.id='sppop'; document.body.appendChild(p); }
+    var NAMES={}; try{ for(var k in STATES) NAMES[STATES[k]]=k; }catch(e){}
+    p.innerHTML='<div class="sphd"><button type="button" onclick="stPickClose()">Back</button><h2>'+esc(NAMES[st]||st)+' stops on your route</h2></div>'
+      +'<select id="spif" onchange="spSvcSync();spFilter()">'+'<option value="">All interstates</option>'+ks.map(function(k){ return '<option value="'+k+'">'+k+' ('+cnt[k]+' stop'+(cnt[k]===1?'':'s')+')</option>'; }).join('')+'</select>'
+      +'<select id="spsv" onchange="spFilter()" hidden></select>'
+      +'<p id="spsub"></p><div id="spbody"></div>';
+    spSvcSync(); spFilter();
+    p.scrollTop=0; p.classList.add('show'); document.documentElement.style.overflow='hidden'; document.body.style.overflow='hidden';
+    try{ history.pushState({sp:1},''); }catch(e){}
+  }catch(e){}
+}
+function spHas(o,k){ var d=AMEN_DEFS[k]; return !!(d&&o.inf&&d.get(o.inf)); }
+function spSvcSync(){
+  var f=document.getElementById('spif').value, sv=document.getElementById('spsv');
+  sv.innerHTML=''; sv.value='';
+  if(!f){ sv.hidden=true; return; }
+  var L=SP_ALL.filter(function(o){ return o.ir.indexOf(f)>=0; });
+  var ks=AMEN_ORDER.filter(function(k){ return L.some(function(o){ return spHas(o,k); }); });
+  sv.innerHTML='<option value="">All services</option>'+ks.map(function(k){ var n=L.filter(function(o){ return spHas(o,k); }).length;
+    return '<option value="'+k+'">'+esc(AMEN_DEFS[k].label)+' ('+n+' stop'+(n===1?'':'s')+')</option>'; }).join('');
+  sv.hidden=!ks.length;
+}
+function spFilter(){
+  var f=document.getElementById('spif').value, sv=document.getElementById('spsv'), v=(f&&!sv.hidden)?sv.value:'';
+  var L=SP_ALL.filter(function(o){ return (!f||o.ir.indexOf(f)>=0) && (!v||spHas(o,v)); });
+  var dOn=RANKBY==='disc';
+  document.getElementById('spsub').textContent=L.length+' stop'+(L.length===1?'':'s')+(f?' on '+f:'')+(v?' with '+AMEN_DEFS[v].label:'');
+  document.getElementById('spbody').innerHTML=L.length?L.map(function(o,n){ var x=o.s, bc=brandClass(x.b);
+    return '<div class="card '+bc+'"><div class="cardhead"><b>'+(n+1)+'.</b><span class="brandtag '+bc+'">'+esc(x.b)+'</span> <span class="cardtown">'+esc(x.c)+'</span></div>'
+      +roadsHTML(x,22)
+      +'<div class="priceline pricerow"><span class="onep"><span class="plabel">'+(dOn?'Discounted price':'Pre-tax price')+'</span> <span class="pval">$'+fmt(dOn?x.disc:x.pre)+'</span></span>'
+      +'<span class="cardbtns"><button class="seebtn" type="button" onclick="stPickClose(1);enterScreen();openDetail('+o.i+')">Details</button></span></div></div>'; }).join('')
+    :'<p style="color:#9fb4ce;text-align:center">No stops match. Try another interstate or service.</p>';
+}
+function stPickClose(quiet){
+  var p=document.getElementById('sppop'); if(!p||!p.classList.contains('show')) return;
+  p.classList.remove('show'); document.documentElement.style.overflow=''; document.body.style.overflow='';
+  if(!quiet){ try{ if(history.state&&history.state.sp) history.back(); }catch(e){} }
+}
+window.addEventListener('popstate',function(){ var p=document.getElementById('sppop'); if(p&&p.classList.contains('show')){ p.classList.remove('show'); document.documentElement.style.overflow=''; document.body.style.overflow=''; } });
+
 function toggleState(st){
   const g=document.getElementById('stg_'+st); if(!g) return;
   const open=g.classList.toggle('open');
@@ -2950,6 +3017,10 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    To ship an update: add a new block at the TOP of CHANGELOG with the date and the lines.
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
+  { date:'2026-11-03', items:[
+    'Version 1.3.64',
+    '**Tap a state name in your fuel stops to filter it.** Pick an interstate, then a service like showers or parking, and see just the stops that match, each with a Details button (Pro)'
+  ]},
   { date:'2026-11-03', items:[
     'Version 1.3.63',
     '**State lookup and Upgrade now stay at the top** while you scroll the price list'
