@@ -2951,6 +2951,14 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
   { date:'2026-11-03', items:[
+    'Version 1.3.62',
+    '**The price list now shows both prices.** Your discount price in green, the pump retail price in red, so you can see what you save'
+  ]},
+  { date:'2026-11-03', items:[
+    'Version 1.3.61',
+    '**State lookup is now half width, with an Upgrade button beside it** on the price list'
+  ]},
+  { date:'2026-11-03', items:[
     'Version 1.3.60',
     '**State lookup box on the price list.** Type a state name or its two letters, like Missouri or MO, at the top of the list to see just that state'
   ]},
@@ -7329,7 +7337,7 @@ body.tier-basic #tierleft{display:block}
 body.tier-free #freelist{display:block}
 #freelist table{width:100%;border-collapse:collapse;background:#17304f;border-radius:10px;overflow:hidden;font-size:15px;color:#fff}
 #freelist th{background:#10233f;color:#fff;text-align:left;padding:9px 8px;font-size:13px;font-weight:700;position:sticky;top:0}
-#freelist td{padding:9px 8px;border-top:2px solid #4f7bb0;color:#fff}
+#freelist td{padding:9px 5px;border-top:2px solid #4f7bb0;color:#fff}
 #freelist td.p{text-align:right;font-weight:700;white-space:nowrap}
 #freelist th.p{text-align:right}
 #freelist .bl{color:#ffd400} #freelist .bt{color:#2f9be8} #freelist .bp{color:#3ab54a}
@@ -7380,15 +7388,15 @@ body.tier-free #freelist{display:block}
     var rows=STATIONS.filter(function(r){ var st=String(r[2]||'').toUpperCase().trim(); return st.length===2 && st!=='ON' && +r[6]>0; })
       .slice().sort(function(a,b){ var x=String(a[2]).localeCompare(String(b[2])); return x||String(a[1]).localeCompare(String(b[1])); });
     function bc(b){ b=String(b).toLowerCase(); return b.indexOf('love')>=0?'bl':b.indexOf('petro')>=0?'bp':'bt'; }
-    return '<table><thead><tr><th>State</th><th>City</th><th>Brand</th><th class="p">Price</th></tr></thead><tbody>'
+    return '<table><thead><tr><th>State</th><th>City</th><th>Brand</th><th class="p" style="color:#3ab54a">Discount</th><th class="p" style="color:#ff6b6b">Retail</th></tr></thead><tbody>'
       +rows.map(function(r){ var st=String(r[2]).toUpperCase(), nm=''; try{ nm=(typeof NAMES!=='undefined'&&NAMES[st])||''; }catch(e){}
-        return '<tr data-k="'+esc((st+' '+nm+' '+r[1]+' '+r[0]).toLowerCase())+'" data-s="'+esc((st+' '+nm).toLowerCase())+'"><td>'+esc(String(r[2]).toUpperCase())+'</td><td>'+esc(r[1])+'</td><td class="'+bc(r[0])+'">'+esc(r[0])+'</td><td class="p">$'+(+r[6]).toFixed(3)+'</td></tr>'; }).join('')
+        return '<tr data-k="'+esc((st+' '+nm+' '+r[1]+' '+r[0]).toLowerCase())+'" data-s="'+esc((st+' '+nm).toLowerCase())+'"><td>'+esc(String(r[2]).toUpperCase())+'</td><td>'+esc(r[1])+'</td><td class="'+bc(r[0])+'">'+esc(r[0])+'</td><td class="p" style="color:#3ab54a">$'+(+r[6]).toFixed(3)+'</td><td class="p" style="color:#ff6b6b">'+(+r[5]>0?'$'+(+r[5]).toFixed(3):'')+'</td></tr>'; }).join('')
       +'</tbody></table><p class="apnone">No stops match that search.</p>';
   }
   function usedUp(){ popup('Routes used up for today','You\u2019ve used your 4 routes for today. Your routes reset at midnight.<br><br>Until then, you can still see every stop\u2019s price. Tap See all prices, or upgrade to Pro for unlimited routes.'
                 +'<button type="button" class="tierall" onclick="fpsAllOpen()">See all prices</button><button type="button" class="tierup" onclick="fpsUpgrade()">Upgrade</button>'); }
   function freeRender(){
-    var box=document.getElementById('freelist'); if(box && tier()==='free') { var fq=document.getElementById('flsearch'), fv=fq?fq.value:''; box.innerHTML='<input id="flsearch" class="apsearch" type="search" placeholder="State lookup" autocomplete="off" autocapitalize="words" enterkeyhint="search" oninput="fpsApFilter(this)" style="width:100%;margin:0 0 10px;padding:12px;border-radius:10px;border:1.5px solid #4f7bb0;background:#10233f;color:#fff;font-size:16px">'+tableHTML(); var nq=document.getElementById('flsearch'); if(fv){ nq.value=fv; fpsApFilter(nq); } else stripe(box); }   /* v1.3.59: State lookup box on the Free list */
+    var box=document.getElementById('freelist'); if(box && tier()==='free') { var fq=document.getElementById('flsearch'), fv=fq?fq.value:''; box.innerHTML='<div style="display:flex;gap:8px;margin:0 0 10px;align-items:stretch"><input id="flsearch" class="apsearch" type="search" placeholder="State lookup" autocomplete="off" autocapitalize="words" enterkeyhint="search" oninput="fpsApFilter(this)" style="flex:1 1 50%;min-width:0;width:50%;margin:0;padding:12px;border-radius:10px;border:1.5px solid #4f7bb0;background:#10233f;color:#fff;font-size:16px"><button type="button" class="tierup" onclick="fpsUpgrade()" style="flex:1 1 50%;width:50%;margin:0;padding:12px">Upgrade</button></div>'+tableHTML(); var nq=document.getElementById('flsearch'); if(fv){ nq.value=fv; fpsApFilter(nq); } else stripe(box); }   /* v1.3.59: State lookup box on the Free list */
     var ap=document.getElementById('allprices'); if(ap && ap.classList.contains('show')){ document.getElementById('aptable').innerHTML=tableHTML(); fpsApFilter(document.getElementById('apsearch')); }
   }
   function stripe(box){ var k=0; [].forEach.call(box.querySelectorAll('tbody tr'),function(tr){ if(tr.style.display!=='none'){ tr.classList.toggle('alt',(k++)%2===1); } }); var n=box.querySelector('.apnone'); if(n) n.style.display=k?'none':'block'; }
