@@ -3025,6 +3025,15 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    To ship an update: add a new block at the TOP of CHANGELOG with the date and the lines.
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
+  { date:'2026-11-04', items:[
+    'Version 1.3.74',
+    '**Behind the scenes: the mic button now connects through its own secure pass,** so your voice goes straight to the box you tapped'
+  ]},
+  { date:'2026-11-04', items:[
+    'Version 1.3.73',
+    '**New mic button so you can talk instead of type.** Tap any box, then tap the orange mic and say what you want typed. It stops on its own when you stop talking, or tap the mic again',
+    '**Behind the scenes:** counts how often the mic button is used, to help improve the app'
+  ]},
   { date:'2026-11-03', items:[
     'Version 1.3.70',
     '**The fuel gauge is easier to read.** The filled part of the gauge is a brighter orange, and the drag instructions now sit under the gauge on two short lines',
@@ -7679,6 +7688,113 @@ body.tier-free #freelist{display:block}
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',start); else start();
   window.addEventListener('load',function(){ wrapAll(); apply(); });
   document.addEventListener('visibilitychange',function(){ if(!document.hidden) apply(); });   // new day: Basic counter resets
+})();
+</script>
+<script>
+/* ===== v1.3.73: VOICE MIC - one floating mic for every text box (Deepgram live speech-to-text) =====
+   Tap a box, tap the mic, talk. Words land in that box. Stops after a pause, after 60 s, or on a second tap.
+   The Deepgram key never touches the phone: the access server (same one Rodney uses) hands out a 30-second pass. */
+(function(){
+  var TOKEN_URL = 'https://script.google.com/macros/s/AKfycbxEpGntHw5H205B6qJI5YrbIBe2n98TfAhXJwPCY6rghwRWCZhipF9wchbNj_mAwBtzpA/exec?page=dgtoken';   /* v1.3.74: staging access server */
+  var MAX_MS = 60000, QUIET_MS = 2500;
+  var last=null, on=false, ws=null, ctx=null, stream=null, node=null, src=null, base='', finals='', timer=null, quiet=null, hideT=null;
+
+  var css=document.createElement('style');
+  css.textContent='#vmic{position:fixed;right:14px;bottom:110px;z-index:99999;width:58px;height:58px;border-radius:50%;border:2px solid #fff3;background:#f26a21;color:#fff;display:none;align-items:center;justify-content:center;box-shadow:0 4px 14px #0008;-webkit-tap-highlight-color:transparent;touch-action:manipulation}'+
+    '#vmic svg{width:28px;height:28px}#vmic.on{background:#d93a2b;animation:vmp 1.2s infinite}'+
+    '@keyframes vmp{0%{box-shadow:0 0 0 0 #d93a2b99}70%{box-shadow:0 0 0 16px #d93a2b00}100%{box-shadow:0 0 0 0 #d93a2b00}}'+
+    '#vmsg{position:fixed;left:12px;right:84px;z-index:99999;background:#10233f;color:#e8eef6;border:1px solid #2b4a70;border-radius:12px;padding:10px 12px;font-size:15px;display:none;box-shadow:0 4px 14px #0008}';
+  document.head.appendChild(css);
+  var b=document.createElement('button'); b.id='vmic'; b.type='button'; b.setAttribute('aria-label','Talk instead of typing');
+  b.innerHTML='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg>';
+  var m=document.createElement('div'); m.id='vmsg';
+  function add(){ document.body.appendChild(b); document.body.appendChild(m); }
+  if(document.body) add(); else document.addEventListener('DOMContentLoaded',add);
+
+  function ok(el){ if(!el||!el.tagName||el.disabled||el.readOnly) return false;
+    if(el.tagName==='TEXTAREA') return true;
+    if(el.tagName!=='INPUT') return false;
+    var t=(el.type||'text').toLowerCase(); return /^(text|search|number|email|tel|url)$/.test(t); }
+  function place(){ var vv=window.visualViewport, kb=0;
+    if(vv) kb=Math.max(0, window.innerHeight-(vv.height+vv.offsetTop));
+    var bot=(kb>60? kb+14 : 110); b.style.bottom=bot+'px'; m.style.bottom=(bot+4)+'px'; }
+  if(window.visualViewport){ visualViewport.addEventListener('resize',place); visualViewport.addEventListener('scroll',place); }
+  function show(){ clearTimeout(hideT); place(); b.style.display='flex'; }
+  function say(t,ms){ m.textContent=t; m.style.display=t?'block':'none'; place(); if(ms) setTimeout(function(){ if(m.textContent===t) m.style.display='none'; },ms); }
+
+  document.addEventListener('focusin',function(e){ if(ok(e.target)){ last=e.target; show(); } },true);
+  document.addEventListener('focusout',function(e){ if(e.target!==last) return; hideT=setTimeout(function(){ if(!on && !ok(document.activeElement)) b.style.display='none'; },400); },true);
+  /* keep the keyboard and the box focused when the mic is pressed */
+  b.addEventListener('pointerdown',function(e){ e.preventDefault(); });
+  b.addEventListener('mousedown',function(e){ e.preventDefault(); });
+  b.addEventListener('click',function(){ on ? stop() : start(); });
+
+  function put(txt){ if(!last) return; var v=txt;
+    if(last.type==='number'){ v=(txt.replace(/,/g,'').match(/-?\d+(\.\d+)?/)||[''])[0]; }
+    last.value=v; try{ last.dispatchEvent(new Event('input',{bubbles:true})); }catch(e){} }
+  function join(a,c){ a=a||''; c=(c||'').trim(); if(!c) return a; return a && !/\s$/.test(a) ? a+' '+c : a+c; }
+  function count(){ try{ var mm=JSON.parse(localStorage.getItem('fps_taps')||'{}')||{}; mm.voice=(mm.voice||0)+1; localStorage.setItem('fps_taps',JSON.stringify(mm)); }catch(e){} }
+
+  function start(){
+    if(!last || !document.contains(last)){ say('Tap a box first, then tap the mic.',2500); return; }
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ say('This phone\u2019s browser can\u2019t use the mic here.',3000); return; }
+    on=true; b.classList.add('on'); say('Getting ready\u2026'); count();
+    base=last.value||''; finals='';
+    var tokP=fetch(TOKEN_URL,{cache:'no-store'}).then(function(r){ return r.json(); });
+    var micP=navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
+    Promise.all([tokP,micP]).then(function(res){
+      var j=res[0]; stream=res[1];
+      if(!on){ kill(); return; }
+      if(!j || !j.access_token) throw new Error('token');
+      var AC=window.AudioContext||window.webkitAudioContext; ctx=new AC();
+      var rate=ctx.sampleRate;
+      var q='model=nova-3&language=en-US&smart_format=true&interim_results=true&endpointing=400&utterance_end_ms=1500&vad_events=true&encoding=linear16&channels=1&sample_rate='+rate;
+      ws=new WebSocket('wss://api.deepgram.com/v1/listen?'+q,['bearer',j.access_token]);
+      ws.binaryType='arraybuffer';
+      ws.onopen=function(){
+        src=ctx.createMediaStreamSource(stream);
+        node=ctx.createScriptProcessor(4096,1,1);
+        node.onaudioprocess=function(ev){ if(!ws||ws.readyState!==1) return;
+          var f=ev.inputBuffer.getChannelData(0), o=new Int16Array(f.length);
+          for(var i=0;i<f.length;i++){ var s=Math.max(-1,Math.min(1,f[i])); o[i]=s<0?s*0x8000:s*0x7fff; }
+          ws.send(o.buffer); };
+        src.connect(node); node.connect(ctx.destination);
+        if(ctx.state==='suspended') ctx.resume();
+        say('Listening\u2026 talk now');
+        timer=setTimeout(stop,MAX_MS);
+      };
+      ws.onmessage=function(ev){ var d; try{ d=JSON.parse(ev.data); }catch(e){ return; }
+        if(d.type==='UtteranceEnd'){ clearTimeout(quiet); quiet=setTimeout(stop,QUIET_MS-1500); return; }
+        if(d.type!=='Results' || !d.channel) return;
+        var t=(d.channel.alternatives&&d.channel.alternatives[0]&&d.channel.alternatives[0].transcript)||'';
+        if(t) clearTimeout(quiet);
+        if(d.is_final){ finals=join(finals,t); put(join(base,finals)); say(finals||'Listening\u2026'); }
+        else if(t){ put(join(base,join(finals,t))); say(join(finals,t)); }
+      };
+      ws.onerror=function(){ say('Voice lost its connection. Try again.',3000); kill(); };
+      ws.onclose=function(){ if(on) kill(); };
+    }).catch(function(e){
+      var n=e&&e.name||'';
+      say(/NotAllowed|Permission|Security/.test(n) ? 'Mic is blocked. Allow the microphone for this app in your phone settings.' : 'Voice isn\u2019t available right now. Try again in a minute.',4000);
+      kill();
+    });
+  }
+  function stop(){ if(!on) return;
+    try{ if(ws&&ws.readyState===1) ws.send(JSON.stringify({type:'CloseStream'})); }catch(e){}
+    setTimeout(kill,600);   /* let the last words come back */
+    on=false; b.classList.remove('on');
+    if(finals) say('Got it',1200); else say('Didn\u2019t catch anything. Try again.',2000);
+  }
+  function kill(){ on=false; b.classList.remove('on'); clearTimeout(timer); clearTimeout(quiet);
+    try{ if(node){ node.disconnect(); node.onaudioprocess=null; } }catch(e){}
+    try{ if(src) src.disconnect(); }catch(e){}
+    try{ if(ctx) ctx.close(); }catch(e){}
+    try{ if(stream) stream.getTracks().forEach(function(t){ t.stop(); }); }catch(e){}
+    try{ if(ws&&ws.readyState<2) ws.close(); }catch(e){}
+    ws=null; ctx=null; stream=null; node=null; src=null;
+    if(last && document.activeElement!==last && !ok(document.activeElement)) b.style.display='none';
+  }
+  document.addEventListener('visibilitychange',function(){ if(document.hidden && on) stop(); });
 })();
 </script>
 </body>
