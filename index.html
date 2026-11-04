@@ -2225,40 +2225,61 @@ function nfCalc(){
   out.innerHTML=h;
 }
 
-/* truck-legal routing (TomTom). Returns the same shape as the old router so nothing else changes. */
-const TT_KEY="ARKpg3nDvyWW0qpnA5aSlSpkK78bopJF";
+/* truck-legal routing (HERE, v1.3.76; was TomTom). Returns the same shape as the old router so nothing else changes. */
+const HERE_KEY="Culfh3x39iAEJp5gzoJvXzPrXz57hGV3A_XaIk2Lfsc";
+function hereDecode(str){ const ENC='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+  let v=0,sh=0; const nums=[];
+  for(const ch of str){ const b=ENC.indexOf(ch); v+=(b&31)*Math.pow(2,sh); if(b&32){ sh+=5; } else { nums.push(v); v=0; sh=0; } }
+  const h=nums[1], prec=h&15, third=(h>>4)&7, f=Math.pow(10,prec), sg=x=>(x%2)?-(x+1)/2:x/2, pts=[];
+  let la=0,lo=0,k=2; while(k+1<nums.length){ la+=sg(nums[k++]); lo+=sg(nums[k++]); if(third) k++; pts.push([lo/f,la/f]); }
+  return pts; }
 async function ttRoute(pts,opt){            /* pts: [[lon,lat],...]  opt: {h,w,len,ax,toll,max,tollok:[states],rt} */
-  const q="&travelMode=truck&vehicleCommercial=true&routeType="+(opt.rt==='shortest'?'shortest':'fastest')+"&traffic=true&vehicleHeight="+opt.h+
-    "&vehicleWeight="+Math.round(opt.w)+"&vehicleWidth=2.6"+
-    (opt.ax?"&vehicleNumberOfAxles="+opt.ax:"")+"&key="+TT_KEY;
+  const q="&transportMode=truck&routingMode="+(opt.rt==='shortest'?'short':'fast')+
+    "&vehicle[height]="+Math.round(opt.h*100)+"&vehicle[grossWeight]="+Math.round(opt.w)+"&vehicle[width]=259"+
+    (opt.len?"&vehicle[length]="+Math.round(opt.len*100):"")+(opt.ax?"&vehicle[axleCount]="+opt.ax:"")+"&vehicle[trailerCount]=1"+
+    "&return=polyline,summary&spans=length,routeNumbers,names,tollSystems&apikey="+HERE_KEY;
   const wait=ms=>new Promise(r=>setTimeout(r,ms));
-  /* one TomTom call -> {co:[[lon,lat]], dist, dur, legs:[{distance,duration}], ins:[{o,r}], toll:[[i0,i1]], names} */
+  /* one HERE call -> {co:[[lon,lat]], dist, dur, legs:[{distance,duration}], ins:[{o,r}], toll:[[i0,i1]], names} */
   const raw=async(P,extra,full)=>{
-    const loc=P.map(p=>(+p[1]).toFixed(5)+","+(+p[0]).toFixed(5)).join(":");
-    const r=await fetch("https://api.tomtom.com/routing/1/calculateRoute/"+loc+"/json?"+q+extra+(full?"&instructionsType=coded&sectionType=tollRoad":""));
-    if(!r.ok){ let t=''; try{ t=(await r.text()).replace(/\s+/g,' ').slice(0,140); }catch(e){} throw new Error("TomTom "+r.status+(t?" "+t:"")); }
-    const d=await r.json(), R=d.routes&&d.routes[0]; if(!R) throw new Error("TomTom found no route");
-    const co=[]; (R.legs||[]).forEach(l=>l.points.forEach(p=>co.push([p.longitude,p.latitude])));
-    return {co:co, dist:R.summary.lengthInMeters, dur:R.summary.travelTimeInSeconds,
-      legs:(R.legs||[]).map(l=>({distance:l.summary.lengthInMeters,duration:l.summary.travelTimeInSeconds})),
-      ins:((R.guidance&&R.guidance.instructions)||[]).map(x=>({o:x.routeOffsetInMeters||0,r:((x.roadNumbers||[])[0]||x.street||'')})),
-      toll:(R.sections||[]).filter(x=>x.sectionType==='TOLL_ROAD').map(x=>[x.startPointIndex,x.endPointIndex]), names:!!full};
+    const ll=p=>(+p[1]).toFixed(5)+","+(+p[0]).toFixed(5);
+    const via=P.slice(1,-1).map(p=>"&via="+ll(p)).join("");
+    const r=await fetch("https://router.hereapi.com/v8/routes?origin="+ll(P[0])+"&destination="+ll(P[P.length-1])+via+q+extra);
+    let d=null; try{ d=await r.json(); }catch(e){}
+    if(!r.ok){ throw new Error("HERE "+r.status+" "+String((d&&(d.title||d.cause))||'').slice(0,140)); }
+    const R=d&&d.routes&&d.routes[0]; if(!R) throw new Error("HERE found no route");
+    const co=[], ins=[], toll=[], legs=[]; let dist=0, dur=0;
+    (R.sections||[]).forEach(S=>{
+      const base=co.length, mo=dist, line=S.polyline?hereDecode(S.polyline):[];
+      line.forEach(c=>co.push(c));
+      const sm=S.summary||{}; dist+=sm.length||0; dur+=sm.duration||0;
+      legs.push({distance:sm.length||0, duration:sm.duration||0});
+      let off=0, last='', ts=-1;
+      (S.spans||[]).forEach((sp,k,arr)=>{
+        const rn=((sp.routeNumbers||[])[0]||{}).value || ((sp.names||[])[0]||{}).value || '';
+        if(rn && rn!==last){ ins.push({o:mo+off, r:rn}); last=rn; }
+        const isT=!!(sp.tollSystems&&sp.tollSystems.length), end=(arr[k+1]?arr[k+1].offset:line.length-1);
+        if(isT){ if(ts<0) ts=base+sp.offset; } else if(ts>=0){ toll.push([ts, base+sp.offset]); ts=-1; }
+        if(isT && !arr[k+1]){ toll.push([ts, base+end]); ts=-1; }
+        off+=sp.length||0;
+      });
+    });
+    if(!co.length) throw new Error("HERE found no route");
+    return {co:co, dist:dist, dur:dur, legs:legs, ins:ins, toll:toll, names:true};
   };
   /* try with road names, try again, then without road names (so the truck route never gets lost over the extras) */
   const one=async(P,extra)=>{
-    try{ return await raw(P,extra,true); }catch(e1){ window.ROUTE_ERR=e1.message; if(/no route|NO_ROUTE|route search failed/i.test(e1.message)) throw e1; }
+    try{ return await raw(P,extra,true); }catch(e1){ window.ROUTE_ERR=e1.message; if(/no route|NO_ROUTE|route search failed|couldn.t find/i.test(e1.message)) throw e1; }
     await wait(900);
     try{ return await raw(P,extra,true); }catch(e2){ window.ROUTE_ERR=e2.message; }
     return await raw(P,extra,false);
   };
   /* nearest main road (interstate or highway) to a point, so a stop downtown doesn't kill the truck route */
   const snap=async(p)=>{
-    try{ const u="https://api.tomtom.com/search/2/reverseGeocode/"+(+p[1]).toFixed(5)+","+(+p[0]).toFixed(5)+".json?key="+TT_KEY
-          +"&radius=24000&roadUse="+encodeURIComponent('["LimitedAccess","Arterial"]');
-      const r=await fetch(u); if(!r.ok) return null; const d=await r.json(), A=d.addresses&&d.addresses[0]; if(!A||!A.position) return null;
-      const ll=String(A.position).split(',').map(Number); if(!(isFinite(ll[0])&&isFinite(ll[1]))) return null;
-      if(hvMi(+p[1],+p[0],ll[0],ll[1])>15) return null;
-      return [ll[1],ll[0]];
+    try{ const u="https://revgeocode.search.hereapi.com/v1/revgeocode?at="+(+p[1]).toFixed(5)+","+(+p[0]).toFixed(5)+"&types=street&limit=1&apiKey="+HERE_KEY;
+      const r=await fetch(u); if(!r.ok) return null; const d=await r.json(), A=d.items&&d.items[0]; if(!A||!A.position) return null;
+      const la=+A.position.lat, lo=+A.position.lng; if(!(isFinite(la)&&isFinite(lo))) return null;
+      if(hvMi(+p[1],+p[0],la,lo)>15) return null;
+      return [lo,la];
     }catch(e){ return null; } };
   const wrap=x=>({code:"Ok",routes:[{geometry:{coordinates:x.co},distance:x.dist,duration:x.dur,legs:x.legs}],
     tt:x.names?{ins:x.ins,toll:x.toll}:null, tollKept:x.tollKept, tollOk:x.tollOk});
@@ -2266,7 +2287,7 @@ async function ttRoute(pts,opt){            /* pts: [[lon,lat],...]  opt: {h,w,l
   window.ROUTE_SNAPPED=[];
   try{ a=await one(pts,""); }
   catch(e0){
-    if(!/no route|NO_ROUTE|route search failed/i.test(e0.message)) throw e0;
+    if(!/no route|NO_ROUTE|route search failed|couldn.t find/i.test(e0.message)) throw e0;
     /* first move the in-between stops onto a main road, then the start and end too */
     const tries=[pts.map((p,i)=>i>0&&i<pts.length-1), pts.map(()=>true)];
     for(const which of tries){
@@ -2280,7 +2301,7 @@ async function ttRoute(pts,opt){            /* pts: [[lon,lat],...]  opt: {h,w,l
   }
   if(!opt.toll) return wrap(a);
   const lim=opt.max||20, okSt=opt.tollok||[];   /* Bob, Oct 25 (1.3.27): with in-between stops, tolls are decided one leg at a time (see pick) */
-  const b=await one(pts,"&avoid=tollRoads").catch(()=>null);
+  const b=await one(pts,"&avoid[features]=tollRoad").catch(()=>null);
   const pickWhole=()=>{ if(b&&(b.dist-a.dist)/1609.34<=lim) return wrap(b);
     a.tollKept=b?Math.round((b.dist-a.dist)/1609.34):-1; return wrap(a); };
   /* each leg gets its own toll check: skip tolls on that leg if it adds no more than the limit, else that leg keeps its toll road */
@@ -2289,7 +2310,7 @@ async function ttRoute(pts,opt){            /* pts: [[lon,lat],...]  opt: {h,w,l
     try{
       const L=await Promise.all(pts.slice(0,-1).map(async(p,k)=>{
         const P2=[p,pts[k+1]];
-        const ak=await raw(P2,"",true), bk=await raw(P2,"&avoid=tollRoads",true).catch(()=>null);
+        const ak=await raw(P2,"",true), bk=await raw(P2,"&avoid[features]=tollRoad",true).catch(()=>null);
         const ex=bk?(bk.dist-ak.dist)/1609.34:-1;
         return (bk&&ex<=lim)?{r:bk,kept:0}:{r:ak,kept:ak.toll.length?(bk?Math.round(ex):-1):0};
       }));
@@ -2330,7 +2351,7 @@ async function ttRoute(pts,opt){            /* pts: [[lon,lat],...]  opt: {h,w,l
   const groups=[]; segs.forEach(sg=>{ const G=groups[groups.length-1];
     if(G && G.toll===sg.toll){ G.P.push(sg.to); G.segs.push(sg); } else groups.push({toll:sg.toll,P:[sg.from,sg.to],segs:[sg]}); });
   let parts;
-  try{ parts=await Promise.all(groups.map(G=>raw(G.P,G.toll?"":"&avoid=tollRoads",true))); }catch(e){ return pick(); }
+  try{ parts=await Promise.all(groups.map(G=>raw(G.P,G.toll?"":"&avoid[features]=tollRoad",true))); }catch(e){ return pick(); }
   const h={co:[],dist:0,dur:0,legs:pts.slice(1).map(()=>({distance:0,duration:0})),ins:[],toll:[],names:true};
   parts.forEach((x,g)=>{
     const po=h.co.length, mo=h.dist;
@@ -3025,6 +3046,10 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    To ship an update: add a new block at the TOP of CHANGELOG with the date and the lines.
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
+  { date:'2026-11-04', items:[
+    'Version 1.3.76',
+    '**Truck routing has a new engine.** Routes now come from a truck mapping service that knows truck-legal roads, low bridges, weight limits and length limits, and keeps you on the main truck routes. As always, check signs and restrictions for yourself; the app can’t guarantee every road'
+  ]},
   { date:'2026-11-04', items:[
     'Version 1.3.75',
     '**Talking in a city works better.** Say the city and state, like Troy, Michigan, and the app understands the full state name. When there is one clear match, it picks the city and takes you back on its own, no tap needed. If there is more than one match, pick from the list like before'
