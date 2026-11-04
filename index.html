@@ -3026,6 +3026,10 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
   { date:'2026-11-04', items:[
+    'Version 1.3.75',
+    '**Talking in a city works better.** Say the city and state, like Troy, Michigan, and the app understands the full state name. When there is one clear match, it picks the city and takes you back on its own, no tap needed. If there is more than one match, pick from the list like before'
+  ]},
+  { date:'2026-11-04', items:[
     'Version 1.3.73',
     '**Buy in each state now says No savings with this plan.** The box turns gray on that side, since buying in each state is what the savings is measured against. Slide back to Cheapest plan to see what you save',
     '**The savings button is clearer.** It now reads Where\u2019d the savings come from?'
@@ -6710,16 +6714,50 @@ function cpTitle(inp){
   if(inp.closest('#planstops') && /^your location/i.test(ph)) return 'Start';
   return ph||'City';
 }
+/* v1.3.75: talked-in cities. "Troy, Michigan." -> "Troy, MI". Full state names work, with or without the comma. */
+function cpNorm(q){
+  q=String(q||'').replace(/[.!?]+\s*$/,'').replace(/\s+/g,' ').trim();
+  var names=Object.keys(STATES).sort(function(a,b){ return b.length-a.length; });
+  for(var i=0;i<names.length;i++){
+    var re=new RegExp('^(.+?)\\s*(,)?\\s+'+names[i].replace(/ /g,'\\s+')+'$','i'), m=q.match(re);
+    if(!m) re=new RegExp('^(.+?)\\s*(,)\\s*'+names[i].replace(/ /g,'\\s+')+'$','i'), m=q.match(re);
+    if(!m) continue;
+    var nq=m[1].replace(/,\s*$/,'').trim()+', '+STATES[names[i]];
+    if(m[2]) return nq;                                   // had a comma: sure thing
+    try{ if(cityLocal(q,1).length) return q; }catch(e){}  // no comma: "Fort Washington" stays a city name
+    return nq;
+  }
+  return q;
+}
 function cpFill(){
   var pin=document.getElementById('cpin'), list=document.getElementById('cplist'), inp=CP.input;
-  var q=pin.value.trim();
+  var raw=pin.value, q=cpNorm(raw);
+  var jump=raw.trim().length-(CP.seenLen||0)>=4;           // a whole phrase landed at once = talked in
+  CP.seen=raw; CP.seenLen=raw.trim().length;
   document.querySelector('#cpop .cpx').classList.toggle('on',!!pin.value);
   inp.value=pin.value;                      // the row follows what's typed, like before
   if(inp.closest('#stops')) try{ markLoc(inp); }catch(e){}
   clearTimeout(CP.timer);
   if(q.length<2){ list.innerHTML=''; try{ locOnly(list,inp); }catch(e){} cpEmpty(); return; }
-  CP.timer=setTimeout(function(){ try{ lookup(q,list,inp); }catch(e){} },150);
+  CP.timer=setTimeout(function(){
+    try{ lookup(q,list,inp); }catch(e){}
+    if(jump && /,\s*[A-Z]{2}$/.test(q)) cpAuto(q,raw,0);
+  },150);
 }
+/* talked-in "City, ST" with one clear match: pick it and go back, no tap needed */
+function cpAuto(q,raw,tries){
+  if(!window.CP_OPEN || document.getElementById('cpin').value!==raw) return;
+  var want=q.toLowerCase().replace(/\s+/g,' ');
+  var rows=[].slice.call(document.getElementById('cplist').children).filter(function(d){ return !/zipmsg|cpempty|useloc/.test(d.className); });
+  var hit=rows.filter(function(d){ return d.textContent.trim().toLowerCase()===want; });
+  if(hit.length===1){ hit[0].click(); return; }
+  if(!rows.length && tries<6) setTimeout(function(){ cpAuto(q,raw,tries+1); },400);   // web lookup still coming
+}
+/* some voice keyboards drop text in without telling the page; check the box anyway */
+setInterval(function(){
+  if(!window.CP_OPEN) return;
+  var pin=document.getElementById('cpin'); if(pin && pin.value!==CP.seen) cpFill();
+},400);
 function cpEmpty(){
   var list=document.getElementById('cplist');
   if(list.style.display==='none' || !list.children.length){
@@ -6737,6 +6775,7 @@ function openCityPicker(inp,fresh){
   var pin=document.getElementById('cpin');
   document.getElementById('cptitle').textContent=cpTitle(inp);
   pin.value=(inp.value===HERE)?'':inp.value;
+  CP.seen=pin.value; CP.seenLen=pin.value.trim().length;
   document.getElementById('cpop').classList.add('show');
   window.CP_OPEN=true;
   try{ enterScreen(); }catch(e){}
