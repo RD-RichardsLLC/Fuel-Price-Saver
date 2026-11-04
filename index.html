@@ -2381,7 +2381,7 @@ async function findFuel(){
   /* fresh start: forget the last route, lookups and fuel plan so nothing old carries over */
   window.ROUTE_LINE=null; window.ROUTE_TT=null; window.ROUTE_TOLLKEPT=null; window.ROUTE_TOLLOK=false;
   window.ROUTE_ERR=null; window.ROUTE_CAR=false; window.ROUTE_SNAPPED=[]; window.ROUTE_NAMES=[]; window.ROUTE_STOPS=null;
-  ROUTE_CUM=[]; ROUTE_TOTAL=0; ROUTE_LEGS=null; ROUTE_MI=null; LASTHITS=[];
+  ROUTE_CUM=[]; ROUTE_TOTAL=0; ROUTE_LEGS=null; ROUTE_MI=null; LASTHITS=[]; window.FP_EXTRA=null; window.ROUTE_LINE=null;
   for(const k in GEO_CACHE) delete GEO_CACHE[k];
   window.ROUTE_ALT=null; window.ROUTE_FORCED=force60; document.body.classList.remove('has-alt');
   const RUN=++FF_RUN;
@@ -2443,6 +2443,7 @@ async function findFuel(){
     let laMin=90,laMax=-90,loMin=180,loMax=-180;
     for(const[la,lo]of line){ if(la<laMin)laMin=la; if(la>laMax)laMax=la; if(lo<loMin)loMin=lo; if(lo>loMax)loMax=lo; }
     const pad=maxMiles/69+0.3;
+    window.ROUTE_LINE=line; window.FP_EXTRA=null; window.FP_OFFMI=maxMiles;
     const hits=[];
     const legOf=i=>{ let leg=0; if(ROUTE_LEGS){ for(let k=0;k<ROUTE_LEGS.length;k++){ if(i>=ROUTE_LEGS[k].s) leg=k; } } return leg; };
     for(const s of STATIONS){
@@ -2460,6 +2461,7 @@ async function findFuel(){
     LASTHITS=hits; NEAR_R=null; try{ fpSync(); }catch(e){}
     setBar(100); hideBar();
     render(hits);
+    try{ if(!window.ROUTE_CAR) res.insertAdjacentHTML('beforeend','<p class="hint" style="font-size:13px;opacity:.8">Routes are planned for trucks: low bridges, weight limits and restricted roads. The app doesn\u2019t give spoken turn-by-turn directions, so use your own navigation, and always check signs for yourself.</p>'); }catch(e){}
     openResults();
     if(hits.length){ ding(); flagBestPrice(); }
   }catch(e){ hideBar(); res.innerHTML='<p class="hint">Something went wrong: '+e.message+'. The free map service can be busy \u2014 try again.</p>'; }
@@ -3046,6 +3048,12 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    To ship an update: add a new block at the TOP of CHANGELOG with the date and the lines.
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
+  { date:'2026-11-04', items:[
+    'Version 1.3.78',
+    '**The Fuel stop optimizer looks wider when it needs to.** If your fuel won\u2019t reach a stop within your miles off route, it looks up to 10 miles off the road and tells you when it did',
+    '**No more wrong savings numbers.** If a plan can\u2019t reach a stop, the app says so instead of showing a savings amount',
+    '**A note under your route results:** routes are planned for trucks, but the app doesn\u2019t give spoken turn-by-turn directions, so use your own navigation'
+  ]},
   { date:'2026-11-04', items:[
     'Version 1.3.77',
     '**Fixed: truck routes would not load.** The new truck routing now loads your route instead of falling back to a car route'
@@ -7176,6 +7184,21 @@ function fpEnd(){
   fpCalc();
 }
 function fpTab(k){ FP_TAB=k; fpCalc(); }
+
+/* v1.3.78: when the plan can't reach a stop, look wider (up to 10 miles off the route) for stops the setting left out */
+function fpWide(maxW){
+  var line=window.ROUTE_LINE, base=+window.FP_OFFMI||0, out=[]; if(!line||!line.length||maxW<=base) return out;
+  var laMin=90,laMax=-90,loMin=180,loMax=-180;
+  line.forEach(function(p){ if(p[0]<laMin)laMin=p[0]; if(p[0]>laMax)laMax=p[0]; if(p[1]<loMin)loMin=p[1]; if(p[1]>loMax)loMax=p[1]; });
+  var pad=maxW/69+0.3;
+  STATIONS.forEach(function(s){
+    var la=s[3], lo=s[4]; if(la<laMin-pad||la>laMax+pad||lo<loMin-pad||lo>loMax+pad) return;
+    var best=1e9, bi=0;
+    for(var i=0;i<line.length-1;i++){ var d=segDistMi(la,lo,line[i][0],line[i][1],line[i+1][0],line[i+1][1]); if(d<best){ best=d; bi=i; } }
+    if(best>base && best<=maxW) out.push({b:s[0],c:s[1],st:s[2],la:la,lo:lo,ret:s[5],disc:s[6],ifta:s[7],pre:s[8],prod:s[9],off:Math.round(best*10)/10,pos:bi,rmi:ROUTE_CUM[bi]||0,wide:true});
+  });
+  return out;
+}
 function fpCalc(){
   var t=getTruck()||TRUCK_DEF, out=document.getElementById('fpout');
   NF_LVL=parseFloat(document.getElementById('fplvl').value)||0.25;
@@ -7191,7 +7214,7 @@ function fpCalc(){
     +', arriving with '+Math.round(Math.max(endTot,res))+' gal'+(skip.length?'. Never buying in '+skip.join(', '):'')+'. Change these in Your truck.';
   var runs=fpStateRuns(); if(!runs.length){ out.innerHTML='<div class="fpwarn">Couldn\u2019t work out the states on this route. Tap Find fuel again.</div>'; return; }
   var sur=runs.map(function(r){ var x=FP_SURCH[r.st]||0; return x?r.mi/mpg*x:0; }), surT=0; sur.forEach(function(x){ surT+=x; });
-  var stns=LASTHITS.filter(function(h){ return skip.indexOf(h.st)<0 && isFinite(fpCost(h)) && h.rmi>=0 && h.rmi<=total; })
+  var stns=LASTHITS.concat(window.FP_EXTRA||[]).filter(function(h){ return skip.indexOf(h.st)<0 && isFinite(fpCost(h)) && h.rmi>=0 && h.rmi<=total; })
                    .slice().sort(function(a,b){ return a.rmi-b.rmi||fpCost(a)-fpCost(b); });
   var warn=[];
   var runOf=function(m){ for(var k=0;k<runs.length;k++) if(m>=runs[k].start-0.01 && m<=runs[k].end+0.01) return k; return runs.length-1; };
@@ -7254,6 +7277,7 @@ function fpCalc(){
   } else short=true;
   f-=(total-pos)/mpg; if(f< -0.5) short=true; else if(f<endX-1) warn.push('You\u2019ll get there with less than '+Math.round(endTot)+' gal. There isn\u2019t a stop late enough on the route to top off.');
   if(!stns.length) short=true;
+  if(short && !window.FP_EXTRA && window.ROUTE_LINE){ window.FP_EXTRA=fpWide(10); if(window.FP_EXTRA.length) return fpCalc(); }
   var p2=runs.map(function(){ return {g:0,stops:[]}; });
   buys.forEach(function(b){ var k=runOf(b.s.rmi); p2[k].g+=b.g; p2[k].stops.push(b); });
 
@@ -7265,13 +7289,15 @@ function fpCalc(){
   var $=function(x){ return '$'+Math.round(x).toLocaleString('en-US'); }, M=function(x){ return Math.round(x).toLocaleString('en-US'); };
   var price=function(h){ return '$'+fmt(rankVal(h)); };
   var save=real1-real2, h='';
-  try{ window.FP_SAVE=save; window.FP_PLANK=buys.map(function(b){ return b.s.la+','+b.s.lo; }); fpBtnSync(); }catch(e){}
-  if(short) warn.push('Your fuel won\u2019t reach one of the stops on this plan. Check your gauge, or widen the miles off route in Settings so more stops show up.');
+  try{ window.FP_SAVE=short?0:save; window.FP_PLANK=buys.map(function(b){ return b.s.la+','+b.s.lo; }); fpBtnSync(); }catch(e){}
+  if(short) warn.push('Your fuel won\u2019t reach one of the stops on this plan, even looking up to 10 miles off route. Check your gauge, or widen the miles off route in Settings so more stops show up.');
+  else if(buys.some(function(b){ return b.s.wide; })) warn.push('No fuel close enough on part of this trip, so we looked up to 10 miles off route. Stops marked (wider look) are a little farther off the road.');
   /* v1.3.71: one bottom-line number, and a button that shows where it came from. The two parts always add up to it. */
   var saveR=Math.round(save), pumpR=Math.round(pump1-pump2), taxR=saveR-pumpR;
   window.FP_WHY={save:saveR,pump:pumpR,tax:taxR,n1:n1,n2:n2};
   /* v1.3.73: Buy in each state is the baseline, so it saves nothing */
-  if(save>=1 && FP_TAB==='each') h+='<div class="fpsave none"><b>No savings with this plan</b></div>';
+  if(short) h+='<div class="fpsave none"><b>No savings shown</b><span>This plan can\u2019t reach a stop, so the numbers wouldn\u2019t be right</span></div>';
+  else if(save>=1 && FP_TAB==='each') h+='<div class="fpsave none"><b>No savings with this plan</b></div>';
   else if(save>=1) h+='<div class="fpsave"><b>You save '+$(saveR)+' on this trip</b>'
     +'<button type="button" class="fpwhybtn" onclick="fpWhyOpen()">Where\u2019d the savings come from?</button></div>';
   else h+='<div class="fpsave same"><b>About the same either way</b><span>Filling up in each state as you go costs about the same on this run</span></div>';
@@ -7286,7 +7312,7 @@ function fpCalc(){
     var line='', g=0, c=0;
     if(cheap){
       g=p2[k].g; c=sum(p2[k].stops,function(b){ return b.g*fpPump(b.s); });
-      if(g>0) line=p2[k].stops.map(function(b){ return '<small class="buy"><span class="stn">'+esc(b.s.b)+', '+esc(b.s.c)+'</span> at '+price(b.s)+(p2[k].stops.length>1?', '+b.g+' gal':'')+'</small>'; }).join('');
+      if(g>0) line=p2[k].stops.map(function(b){ return '<small class="buy"><span class="stn">'+esc(b.s.b)+', '+esc(b.s.c)+'</span> at '+price(b.s)+(p2[k].stops.length>1?', '+b.g+' gal':'')+(b.s.wide?' (wider look, '+b.s.off+' mi off route)':'')+'</small>'; }).join('');
       else line='<small>'+(skip.indexOf(r.st)>=0?'You don\u2019t buy here':'Skip, drive through on what you have')+'</small>';
     }else{
       var x=p1[k]; g=x.g; c=x.stop?x.g*fpPump(x.stop):0;
