@@ -3049,6 +3049,12 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
   { date:'2026-11-04', items:[
+    'Version 1.3.79',
+    '**The Map button now shows your truck route right in the app.** Your route is drawn on the map with your fuel stops; the stops in your fuel plan are green. Tap Satellite for a satellite view',
+    '**A stop\u2019s Map button opens that stop on your route.** Tap the stop for Take me there',
+    '**Google Maps is still one tap away** for spoken turn-by-turn. It plans its own way, so check that it follows the truck route'
+  ]},
+  { date:'2026-11-04', items:[
     'Version 1.3.78',
     '**The Fuel stop optimizer looks wider when it needs to.** If your fuel won\u2019t reach a stop within your miles off route, it looks up to 10 miles off the road and tells you when it did',
     '**No more wrong savings numbers.** If a plan can\u2019t reach a stop, the app says so instead of showing a savings amount',
@@ -7851,6 +7857,119 @@ body.tier-free #freelist{display:block}
   window.fpWhyClose=function(){ var p=document.getElementById('fpwhy'); if(p) p.style.display='none'; };
   var ob=window.stepBack;
   window.stepBack=function(){ if(isOpen()){ fpWhyClose(); return true; } return ob.apply(this,arguments); };
+})();
+</script>
+<style id="hmapstyle">
+#hmap{position:fixed;inset:0;z-index:9500;background:#10233f;display:none;flex-direction:column}
+#hmap.show{display:flex}
+#hmbar{display:flex;align-items:center;gap:8px;padding:10px 10px calc(10px);padding-top:calc(10px + env(safe-area-inset-top,0px));background:#10233f;border-bottom:1px solid #2b4a70}
+#hmbar .t{flex:1;color:#e8eef6;font-weight:800;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#hmbar button,#hmfoot button,#hmfoot a{font:inherit;font-weight:700;font-size:14px;border-radius:9px;padding:9px 12px;border:1px solid #4f7bb0;background:#1d3a5e;color:#fff;text-decoration:none;text-align:center}
+#hmbar .x{background:#f26a21;border-color:#f26a21}
+#hmmap{flex:1;min-height:0}
+#hmfoot{display:flex;gap:8px;padding:10px;padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));background:#10233f;border-top:1px solid #2b4a70}
+#hmfoot>*{flex:1}
+#hmnote{color:#9fb4ce;font-size:12px;padding:0 10px 6px;background:#10233f}
+.hmpin{width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px #0008}
+.hmpop b{font-size:15px}.hmpop .p{color:#2fa85a;font-weight:800;font-size:16px}
+.hmpop a{display:inline-block;margin-top:6px;background:#f26a21;color:#fff!important;padding:6px 10px;border-radius:7px;font-weight:700;text-decoration:none}
+</style>
+<div id="hmap">
+  <div id="hmbar"><div class="t" id="hmtitle">Truck route</div><button type="button" id="hmsat">Satellite</button><button type="button" class="x" onclick="hmClose()">Close</button></div>
+  <div id="hmmap"></div>
+  <div id="hmnote">Map shows the truck route the app planned. Always check signs and restrictions for yourself.</div>
+  <div id="hmfoot"><a id="hmnav" target="_blank" rel="noopener">Turn-by-turn in Google Maps</a></div>
+</div>
+<script id="hmapscript">
+/* ===== v1.3.79: truck route on a HERE map inside the app (was: straight out to Google Maps) =====
+   Map button = the whole truck route with your fuel stops. A stop's Map button = that stop on the route.
+   Google Maps is still one tap away for spoken turn-by-turn. */
+(function(){
+  var M=null, base=null, sat=false, layers=[], LREADY=null, navHref='', navLegs=false;
+  function loadLeaflet(){
+    if(window.L&&L.map) return Promise.resolve();
+    if(LREADY) return LREADY;
+    LREADY=new Promise(function(ok,bad){
+      var c=document.createElement('link'); c.rel='stylesheet'; c.href='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css'; document.head.appendChild(c);
+      var s=document.createElement('script'); s.src='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
+      s.onload=function(){ ok(); }; s.onerror=function(){ LREADY=null; bad(new Error('map')); }; document.head.appendChild(s);
+    });
+    return LREADY;
+  }
+  function tiles(){
+    if(base) M.removeLayer(base);
+    var st=sat?'satellite.day':'explore.day', errs=0;
+    base=L.tileLayer('https://maps.hereapi.com/v3/base/mc/{z}/{x}/{y}/png8?style='+st+'&size=256&apiKey='+HERE_KEY,{maxZoom:19,attribution:'\u00a9 HERE'}).addTo(M);
+    base.on('tileerror',function(){ if(++errs!==4) return; M.removeLayer(base);
+      base=L.tileLayer(sat?'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}':'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:sat?'Esri':'\u00a9 OpenStreetMap'}).addTo(M); });
+    document.getElementById('hmsat').textContent=sat?'Street':'Satellite';
+  }
+  function pin(color,size){ return L.divIcon({className:'',html:'<div class="hmpin" style="background:'+color+';width:'+size+'px;height:'+size+'px"></div>',iconSize:[size+4,size+4],iconAnchor:[(size+4)/2,(size+4)/2]}); }
+  function gnav(la,lo){ return 'https://www.google.com/maps/dir/?api=1&destination='+la+','+lo+'&travelmode=driving'; }
+  function stopPop(h){
+    var pr=null; try{ pr=rankVal(h); }catch(e){}
+    return '<div class="hmpop"><b>'+esc(h.b)+' '+esc(h.c)+', '+esc(h.st)+'</b><br>'+(pr!=null?'<span class="p">$'+fmt(pr)+'</span>':'')+
+      '<br><a target="_blank" rel="noopener" href="'+gnav(h.la,h.lo)+'">Take me there</a></div>';
+  }
+  function draw(focus){
+    layers.forEach(function(x){ M.removeLayer(x); }); layers=[];
+    var line=window.ROUTE_LINE, plan={};
+    (window.FP_PLANK||[]).forEach(function(k){ plan[k]=1; });
+    if(line&&line.length){
+      layers.push(L.polyline(line,{color:'#10233f',weight:9,opacity:.55}).addTo(M));
+      layers.push(L.polyline(line,{color:'#f26a21',weight:5}).addTo(M));
+      layers.push(L.marker(line[0],{icon:pin('#2fa85a',16)}).addTo(M).bindTooltip('Start'));
+      layers.push(L.marker(line[line.length-1],{icon:pin('#d93a2b',16)}).addTo(M).bindTooltip('End'));
+    }
+    var best=null; try{ best=(LASTHITS||[])[0]; }catch(e){}
+    (window.LASTHITS||LASTHITS||[]).forEach(function(h){
+      if(!isFinite(h.la)||!isFinite(h.lo)) return;
+      var inPlan=plan[h.la+','+h.lo], c=inPlan?'#2fa85a':(h===best?'#f2b36b':'#4f7bb0');
+      var mk=L.marker([h.la,h.lo],{icon:pin(c,inPlan||h===best?14:10)}).addTo(M).bindPopup(stopPop(h));
+      layers.push(mk);
+      if(focus&&Math.abs(h.la-focus[0])<1e-4&&Math.abs(h.lo-focus[1])<1e-4) focus.mk=mk;
+    });
+    if(focus){ M.setView([focus[0],focus[1]],13); if(focus.mk) setTimeout(function(){ focus.mk.openPopup(); },300);
+      else layers.push(L.marker([focus[0],focus[1]],{icon:pin('#f2b36b',14)}).addTo(M)); }
+    else if(line&&line.length) M.fitBounds(L.latLngBounds(line),{padding:[24,24]});
+  }
+  function open(title,focus,href,legs){
+    navHref=href||''; navLegs=!!legs;
+    document.getElementById('hmtitle').textContent=title;
+    var nav=document.getElementById('hmnav'); if(navHref) nav.href=navHref; else nav.removeAttribute('href');
+    document.getElementById('hmap').classList.add('show'); window.HM_OPEN=true;
+    try{ enterScreen(); }catch(e){}
+    return loadLeaflet().then(function(){
+      if(!M){ M=L.map('hmmap',{zoomControl:true,attributionControl:true}); tiles(); }
+      setTimeout(function(){ M.invalidateSize(); draw(focus); },60);
+    });
+  }
+  window.hmClose=function(){ if(!window.HM_OPEN) return; window.HM_OPEN=false; document.getElementById('hmap').classList.remove('show'); };
+  document.getElementById('hmsat').addEventListener('click',function(){ sat=!sat; if(M) tiles(); });
+  document.getElementById('hmnav').addEventListener('click',function(e){
+    if(navLegs){ e.preventDefault(); hmClose(); try{ history.back(); }catch(x){} setTimeout(function(){ try{ origTap(); }catch(x){} },150); }
+  });
+  /* the big Map button */
+  var origTap=window.gmapsTap;
+  window.gmapsTap=gmapsTap=function(){
+    var g=document.getElementById('gmaps');
+    if(g.classList.contains('off')||!window.ROUTE_LINE||NEAR_R) return origTap.apply(this,arguments);
+    var ins=[].slice.call(document.querySelectorAll('#stops input')).map(function(i){ return i.value.trim(); }).filter(Boolean);
+    var t=ins.length>1?(ins[0]===HERE?'Your location':ins[0])+' to '+ins[ins.length-1]:'Truck route';
+    open(t,null,(LEGS.length===1?LEGS[0].url:''),LEGS.length>1).catch(function(){ hmClose(); if(origTap()!==false && g.href) window.open(g.href,'_blank'); });
+    return false;
+  };
+  /* a stop's Map button (on the card and in Details) */
+  document.addEventListener('click',function(e){
+    var a=e.target.closest&&e.target.closest('a.maplink,a.drive'); if(!a) return;
+    var m=/destination=(-?[\d.]+),(-?[\d.]+)/.exec(a.getAttribute('href')||''); if(!m) return;
+    e.preventDefault();
+    var f=[+m[1],+m[2]], hit=(LASTHITS||[]).filter(function(h){ return Math.abs(h.la-f[0])<1e-4&&Math.abs(h.lo-f[1])<1e-4; })[0];
+    open(hit?(hit.b+' '+hit.c+', '+hit.st):'Fuel stop',f,a.href,false).catch(function(){ hmClose(); window.open(a.href,'_blank'); });
+  },false);
+  /* phone back arrow closes the map */
+  var origBack=window.stepBack;
+  window.stepBack=stepBack=function(){ if(window.HM_OPEN){ hmClose(); return true; } return origBack.apply(this,arguments); };
 })();
 </script>
 </body>
