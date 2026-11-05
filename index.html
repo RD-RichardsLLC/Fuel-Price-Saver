@@ -3067,6 +3067,10 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
   { date:'2026-11-05', items:[
+    'Version 1.3.118',
+    '**The map fades behind the pump.** While a pump is showing, the map softens toward white and the price tags hide, so the pump and sign stand out'
+  ]},
+  { date:'2026-11-05', items:[
     'Version 1.3.117',
     '**Bigger, centered numbers on the pump.** The total cost, gallons and discount price windows are all the same height, and the numbers are bigger and centered',
     '**More room around the Diesel sign** at the top of the pump'
@@ -8150,6 +8154,7 @@ body.tier-free #freelist{display:block}
   var tagLayers=[];
   function tagsUpdate(){
     if(!M) return; tagLayers.forEach(function(l){ try{ M.removeLayer(l); }catch(e){} }); tagLayers=[];
+    if(window.HM_PP) return;   /* v1.3.118: no price tags while the big pump is up */
     var z=M.getZoom(), b=M.getBounds().pad(0.15), plan={}; (window.FP_PLANK||[]).forEach(function(k){ plan[k]=1; });
     var cand=[];
     if(z>=9) cand=(LASTHITS||[]).filter(function(h){ return isFinite(h.la)&&b.contains([h.la,h.lo]); });
@@ -8462,7 +8467,7 @@ body.tier-free #freelist{display:block}
     [].slice.call(o.querySelectorAll('.pplrow')).forEach(function(r){ r.addEventListener('click',function(e){ e.stopPropagation(); var x=(LASTHITS||[])[+r.getAttribute('data-k')]; if(x) go(x); }); });
     /* v1.3.108: the pump layer starts under the top bar so Trip details, Radar and Satellite work on the first tap; everything sits low so the trip label stays in view */
     { var hb=document.getElementById('hmbar'); o.style.top=(hb?hb.offsetHeight:0)+'px'; }
-    o.style.display='flex'; window.HM_PP=true; try{ optBtn(false); }catch(x){} ppFit(o); ppRoll(d); return true;
+    o.style.display='flex'; window.HM_PP=true; try{ optBtn(false); }catch(x){} ppDim(true); ppFit(o); ppRoll(d); return true;
   }
   /* v1.3.103: Details opens the same stop details as the fuel cards (prices, DEF, IFTA, Show all services); back returns to the map */
   function ppDetails(h){
@@ -8492,7 +8497,12 @@ body.tier-free #freelist{display:block}
     box.style.width=w+'px'; svg.style.width=w+'px'; svg.style.height=h+'px';
   }catch(e){} }
   window.addEventListener('resize',function(){ var o=document.getElementById('hmpp'); if(o&&window.HM_PP) ppFit(o); });
-  function ppClose(){ if(ppCur){ try{ ppCur.setOpacity(1); }catch(e){} ppCur=null; } var o=document.getElementById('hmpp'); if(o) o.style.display='none'; window.HM_PP=false; if(window.HM_OPEN){ try{ optBtn(true); }catch(x){} } cancelAnimationFrame(ppTimer); }
+  /* v1.3.118: while the big pump is up, the price tags hide and the map fades toward white */
+  function ppDim(on){
+    var o=document.getElementById('hmpp'); if(o) o.style.background=on?'rgba(255,255,255,.6)':'transparent';
+    try{ tagsUpdate(); }catch(e){}
+  }
+  function ppClose(){ setTimeout(function(){ ppDim(false); },0); if(ppCur){ try{ ppCur.setOpacity(1); }catch(e){} ppCur=null; } var o=document.getElementById('hmpp'); if(o) o.style.display='none'; window.HM_PP=false; if(window.HM_OPEN){ try{ optBtn(true); }catch(x){} } cancelAnimationFrame(ppTimer); }
   window.ppClose=ppClose;
   function stopPop(h){
     var pr=null; try{ pr=rankVal(h); }catch(e){}
