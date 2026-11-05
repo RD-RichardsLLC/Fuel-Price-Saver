@@ -3067,6 +3067,10 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
   { date:'2026-11-05', items:[
+    'Version 1.3.102',
+    '**See how hard the Fuel Optimizer worked.** Each time you run it, the trip card and Trip details show how many fuel calculations it ran and how fast, like \u201cRan 48,210 fuel calculations in 0.3 seconds\u201d'
+  ]},
+  { date:'2026-11-05', items:[
     'Version 1.3.101',
     '**A trip card when you land on the map.** At your first fuel stop, a card over the pump shows your cities in order, how many stops and fuel stops, total miles, gallons and total cost. It goes away when you move on',
     '**New Trip details button on the map.** It shows your trip leg by leg, with the fuel stops, gallons and cost on each leg, in easy-to-read black on white'
@@ -7381,21 +7385,22 @@ function fpCalc(){
   var U=5, C=Math.floor(cap/U), n=stns.length, INF=1e15;
   var stopCost=function(h){ return fpCost(h)*1 + 15; };
   /* jump straight from one buy stop to the next, so fuel is only rounded once per stop, never at every stop passed */
-  var dp=[], par=[], bestEnd=INF, endPar=null;
+  var dp=[], par=[], bestEnd=INF, endPar=null, FPN=0, FPT0=(window.performance?performance.now():Date.now());   /* v1.3.102: count the calculations */
   for(var i=0;i<n;i++){ dp.push(new Array(C+1).fill(INF)); par.push(new Array(C+1).fill(null)); }
   if(start-total/mpg>=endX-0.01){ bestEnd=0; endPar='none'; }
   for(var j=0;j<n;j++){ var arr=start-stns[j].rmi/mpg; if(arr<0) break; var nx=Math.min(C,Math.floor(arr/U+1e-9)); if(0<dp[j][nx]){ dp[j][nx]=0; par[j][nx]=null; } }
   for(var i=0;i<n;i++){
     var pr=fpCost(stns[i]), sc=stopCost(stns[i]), dE=(total-stns[i].rmi)/mpg;
     for(var av=0;av<=C;av++){ var c0=dp[i][av]; if(c0>=INF) continue;
-      for(var k=av+1;k<=C;k++){
+      for(var k=av+1;k<=C;k++){ FPN++;
         var c=c0+(k-av)*U*pr+sc;
         if(k*U-dE>=endX-0.01 && c<bestEnd){ bestEnd=c; endPar={i:i,a:av,k:k}; }
-        for(var j=i+1;j<n;j++){ var ar=k*U-(stns[j].rmi-stns[i].rmi)/mpg; if(ar<0) break;
+        for(var j=i+1;j<n;j++){ FPN++; var ar=k*U-(stns[j].rmi-stns[i].rmi)/mpg; if(ar<0) break;
           var nx=Math.floor(ar/U+1e-9); if(c<dp[j][nx]){ dp[j][nx]=c; par[j][nx]={i:i,a:av,k:k}; } }
       }
     }
   }
+  window.FP_CALCS={n:FPN, ms:(window.performance?performance.now():Date.now())-FPT0};
   if(endPar){
     var tg=[]; var cur=(endPar==='none')?null:endPar;
     while(cur){ tg.unshift({i:cur.i,k:cur.k}); cur=par[cur.i][cur.a]; }
@@ -8198,6 +8203,9 @@ body.tier-free #freelist{display:block}
     var ins=[].slice.call(document.querySelectorAll('#stops input')).map(function(i){ return i.value.trim(); }).filter(Boolean).map(function(v){ return v===HERE?'Your location':v; });
     return {rows:rows, gal:gal, cost:cost, cities:ins, mi:Math.round(ROUTE_TOTAL||0)};
   }
+  function ppCalcLine(){ var c=window.FP_CALCS; if(!c||!c.n) return '';
+    var sec=c.ms<100?'under a tenth of a second':(c.ms/1000).toFixed(1)+' seconds';
+    return 'Ran '+c.n.toLocaleString('en-US')+' fuel calculations in '+sec+' to find this plan'; }
   function ppMoney(x){ return '$'+x.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
   function ppCities(t){ return t.cities.map(esc).join(' <span style="color:#f26a21">\u2192</span> '); }
   function ppStopsLine(t){ var n=t.rows.length, x=Math.max(0,t.cities.length-2);
@@ -8211,7 +8219,8 @@ body.tier-free #freelist{display:block}
       '<div style="display:flex;justify-content:space-between;border-top:1px solid #e3e7ee;margin-top:7px;padding-top:6px;gap:6px">'+
       '<div><div style="'+c+'">MILES</div><div style="'+v+'">'+t.mi.toLocaleString('en-US')+'</div></div>'+
       '<div><div style="'+c+'">GALLONS</div><div style="'+v+'">'+t.gal.toLocaleString('en-US')+'</div></div>'+
-      '<div><div style="'+c+'">TOTAL COST</div><div style="'+v+';color:#1f8a43">'+ppMoney(t.cost)+'</div></div></div></div>';
+      '<div><div style="'+c+'">TOTAL COST</div><div style="'+v+';color:#1f8a43">'+ppMoney(t.cost)+'</div></div></div>'+
+      (ppCalcLine()?'<div style="font-size:11px;color:#6b7686;margin-top:6px;text-align:center">'+ppCalcLine()+'</div>':'')+'</div>';
   }
   function tdOpen(){
     var t=ppTrip(), o=document.getElementById('hmtdp');
@@ -8231,6 +8240,7 @@ body.tier-free #freelist{display:block}
       '<div><div style="font-size:11px;color:#666">FUEL STOPS</div><b style="font-size:17px">'+t.rows.length+'</b></div>'+
       '<div><div style="font-size:11px;color:#666">GALLONS</div><b style="font-size:17px">'+t.gal.toLocaleString('en-US')+'</b></div>'+
       '<div><div style="font-size:11px;color:#666">TOTAL COST</div><b style="font-size:17px;color:#1f8a43">'+ppMoney(t.cost)+'</b></div></div>';
+    if(t.rows.length&&ppCalcLine()) h+='<div style="font-size:12px;color:#666;margin-top:6px;text-align:center">'+ppCalcLine()+'</div>';
     if(!t.rows.length) h+='<div style="margin-top:12px;font-size:14px;color:#555">No fuel plan yet. Run the Fuel Optimizer to see where to buy on each leg.</div>';
     legs.forEach(function(g,k){
       var rs=t.rows.filter(function(r){ return r.h.rmi>=g.a && r.h.rmi<g.b; });
