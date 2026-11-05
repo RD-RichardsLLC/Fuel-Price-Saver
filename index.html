@@ -3049,6 +3049,10 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
   { date:'2026-11-04', items:[
+    'Version 1.3.90',
+    '**Radar on your route map is now live.** It plays the last couple of hours of radar in a loop, in the same blue style as the radar page, so you can see which way storms are moving on your truck route. It picks up new radar every 10 minutes'
+  ]},
+  { date:'2026-11-04', items:[
     'Version 1.3.89',
     '**Radar on your route map.** Tap Radar at the top of the route map to see the latest weather radar right on your truck route. Tap it again to turn it off'
   ]},
@@ -8018,18 +8022,34 @@ body.tier-free #freelist{display:block}
   }
   window.hmClose=function(){ if(!window.HM_OPEN) return; window.HM_OPEN=false; document.getElementById('hmap').classList.remove('show'); };
   document.getElementById('hmsat').addEventListener('click',function(){ sat=!sat; if(M) tiles(); });
-  /* v1.3.89: weather radar laid right on the truck route, on and off with the Radar button */
-  var rad=null, radOn=false;
+  /* v1.3.90: live radar on the truck route. Loops the last couple of hours (same blue style as the radar page) so you see which way storms move; pulls new frames every 10 minutes */
+  var radOn=false, RL=[], RF=0, RT=null, RR=null, RHOST='';
   function radBtn(){ var b=document.getElementById('hmrad'); b.style.background=radOn?'#2fa85a':''; b.style.borderColor=radOn?'#2fa85a':''; b.textContent=radOn?'Radar on':'Radar'; }
+  function radTime(t){ var el=document.getElementById('hmradt'); if(!el){ el=document.createElement('div'); el.id='hmradt';
+      el.style.cssText='position:absolute;left:10px;bottom:10px;z-index:800;background:#10233fdd;color:#fff;font:700 13px Arial;padding:5px 9px;border-radius:8px;pointer-events:none';
+      document.getElementById('hmmap').appendChild(el); }
+    el.style.display=t?'block':'none'; if(t) el.textContent='Radar '+t; }
+  function radClear(){ clearTimeout(RT); clearInterval(RR); RT=RR=null; RL.forEach(function(l){ try{ M.removeLayer(l); }catch(e){} }); RL=[]; radTime(''); }
+  function radLoad(){
+    return fetch('https://api.rainviewer.com/public/weather-maps.json',{cache:'no-store'}).then(function(r){ return r.json(); }).then(function(d){
+      var fr=((d.radar&&d.radar.past)||[]).slice(-12); if(!fr.length||!radOn) throw 0;
+      if(!M.getPane('hmradar')){ var pn=M.createPane('hmradar'); pn.style.zIndex=430; pn.style.pointerEvents='none'; }
+      clearTimeout(RT); RL.forEach(function(l){ try{ M.removeLayer(l); }catch(e){} }); RL=[];
+      RL=fr.map(function(f){ var l=L.tileLayer(d.host+f.path+'/256/{z}/{x}/{y}/2/1_1.png',{pane:'hmradar',opacity:0,maxNativeZoom:7,maxZoom:19,attribution:'RainViewer'}); l._t=f.time; l.addTo(M); return l; });
+      RF=RL.length-1; RL[RF].setOpacity(.7);
+      var show=function(k){ RL.forEach(function(l,x){ l.setOpacity(x===k?.7:0); });
+        var dt=new Date(RL[k]._t*1000); radTime(dt.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})); };
+      show(RF);
+      var step=function(){ if(!radOn) return; if(window.HM_OPEN){ RF=(RF+1)%RL.length; show(RF); } RT=setTimeout(step, RF===RL.length-1?1800:600); };
+      clearTimeout(RT); RT=setTimeout(step,600);
+    });
+  }
   document.getElementById('hmrad').addEventListener('click',function(){
     if(!M) return;
-    if(radOn){ radOn=false; if(rad){ M.removeLayer(rad); rad=null; } radBtn(); return; }
+    if(radOn){ radOn=false; radClear(); radBtn(); return; }
     radOn=true; radBtn();
-    fetch('https://api.rainviewer.com/public/weather-maps.json',{cache:'no-store'}).then(function(r){ return r.json(); }).then(function(d){
-      var past=(d.radar&&d.radar.past)||[], f=past[past.length-1]; if(!f||!radOn) throw 0;
-      if(!M.getPane('hmradar')){ var pn=M.createPane('hmradar'); pn.style.zIndex=430; pn.style.pointerEvents='none'; }
-      rad=L.tileLayer(d.host+f.path+'/256/{z}/{x}/{y}/4/1_1.png',{pane:'hmradar',opacity:.65,maxNativeZoom:7,maxZoom:19,attribution:'RainViewer'}).addTo(M);
-    }).catch(function(){ radOn=false; radBtn(); alert('Radar isn\u2019t available right now. Try again in a minute.'); });
+    radLoad().then(function(){ RR=setInterval(function(){ if(radOn) radLoad().catch(function(){}); },600000); })
+      .catch(function(){ radOn=false; radClear(); radBtn(); alert('Radar isn\u2019t available right now. Try again in a minute.'); });
   });
   /* the big Map button */
   var origTap=window.gmapsTap;
