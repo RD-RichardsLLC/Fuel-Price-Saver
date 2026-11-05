@@ -3049,6 +3049,18 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
   { date:'2026-11-04', items:[
+    'Version 1.3.86',
+    '**Stops that aren\u2019t in your fuel plan say so.** Tap a small dot on the route map and its card says Not part of your fuel plan, so you know it\u2019s not one of your buy stops'
+  ]},
+  { date:'2026-11-04', items:[
+    'Version 1.3.85',
+    '**Tapping a stop on the map hides its flag while the card is open.** The flag or dot comes back when you close the card'
+  ]},
+  { date:'2026-11-04', items:[
+    'Version 1.3.84',
+    '**Highway numbers sit on top of your route.** Road numbers and names now show over the orange route line, and the line is back to a solid orange so it\u2019s easy to follow'
+  ]},
+  { date:'2026-11-04', items:[
     'Version 1.3.83',
     '**You can read the highway numbers under your route.** The orange route line on the map is thinner and see-through, so the road numbers show'
   ]},
@@ -7917,6 +7929,12 @@ body.tier-free #freelist{display:block}
     base=L.tileLayer('https://maps.hereapi.com/v3/base/mc/{z}/{x}/{y}/png8?style='+st+'&size=256&apiKey='+HERE_KEY,{maxZoom:19,attribution:'\u00a9 HERE'}).addTo(M);
     base.on('tileerror',function(){ if(++errs!==4) return; M.removeLayer(base);
       base=L.tileLayer(sat?'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}':'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:sat?'Esri':'\u00a9 OpenStreetMap'}).addTo(M); });
+    /* v1.3.84: road numbers and names on their own layer, above the route line */
+    if(window.HM_LBL) M.removeLayer(HM_LBL);
+    if(!M.getPane('hmlabels')){ var pn=M.createPane('hmlabels'); pn.style.zIndex=450; pn.style.pointerEvents='none'; }
+    var lerr=0;
+    window.HM_LBL=L.tileLayer('https://maps.hereapi.com/v3/label/mc/{z}/{x}/{y}/png?style='+(sat?'satellite.day':'explore.day')+'&size=256&apiKey='+HERE_KEY,{pane:'hmlabels',maxZoom:19}).addTo(M);
+    HM_LBL.on('tileerror',function(){ if(++lerr===4){ try{ M.removeLayer(HM_LBL); }catch(e){} } });
     document.getElementById('hmsat').textContent=sat?'Street':'Satellite';
   }
   function pin(color,size){ return L.divIcon({className:'',html:'<div class="hmpin" style="background:'+color+';width:'+size+'px;height:'+size+'px"></div>',iconSize:[size+4,size+4],iconAnchor:[(size+4)/2,(size+4)/2]}); }
@@ -7931,7 +7949,8 @@ body.tier-free #freelist{display:block}
   /* v1.3.82: on a buy stop's card, miles to the next buy stop */
   function nextBuy(h){
     var plan={}; (window.FP_PLANK||[]).forEach(function(k){ plan[k]=1; });
-    if(!plan[h.la+','+h.lo]||!isFinite(h.rmi)) return '';
+    if(!plan[h.la+','+h.lo]) return (window.FP_PLANK&&FP_PLANK.length)?'<div style="margin-top:4px;color:#555">Not part of your fuel plan</div>':'';
+    if(!isFinite(h.rmi)) return '';
     var gl=(window.FP_PLANG||{})[h.la+','+h.lo], buy=gl>0?'<div style="margin-top:4px;color:#10233f"><b>Buy '+Math.round(gl)+' gallons here</b></div>':'';
     var nx=(LASTHITS||[]).filter(function(x){ return plan[x.la+','+x.lo] && isFinite(x.rmi) && x.rmi>h.rmi+0.5; })
       .sort(function(a,b){ return a.rmi-b.rmi; })[0];
@@ -7947,7 +7966,7 @@ body.tier-free #freelist{display:block}
     var line=window.ROUTE_LINE, plan={};
     (window.FP_PLANK||[]).forEach(function(k){ plan[k]=1; });
     if(line&&line.length){
-      layers.push(L.polyline(line,{color:'#f26a21',weight:4,opacity:.45}).addTo(M));   /* v1.3.83: thin and see-through so highway numbers show */
+      layers.push(L.polyline(line,{color:'#f26a21',weight:4,opacity:.9}).addTo(M));   /* v1.3.84: darker again; road numbers now sit on top */
       layers.push(L.marker(line[0],{icon:pin('#2fa85a',16)}).addTo(M).bindTooltip('Start'));
       layers.push(L.marker(line[line.length-1],{icon:pin('#d93a2b',16)}).addTo(M).bindTooltip('End'));
     }
@@ -7956,6 +7975,7 @@ body.tier-free #freelist{display:block}
       if(!isFinite(h.la)||!isFinite(h.lo)) return;
       var inPlan=plan[h.la+','+h.lo];
       var mk=L.marker([h.la,h.lo],inPlan?{icon:flag(h.b),zIndexOffset:1000}:{icon:pin('#4f7bb0',10)}).addTo(M).bindPopup(stopPop(h));
+      mk.on('popupopen',function(){ mk.setOpacity(0); }); mk.on('popupclose',function(){ mk.setOpacity(1); });   /* v1.3.85: the tapped flag or dot hides while its card shows */
       layers.push(mk);
       if(focus&&Math.abs(h.la-focus[0])<1e-4&&Math.abs(h.lo-focus[1])<1e-4) focus.mk=mk;
     });
