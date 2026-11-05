@@ -3067,6 +3067,14 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
   { date:'2026-11-05', items:[
+    'Version 1.3.97',
+    '**Tap the Next Stop sign to jump to your next fuel stop.** The map moves there and that stop\u2019s pump pops up, so you can flip through your whole fuel plan',
+    '**A wider button under the pump and sign** reads \u201cBack to map, or tap sign for next stop\u201d',
+    '**The pump\u2019s wheels roll first, then the sign swings.**',
+    '**The little pump you tapped hides** while the big pump is up',
+    '**Brand tags on the pump all have black borders.** Love\u2019s has black letters to match the sign, and TA has white letters'
+  ]},
+  { date:'2026-11-05', items:[
     'Version 1.3.96',
     '**The pump now shows which stop you\u2019re at.** A brand tag (TA in blue, Love\u2019s in yellow, Petro in green) with the town sits under \u201cAmount to buy at this stop\u201d',
     '**A shorter arrow on the pump.** The arrow and its wording moved up to make room'
@@ -8063,9 +8071,9 @@ body.tier-free #freelist{display:block}
   /* v1.3.96: the stop you're at shows as a brand tag on the pump: TA blue, Love's yellow with red, Petro green; town under it */
   function ppTag(h){
     var n=String(h.b||'').toLowerCase(), t, bg, bd='#141414', fg;
-    if(/love/.test(n)){ t="LOVE\u2019S"; bg='#f5c518'; bd='#d62828'; fg='#d62828'; }
+    if(/love/.test(n)){ t="LOVE\u2019S"; bg='#f5c518'; fg='#141414'; }   /* v1.3.97: black letters to match the sign, black border */
     else if(/petro/.test(n)){ t='PETRO'; bg='#2fa85a'; fg='#fff'; }
-    else if(/\bta\b|ta express|travelcenters/.test(n)){ t='TA'; bg='#2f7fe0'; fg='#141414'; }
+    else if(/\bta\b|ta express|travelcenters/.test(n)){ t='TA'; bg='#2f7fe0'; fg='#fff'; }
     else { t=String(h.b||'').toUpperCase(); bg='#f26a21'; fg='#fff'; }
     var w=t.length>6?96:70, fs=Math.min(t==='TA'?13:12,(w-10)/Math.max(1,t.length*0.75)).toFixed(1);
     var town=String(h.c||'').toUpperCase()+(h.st?', '+String(h.st).toUpperCase():''), tfs=Math.min(10,128/Math.max(1,town.length*0.62)).toFixed(1);
@@ -8139,25 +8147,34 @@ body.tier-free #freelist{display:block}
     var all=[];
     reels('ppT','$'+d.tot,172).forEach(function(r,i){ r.end=((2+i)*10+r.d)*H; r.dur=1600+i*350; all.push(r); });
     reels('ppG',String(d.g),228).forEach(function(r,i){ r.end=((1+i)*10+r.d)*H; r.dur=1900+i*300; all.push(r); });
-    var sign=document.getElementById('ppS'), t0=performance.now(); cancelAnimationFrame(ppTimer);
-    function step(now){ var live=false, t=(now-t0)/1000;
+    var sign=document.getElementById('ppS'), t0=performance.now(), wait=0; cancelAnimationFrame(ppTimer);
+    all.forEach(function(r){ if(r.dur>wait) wait=r.dur; });   /* v1.3.97: the sign waits until the last wheel stops */
+    function step(now){ var live=false, t=(now-t0-wait)/1000;
       all.forEach(function(r){ var q=Math.min(1,(now-t0)/r.dur), e=1-Math.pow(1-q,3); r.el.setAttribute('transform','translate(0,'+(-e*r.end)+')'); if(q<1) live=true; });
-      var ang=14*Math.exp(-0.9*t)*Math.cos(4.2*t); if(sign) sign.setAttribute('transform','rotate('+ang.toFixed(2)+' 420 232)');
+      var ang=t<0?0:14*Math.exp(-0.9*t)*Math.cos(4.2*t); if(sign) sign.setAttribute('transform','rotate('+ang.toFixed(2)+' 420 232)');
       if(Math.abs(ang)>0.05||t<1) live=true;
       if(live) ppTimer=requestAnimationFrame(step); else if(sign) sign.removeAttribute('transform'); }
     ppTimer=requestAnimationFrame(step);
   }
+  var ppMk={}, ppCur=null;
   function ppOpen(h){
     var d=ppData(h); if(!d) return false;
+    if(ppCur){ try{ ppCur.setOpacity(1); }catch(e){} ppCur=null; }
+    var mk=ppMk[h.la+','+h.lo]; if(mk){ mk.setOpacity(0); ppCur=mk; }   /* v1.3.97: the little pump hides while the big one is up */
     var o=document.getElementById('hmpp');
     if(!o){ o=document.createElement('div'); o.id='hmpp';
       o.style.cssText='position:absolute;inset:0;z-index:2000;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:14px;box-sizing:border-box';
-      o.addEventListener('click',function(e){ if(e.target===o||e.target.id==='hmppx') ppClose(); });
+      o.addEventListener('click',function(e){ if(e.target===o||e.target.id==='hmppx'||(e.target.parentNode===o)) ppClose(); });
       document.getElementById('hmap').appendChild(o); }
-    o.innerHTML=ppSvg(d)+'<button type="button" id="hmppx" style="margin-top:12px;padding:10px 22px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 16px Arial,sans-serif">Back to map</button>';
+    var lbl=d.nx?'Back to map&nbsp;&nbsp;&nbsp;or&nbsp;&nbsp;&nbsp;tap sign for next stop':'Back to map';
+    o.innerHTML='<div style="width:100%;max-width:520px">'+ppSvg(d)+
+      '<button type="button" id="hmppx" style="display:block;margin:12px 0 0 9%;width:87%;padding:10px 8px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 clamp(12px,3.7vw,16px) Arial,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+lbl+'</button></div>';
+    var sg=document.getElementById('ppS');
+    if(sg&&d.nx){ sg.style.cursor='pointer';   /* v1.3.97: tap the sign to go to your next fuel stop */
+      sg.addEventListener('click',function(e){ e.stopPropagation(); var n=d.nx; try{ M.panTo([n.la,n.lo]); }catch(x){} ppOpen(n); }); }
     o.style.display='flex'; window.HM_PP=true; ppRoll(d); return true;
   }
-  function ppClose(){ var o=document.getElementById('hmpp'); if(o) o.style.display='none'; window.HM_PP=false; cancelAnimationFrame(ppTimer); }
+  function ppClose(){ if(ppCur){ try{ ppCur.setOpacity(1); }catch(e){} ppCur=null; } var o=document.getElementById('hmpp'); if(o) o.style.display='none'; window.HM_PP=false; cancelAnimationFrame(ppTimer); }
   window.ppClose=ppClose;
   function stopPop(h){
     var pr=null; try{ pr=rankVal(h); }catch(e){}
@@ -8177,7 +8194,7 @@ body.tier-free #freelist{display:block}
       if(!isFinite(h.la)||!isFinite(h.lo)) return;
       var inPlan=plan[h.la+','+h.lo];
       var mk=L.marker([h.la,h.lo],inPlan?{icon:flag(h.b),zIndexOffset:1000}:{icon:pin('#4f7bb0',10)}).addTo(M);
-      if(inPlan&&ppData(h)) mk.on('click',function(){ ppOpen(h); }); else mk.bindPopup(stopPop(h));
+      if(inPlan&&ppData(h)){ ppMk[h.la+','+h.lo]=mk; mk.on('click',function(){ ppOpen(h); }); } else mk.bindPopup(stopPop(h));
       mk.on('popupopen',function(){ mk.setOpacity(0); }); mk.on('popupclose',function(){ mk.setOpacity(1); });   /* v1.3.85: the tapped flag or dot hides while its card shows */
       layers.push(mk);
       if(focus&&Math.abs(h.la-focus[0])<1e-4&&Math.abs(h.lo-focus[1])<1e-4) focus.mk=mk;
