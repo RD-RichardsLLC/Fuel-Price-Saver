@@ -3067,6 +3067,11 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
   { date:'2026-11-05', items:[
+    'Version 1.3.119',
+    '**Prices show on the map sooner.** You no longer have to zoom in as far to see the price tags, and pumps bunched together get their shared price card again',
+    '**The trip label and the + / \u2212 buttons stay sharp** while a pump is showing; only the map behind fades'
+  ]},
+  { date:'2026-11-05', items:[
     'Version 1.3.118',
     '**The map fades behind the pump.** While a pump is showing, the map softens toward white and the price tags hide, so the pump and sign stand out'
   ]},
@@ -8157,7 +8162,7 @@ body.tier-free #freelist{display:block}
     if(window.HM_PP) return;   /* v1.3.118: no price tags while the big pump is up */
     var z=M.getZoom(), b=M.getBounds().pad(0.15), plan={}; (window.FP_PLANK||[]).forEach(function(k){ plan[k]=1; });
     var cand=[];
-    if(z>=9) cand=(LASTHITS||[]).filter(function(h){ return isFinite(h.la)&&b.contains([h.la,h.lo]); });
+    if(z>=7) cand=(LASTHITS||[]).filter(function(h){ return isFinite(h.la)&&b.contains([h.la,h.lo]); });
     else if(window.PP_OWN){ var cs=window.PP_BIG||{}; cand=(LASTHITS||[]).filter(function(h){ return cs[h.la+','+h.lo]; }); }
     cand=cand.filter(function(h){ var v=null; try{ v=rankVal(h); }catch(e){} return v!=null&&isFinite(v); }).slice(0,150);
     var pts=cand.map(function(h){ return {h:h,p:M.latLngToContainerPoint([h.la,h.lo])}; }), used={}, groups=[];
@@ -8499,7 +8504,10 @@ body.tier-free #freelist{display:block}
   window.addEventListener('resize',function(){ var o=document.getElementById('hmpp'); if(o&&window.HM_PP) ppFit(o); });
   /* v1.3.118: while the big pump is up, the price tags hide and the map fades toward white */
   function ppDim(on){
-    var o=document.getElementById('hmpp'); if(o) o.style.background=on?'rgba(255,255,255,.6)':'transparent';
+    /* v1.3.119: the fade sits inside the map, under the trip label and the + / - buttons, so those stay sharp */
+    var f=document.getElementById('hmfade'), mm=document.getElementById('hmmap');
+    if(!f&&mm){ f=document.createElement('div'); f.id='hmfade'; f.style.cssText='position:absolute;left:0;top:0;right:0;bottom:0;z-index:790;background:rgba(255,255,255,.6);pointer-events:none;display:none'; mm.appendChild(f); }
+    if(f) f.style.display=on?'block':'none';
     try{ tagsUpdate(); }catch(e){}
   }
   function ppClose(){ setTimeout(function(){ ppDim(false); },0); if(ppCur){ try{ ppCur.setOpacity(1); }catch(e){} ppCur=null; } var o=document.getElementById('hmpp'); if(o) o.style.display='none'; window.HM_PP=false; if(window.HM_OPEN){ try{ optBtn(true); }catch(x){} } cancelAnimationFrame(ppTimer); }
