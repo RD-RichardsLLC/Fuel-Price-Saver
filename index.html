@@ -3049,6 +3049,14 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
   { date:'2026-11-04', items:[
+    'Version 1.3.88',
+    '**A little pit crew guy marks your fuel stops.** On the route map, each stop where your plan says to buy has a pit crew guy holding up a sign in the brand\u2019s color: blue TA, yellow L for Love\u2019s, green P for Petro. Tap him to see the price, gallons to buy and miles to your next stop'
+  ]},
+  { date:'2026-11-04', items:[
+    'Version 1.3.87',
+    '**Your fuel stops now show a pit-stop sign.** Like a pit crew holding up a sign for their driver, each stop where your plan says to buy shows a sign on a pole in the brand\u2019s color: blue TA, yellow L for Love\u2019s, green P for Petro'
+  ]},
+  { date:'2026-11-04', items:[
     'Version 1.3.86',
     '**Stops that aren\u2019t in your fuel plan say so.** Tap a small dot on the route map and its card says Not part of your fuel plan, so you know it\u2019s not one of your buy stops'
   ]},
@@ -7939,11 +7947,22 @@ body.tier-free #freelist{display:block}
   }
   function pin(color,size){ return L.divIcon({className:'',html:'<div class="hmpin" style="background:'+color+';width:'+size+'px;height:'+size+'px"></div>',iconSize:[size+4,size+4],iconAnchor:[(size+4)/2,(size+4)/2]}); }
   /* v1.3.81: your buy stops get a flag in the brand's color: TA blue, Love's yellow, Petro green */
+  /* v1.3.87: your buy stops get a pit-stop sign on a pole in the brand's color: TA blue, Love's yellow, Petro green */
+  /* v1.3.88: a little pit crew guy holds up a pit sign in the brand's color: TA blue, Love's yellow, Petro green */
   function flag(b){
-    var n=String(b||'').toLowerCase(), c=/love/.test(n)?'#f5c518':/petro/.test(n)?'#2fa85a':/\bta\b|ta express|travelcenters/.test(n)?'#2f7fe0':'#f26a21';
-    var svg='<svg width="30" height="38" viewBox="0 0 30 38"><line x1="5" y1="3" x2="5" y2="36" stroke="#fff" stroke-width="3"/><line x1="5" y1="3" x2="5" y2="36" stroke="#10233f" stroke-width="1.5"/>'+
-      '<path d="M6 4 L27 9.5 L6 15 Z" fill="'+c+'" stroke="#10233f" stroke-width="1.2"/><circle cx="5" cy="36" r="2.5" fill="#10233f"/></svg>';
-    return L.divIcon({className:'',html:svg,iconSize:[30,38],iconAnchor:[5,36],popupAnchor:[8,-30]});
+    var n=String(b||'').toLowerCase(), isL=/love/.test(n), isP=/petro/.test(n), isT=/\bta\b|ta express|travelcenters/.test(n);
+    var c=isL?'#f5c518':isP?'#2fa85a':isT?'#2f7fe0':'#f26a21', tx=isL?'L':isP?'P':isT?'TA':'\u26fd', tc=isL?'#10233f':'#fff';
+    var svg='<svg width="44" height="62" viewBox="0 0 80 112">'+
+      '<line x1="40" y1="30" x2="40" y2="92" stroke="#fff" stroke-width="6"/><line x1="40" y1="30" x2="40" y2="92" stroke="#10233f" stroke-width="3"/>'+
+      '<rect x="11" y="2" width="58" height="36" rx="4" fill="'+c+'" stroke="#10233f" stroke-width="2.5"/>'+
+      '<text x="40" y="'+(tx.length>1?27:29)+'" text-anchor="middle" font-family="Arial,sans-serif" font-weight="900" font-size="'+(tx.length>1?20:24)+'" fill="'+tc+'">'+tx+'</text>'+
+      '<circle cx="24" cy="70" r="7" fill="#e0b088" stroke="#10233f" stroke-width="1.8"/>'+
+      '<rect x="17" y="60" width="14" height="5" rx="1.5" fill="'+c+'" stroke="#10233f" stroke-width="1"/>'+
+      '<path d="M24 77 L24 98" stroke="#10233f" stroke-width="4" fill="none" stroke-linecap="round"/>'+
+      '<path d="M24 83 L39 68 M24 83 L39 78" stroke="#10233f" stroke-width="3" fill="none" stroke-linecap="round"/>'+
+      '<path d="M24 98 L17 110 M24 98 L31 110" stroke="#10233f" stroke-width="3" fill="none" stroke-linecap="round"/>'+
+      '</svg>';
+    return L.divIcon({className:'',html:svg,iconSize:[44,62],iconAnchor:[13,61],popupAnchor:[9,-56]});
   }
   function gnav(la,lo){ return 'https://www.google.com/maps/dir/?api=1&destination='+la+','+lo+'&travelmode=driving'; }
   /* v1.3.82: on a buy stop's card, miles to the next buy stop */
