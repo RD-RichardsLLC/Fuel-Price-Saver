@@ -1582,6 +1582,24 @@ function tkClose(){ document.getElementById('tkpop').classList.remove('show'); }
     t.addEventListener('touchend',function(){ setTimeout(function(){ t.classList.remove('hold'); },5000); });
     t.addEventListener('mouseenter',function(){ t.classList.add('hold'); }); t.addEventListener('mouseleave',function(){ t.classList.remove('hold'); }); }
   setTimeout(fpsTicker,300);
+  /* v1.3.91: slide the ticker with your finger, both ways. Let go and it waits 5 seconds, then rolls on from that spot */
+  if(t){
+    var mv=null, pos=0, last=0, drag=false, sx=0, sp=0, wait=0;
+    var cssOff=document.createElement('style'); cssOff.textContent='#fptick .tkmove{animation:none!important}'; document.head.appendChild(cssOff);
+    function half(){ return (mv&&mv.scrollWidth/2)||1; }
+    function put(){ var h=half(); pos=((pos%h)+h)%h; mv.style.transform='translateX('+(-pos)+'px)'; }
+    function tick(ts){
+      mv=document.getElementById('tkmove');
+      if(mv&&last&&!drag&&ts>wait&&!t.classList.contains('hold-m')){ pos+=(ts-last)*half()/60000; put(); }
+      last=ts; requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+    t.addEventListener('touchstart',function(e){ var q=e.touches&&e.touches[0]; if(!q) return; drag=true; sx=q.clientX; sp=pos; },{passive:true});
+    t.addEventListener('touchmove',function(e){ var q=e.touches&&e.touches[0]; if(!q||!drag||!mv) return; pos=sp-(q.clientX-sx); put(); },{passive:true});
+    t.addEventListener('touchend',function(){ drag=false; wait=performance.now()+5000; });
+    t.addEventListener('touchcancel',function(){ drag=false; wait=performance.now()+5000; });
+    t.addEventListener('mouseenter',function(){ t.classList.add('hold-m'); }); t.addEventListener('mouseleave',function(){ t.classList.remove('hold-m'); });
+  }
 })();
 function loadLiveData(){
   try{
@@ -2225,40 +2243,61 @@ function nfCalc(){
   out.innerHTML=h;
 }
 
-/* truck-legal routing (TomTom). Returns the same shape as the old router so nothing else changes. */
-const TT_KEY="ARKpg3nDvyWW0qpnA5aSlSpkK78bopJF";
+/* truck-legal routing (HERE, v1.3.76; was TomTom). Returns the same shape as the old router so nothing else changes. */
+const HERE_KEY="Culfh3x39iAEJp5gzoJvXzPrXz57hGV3A_XaIk2Lfsc";
+function hereDecode(str){ const ENC='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+  let v=0,sh=0; const nums=[];
+  for(const ch of str){ const b=ENC.indexOf(ch); v+=(b&31)*Math.pow(2,sh); if(b&32){ sh+=5; } else { nums.push(v); v=0; sh=0; } }
+  const h=nums[1], prec=h&15, third=(h>>4)&7, f=Math.pow(10,prec), sg=x=>(x%2)?-(x+1)/2:x/2, pts=[];
+  let la=0,lo=0,k=2; while(k+1<nums.length){ la+=sg(nums[k++]); lo+=sg(nums[k++]); if(third) k++; pts.push([lo/f,la/f]); }
+  return pts; }
 async function ttRoute(pts,opt){            /* pts: [[lon,lat],...]  opt: {h,w,len,ax,toll,max,tollok:[states],rt} */
-  const q="&travelMode=truck&vehicleCommercial=true&routeType="+(opt.rt==='shortest'?'shortest':'fastest')+"&traffic=true&vehicleHeight="+opt.h+
-    "&vehicleWeight="+Math.round(opt.w)+"&vehicleWidth=2.6"+
-    (opt.ax?"&vehicleNumberOfAxles="+opt.ax:"")+"&key="+TT_KEY;
+  const q="&transportMode=truck&routingMode="+(opt.rt==='shortest'?'short':'fast')+
+    "&vehicle[height]="+Math.round(opt.h*100)+"&vehicle[grossWeight]="+Math.round(opt.w)+"&vehicle[width]=259"+
+    (opt.len?"&vehicle[length]="+Math.round(opt.len*100):"")+(opt.ax?"&vehicle[axleCount]="+opt.ax:"")+"&vehicle[trailerCount]=1"+
+    "&return=polyline,summary&spans=length,routeNumbers,names&apikey="+HERE_KEY;
   const wait=ms=>new Promise(r=>setTimeout(r,ms));
-  /* one TomTom call -> {co:[[lon,lat]], dist, dur, legs:[{distance,duration}], ins:[{o,r}], toll:[[i0,i1]], names} */
+  /* one HERE call -> {co:[[lon,lat]], dist, dur, legs:[{distance,duration}], ins:[{o,r}], toll:[[i0,i1]], names} */
   const raw=async(P,extra,full)=>{
-    const loc=P.map(p=>(+p[1]).toFixed(5)+","+(+p[0]).toFixed(5)).join(":");
-    const r=await fetch("https://api.tomtom.com/routing/1/calculateRoute/"+loc+"/json?"+q+extra+(full?"&instructionsType=coded&sectionType=tollRoad":""));
-    if(!r.ok){ let t=''; try{ t=(await r.text()).replace(/\s+/g,' ').slice(0,140); }catch(e){} throw new Error("TomTom "+r.status+(t?" "+t:"")); }
-    const d=await r.json(), R=d.routes&&d.routes[0]; if(!R) throw new Error("TomTom found no route");
-    const co=[]; (R.legs||[]).forEach(l=>l.points.forEach(p=>co.push([p.longitude,p.latitude])));
-    return {co:co, dist:R.summary.lengthInMeters, dur:R.summary.travelTimeInSeconds,
-      legs:(R.legs||[]).map(l=>({distance:l.summary.lengthInMeters,duration:l.summary.travelTimeInSeconds})),
-      ins:((R.guidance&&R.guidance.instructions)||[]).map(x=>({o:x.routeOffsetInMeters||0,r:((x.roadNumbers||[])[0]||x.street||'')})),
-      toll:(R.sections||[]).filter(x=>x.sectionType==='TOLL_ROAD').map(x=>[x.startPointIndex,x.endPointIndex]), names:!!full};
+    const ll=p=>(+p[1]).toFixed(5)+","+(+p[0]).toFixed(5);
+    const via=P.slice(1,-1).map(p=>"&via="+ll(p)).join("");
+    const r=await fetch("https://router.hereapi.com/v8/routes?origin="+ll(P[0])+"&destination="+ll(P[P.length-1])+via+q+extra);
+    let d=null; try{ d=await r.json(); }catch(e){}
+    if(!r.ok){ throw new Error("HERE "+r.status+" "+String((d&&((d.title||'')+(d.cause?': '+d.cause:'')))||'').slice(0,220)); }
+    const R=d&&d.routes&&d.routes[0]; if(!R) throw new Error("HERE found no route");
+    const co=[], ins=[], toll=[], legs=[]; let dist=0, dur=0;
+    (R.sections||[]).forEach(S=>{
+      const base=co.length, mo=dist, line=S.polyline?hereDecode(S.polyline):[];
+      line.forEach(c=>co.push(c));
+      const sm=S.summary||{}; dist+=sm.length||0; dur+=sm.duration||0;
+      legs.push({distance:sm.length||0, duration:sm.duration||0});
+      let off=0, last='', ts=-1;
+      (S.spans||[]).forEach((sp,k,arr)=>{
+        const rn=((sp.routeNumbers||[])[0]||{}).value || ((sp.names||[])[0]||{}).value || '';
+        if(rn && rn!==last){ ins.push({o:mo+off, r:rn}); last=rn; }
+        const isT=!!(sp.tollSystems&&sp.tollSystems.length), end=(arr[k+1]?arr[k+1].offset:line.length-1);
+        if(isT){ if(ts<0) ts=base+sp.offset; } else if(ts>=0){ toll.push([ts, base+sp.offset]); ts=-1; }
+        if(isT && !arr[k+1]){ toll.push([ts, base+end]); ts=-1; }
+        off+=sp.length||0;
+      });
+    });
+    if(!co.length) throw new Error("HERE found no route");
+    return {co:co, dist:dist, dur:dur, legs:legs, ins:ins, toll:toll, names:true};
   };
   /* try with road names, try again, then without road names (so the truck route never gets lost over the extras) */
   const one=async(P,extra)=>{
-    try{ return await raw(P,extra,true); }catch(e1){ window.ROUTE_ERR=e1.message; if(/no route|NO_ROUTE|route search failed/i.test(e1.message)) throw e1; }
+    try{ return await raw(P,extra,true); }catch(e1){ window.ROUTE_ERR=e1.message; if(/no route|NO_ROUTE|route search failed|couldn.t find/i.test(e1.message)) throw e1; }
     await wait(900);
     try{ return await raw(P,extra,true); }catch(e2){ window.ROUTE_ERR=e2.message; }
     return await raw(P,extra,false);
   };
   /* nearest main road (interstate or highway) to a point, so a stop downtown doesn't kill the truck route */
   const snap=async(p)=>{
-    try{ const u="https://api.tomtom.com/search/2/reverseGeocode/"+(+p[1]).toFixed(5)+","+(+p[0]).toFixed(5)+".json?key="+TT_KEY
-          +"&radius=24000&roadUse="+encodeURIComponent('["LimitedAccess","Arterial"]');
-      const r=await fetch(u); if(!r.ok) return null; const d=await r.json(), A=d.addresses&&d.addresses[0]; if(!A||!A.position) return null;
-      const ll=String(A.position).split(',').map(Number); if(!(isFinite(ll[0])&&isFinite(ll[1]))) return null;
-      if(hvMi(+p[1],+p[0],ll[0],ll[1])>15) return null;
-      return [ll[1],ll[0]];
+    try{ const u="https://revgeocode.search.hereapi.com/v1/revgeocode?at="+(+p[1]).toFixed(5)+","+(+p[0]).toFixed(5)+"&types=street&limit=1&apiKey="+HERE_KEY;
+      const r=await fetch(u); if(!r.ok) return null; const d=await r.json(), A=d.items&&d.items[0]; if(!A||!A.position) return null;
+      const la=+A.position.lat, lo=+A.position.lng; if(!(isFinite(la)&&isFinite(lo))) return null;
+      if(hvMi(+p[1],+p[0],la,lo)>15) return null;
+      return [lo,la];
     }catch(e){ return null; } };
   const wrap=x=>({code:"Ok",routes:[{geometry:{coordinates:x.co},distance:x.dist,duration:x.dur,legs:x.legs}],
     tt:x.names?{ins:x.ins,toll:x.toll}:null, tollKept:x.tollKept, tollOk:x.tollOk});
@@ -2266,7 +2305,7 @@ async function ttRoute(pts,opt){            /* pts: [[lon,lat],...]  opt: {h,w,l
   window.ROUTE_SNAPPED=[];
   try{ a=await one(pts,""); }
   catch(e0){
-    if(!/no route|NO_ROUTE|route search failed/i.test(e0.message)) throw e0;
+    if(!/no route|NO_ROUTE|route search failed|couldn.t find/i.test(e0.message)) throw e0;
     /* first move the in-between stops onto a main road, then the start and end too */
     const tries=[pts.map((p,i)=>i>0&&i<pts.length-1), pts.map(()=>true)];
     for(const which of tries){
@@ -2280,7 +2319,7 @@ async function ttRoute(pts,opt){            /* pts: [[lon,lat],...]  opt: {h,w,l
   }
   if(!opt.toll) return wrap(a);
   const lim=opt.max||20, okSt=opt.tollok||[];   /* Bob, Oct 25 (1.3.27): with in-between stops, tolls are decided one leg at a time (see pick) */
-  const b=await one(pts,"&avoid=tollRoads").catch(()=>null);
+  const b=await one(pts,"&avoid[features]=tollRoad").catch(()=>null);
   const pickWhole=()=>{ if(b&&(b.dist-a.dist)/1609.34<=lim) return wrap(b);
     a.tollKept=b?Math.round((b.dist-a.dist)/1609.34):-1; return wrap(a); };
   /* each leg gets its own toll check: skip tolls on that leg if it adds no more than the limit, else that leg keeps its toll road */
@@ -2289,7 +2328,7 @@ async function ttRoute(pts,opt){            /* pts: [[lon,lat],...]  opt: {h,w,l
     try{
       const L=await Promise.all(pts.slice(0,-1).map(async(p,k)=>{
         const P2=[p,pts[k+1]];
-        const ak=await raw(P2,"",true), bk=await raw(P2,"&avoid=tollRoads",true).catch(()=>null);
+        const ak=await raw(P2,"",true), bk=await raw(P2,"&avoid[features]=tollRoad",true).catch(()=>null);
         const ex=bk?(bk.dist-ak.dist)/1609.34:-1;
         return (bk&&ex<=lim)?{r:bk,kept:0}:{r:ak,kept:ak.toll.length?(bk?Math.round(ex):-1):0};
       }));
@@ -2330,7 +2369,7 @@ async function ttRoute(pts,opt){            /* pts: [[lon,lat],...]  opt: {h,w,l
   const groups=[]; segs.forEach(sg=>{ const G=groups[groups.length-1];
     if(G && G.toll===sg.toll){ G.P.push(sg.to); G.segs.push(sg); } else groups.push({toll:sg.toll,P:[sg.from,sg.to],segs:[sg]}); });
   let parts;
-  try{ parts=await Promise.all(groups.map(G=>raw(G.P,G.toll?"":"&avoid=tollRoads",true))); }catch(e){ return pick(); }
+  try{ parts=await Promise.all(groups.map(G=>raw(G.P,G.toll?"":"&avoid[features]=tollRoad",true))); }catch(e){ return pick(); }
   const h={co:[],dist:0,dur:0,legs:pts.slice(1).map(()=>({distance:0,duration:0})),ins:[],toll:[],names:true};
   parts.forEach((x,g)=>{
     const po=h.co.length, mo=h.dist;
@@ -2360,7 +2399,7 @@ async function findFuel(){
   /* fresh start: forget the last route, lookups and fuel plan so nothing old carries over */
   window.ROUTE_LINE=null; window.ROUTE_TT=null; window.ROUTE_TOLLKEPT=null; window.ROUTE_TOLLOK=false;
   window.ROUTE_ERR=null; window.ROUTE_CAR=false; window.ROUTE_SNAPPED=[]; window.ROUTE_NAMES=[]; window.ROUTE_STOPS=null;
-  ROUTE_CUM=[]; ROUTE_TOTAL=0; ROUTE_LEGS=null; ROUTE_MI=null; LASTHITS=[];
+  ROUTE_CUM=[]; ROUTE_TOTAL=0; ROUTE_LEGS=null; ROUTE_MI=null; LASTHITS=[]; window.FP_EXTRA=null; window.ROUTE_LINE=null;
   for(const k in GEO_CACHE) delete GEO_CACHE[k];
   window.ROUTE_ALT=null; window.ROUTE_FORCED=force60; document.body.classList.remove('has-alt');
   const RUN=++FF_RUN;
@@ -2422,6 +2461,7 @@ async function findFuel(){
     let laMin=90,laMax=-90,loMin=180,loMax=-180;
     for(const[la,lo]of line){ if(la<laMin)laMin=la; if(la>laMax)laMax=la; if(lo<loMin)loMin=lo; if(lo>loMax)loMax=lo; }
     const pad=maxMiles/69+0.3;
+    window.ROUTE_LINE=line; window.FP_EXTRA=null; window.FP_OFFMI=maxMiles;
     const hits=[];
     const legOf=i=>{ let leg=0; if(ROUTE_LEGS){ for(let k=0;k<ROUTE_LEGS.length;k++){ if(i>=ROUTE_LEGS[k].s) leg=k; } } return leg; };
     for(const s of STATIONS){
@@ -2439,6 +2479,7 @@ async function findFuel(){
     LASTHITS=hits; NEAR_R=null; try{ fpSync(); }catch(e){}
     setBar(100); hideBar();
     render(hits);
+    try{ if(!window.ROUTE_CAR) res.insertAdjacentHTML('beforeend','<p class="hint" style="font-size:13px;opacity:.8">Routes are planned for trucks: low bridges, weight limits and restricted roads. The app doesn\u2019t give spoken turn-by-turn directions, so use your own navigation, and always check signs for yourself.</p>'); }catch(e){}
     openResults();
     if(hits.length){ ding(); flagBestPrice(); }
   }catch(e){ hideBar(); res.innerHTML='<p class="hint">Something went wrong: '+e.message+'. The free map service can be busy \u2014 try again.</p>'; }
@@ -3025,6 +3066,244 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    To ship an update: add a new block at the TOP of CHANGELOG with the date and the lines.
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
+  { date:'2026-11-05', items:[
+    'Version 1.3.120',
+    '**New Back to pump button.** After you go back to the map, the orange Back to pump button reopens the pump you were on',
+    '**More room before the miles** in the black trip label at the top of the map'
+  ]},
+  { date:'2026-11-05', items:[
+    'Version 1.3.119',
+    '**Prices show on the map sooner.** You no longer have to zoom in as far to see the price tags, and pumps bunched together get their shared price card again',
+    '**The trip label and the + / \u2212 buttons stay sharp** while a pump is showing; only the map behind fades'
+  ]},
+  { date:'2026-11-05', items:[
+    'Version 1.3.118',
+    '**The map fades behind the pump.** While a pump is showing, the map softens toward white and the price tags hide, so the pump and sign stand out'
+  ]},
+  { date:'2026-11-05', items:[
+    'Version 1.3.117',
+    '**Bigger, centered numbers on the pump.** The total cost, gallons and discount price windows are all the same height, and the numbers are bigger and centered',
+    '**More room around the Diesel sign** at the top of the pump'
+  ]},
+  { date:'2026-11-05', items:[
+    'Version 1.3.116',
+    '**Easier-to-read pump.** Taller price windows with bigger numbers, a bigger Diesel sign, and bigger writing at the bottom, with a bigger brand tag',
+    '**Your trip\u2019s miles now show in the black trip label** at the top of the map. The trip card that came up at the first stop is gone, so the screen no longer scrolls',
+    '**The pump and sign sit centered** between the trip label and the buttons, and the Next Stop sign is centered between its posts'
+  ]},
+  { date:'2026-11-05', items:[
+    'Version 1.3.115',
+    '**A bigger pump.** It\u2019s wider and taller, with a wider price face, bigger labels and a bigger Diesel sign',
+    '**Bigger writing on the bottom of the pump.** Amount to buy, the town, and the interstate and exit now match the size of the town on the sign',
+    '**A narrower Next Stop sign** that hangs lower on its stand, over on the right'
+  ]},
+  { date:'2026-11-05', items:[
+    'Version 1.3.114',
+    '**The pump, sign and buttons all moved up together** a little higher on the screen'
+  ]},
+  { date:'2026-11-05', items:[
+    'Version 1.3.113',
+    '**The buttons sit a little closer to the pump**'
+  ]},
+  { date:'2026-11-05', items:[
+    'Version 1.3.112',
+    '**The pump is back to full size and easy to read.** It only gets a little smaller if your screen is short, so everything fits'
+  ]},
+  { date:'2026-11-05', items:[
+    'Version 1.3.111',
+    '**The pump, sign and buttons moved up,** clear of the bottom of the screen',
+    '**No more scrolling on the pump screen.** The pump and sign size themselves to fit your phone'
+  ]},
+  { date:'2026-11-05', items:[
+    'Version 1.3.110',
+    '**A taller pump with bigger, easier-to-read writing,** including the town and the interstate and exit',
+    '**A shorter arrow** on the pump',
+    '**The sign moved a little to the right**',
+    '**The buttons now sit right under the pump,** all the same height, with a small even gap between the rows'
+  ]},
+  { date:'2026-11-05', items:[
+    'Version 1.3.109',
+    '**A wider pump** on the map',
+    '**The buttons under the pump sit a little higher** off the bottom of the screen',
+    '**The trip card sits higher,** with more room between it and the pump'
+  ]},
+  { date:'2026-11-05', items:[
+    'Version 1.3.108',
+    '**The pump, sign and buttons now sit at the bottom of the screen,** so your trip name stays in view at the top, even with the trip card up',
+    '**Trip details, Radar and Satellite now work on the first tap** while a pump is showing'
+  ]},
+  { date:'2026-11-05', items:[
+    'Version 1.3.107',
+    '**Your trip name now sits on the map,** in a black label beside the zoom buttons, so it\u2019s never cut off',
+    '**Trip details, Radar and Satellite are now even buttons** across the top of the map',
+    '**The interstate and exit are now in bold black** on the pump and the sign'
+  ]},
+  { date:'2026-11-05', items:[
+    'Version 1.3.106',
+    '**Interstate and exit on the pump and the sign.** Under the town you\u2019ll see the highway and exit, like I-80 \u00b7 Exit 332, for the stop you\u2019re at and your next stop',
+    '**Buttons under the pump fill the row.** Two buttons split it in half, three split it in thirds',
+    '**A shorter arrow on the pump,** with the wording moved up',
+    '**Close moved off the top of the map.** Use List view at the bottom of the map instead, so the trip name has room'
+  ]},
+  { date:'2026-11-05', items:[
+    'Version 1.3.105',
+    '**Run Fuel Optimizer from Pick my own stops.** A green button on the map, and on each pump, switches you to the Fuel Optimizer',
+    '**List view next to Back to map.** Under the pump, List view takes you to the list of stops',
+    '**Easier to read store names** in the list of other stops beside the pump',
+    '**Sharper satellite pictures** on the map'
+  ]},
+  { date:'2026-11-05', items:[
+    'Version 1.3.104',
+    '**Pick my own stops now opens the map** with your whole route. The cheapest stop in each state is a full pump with a green price tag',
+    '**Zoom in to see every price.** Each pump gets its own price tag. Pumps bunched at one exit share a single tag listing all their prices, and split apart as you zoom in',
+    '**Tap any pump in Pick my own stops** to see its prices, whether it\u2019s the cheapest on your route in that state, how far ahead it is, and a list of the other stops in that state, cheapest first. Tap one in the list to jump to it',
+    '**The choice page now comes up every time you tap Find fuel**',
+    '**State by state no longer shows a fuel calculation count.** That count is for the Fuel Optimizer'
+  ]},
+  { date:'2026-11-05', items:[
+    'Version 1.3.103',
+    '**Pick how you buy fuel after Find fuel.** Choose Fuel Optimizer, State by state, or Pick my own stops. The first two take you to your fuel gauge, then straight to the map',
+    '**State by state now shows on the map too,** with a pump at each state\u2019s buy stop and how many gallons to buy there',
+    '**New buttons under the pump: Previous, Details and Next.** Previous hides at your first stop and Next at your last. The sign no longer changes stops when tapped',
+    '**Details on the map** opens the same stop details as the fuel cards, with prices, DEF, IFTA and Show all services. Back takes you to the map',
+    '**Stops not on your plan are tiny gray pumps** instead of blue dots. Tap one to see its prices, with a sign pointing to your next plan stop',
+    '**When your plan has just one fuel stop,** the sign says it\u2019s your only fuel stop',
+    '**The fuel calculation count is now in bold green** on the trip card and Trip details',
+    '**Fixed: the Back button stopped working** after leaving the map'
+  ]},
+  { date:'2026-11-05', items:[
+    'Version 1.3.102',
+    '**See how hard the Fuel Optimizer worked.** Each time you run it, the trip card and Trip details show how many fuel calculations it ran and how fast, like \u201cRan 48,210 fuel calculations in 0.3 seconds\u201d'
+  ]},
+  { date:'2026-11-05', items:[
+    'Version 1.3.101',
+    '**A trip card when you land on the map.** At your first fuel stop, a card over the pump shows your cities in order, how many stops and fuel stops, total miles, gallons and total cost. It goes away when you move on',
+    '**New Trip details button on the map.** It shows your trip leg by leg, with the fuel stops, gallons and cost on each leg, in easy-to-read black on white'
+  ]},
+  { date:'2026-11-05', items:[
+    'Version 1.3.100',
+    '**Go on the Fuel plan takes you straight to the map** at your first fuel stop, with its pump up. No more pages to click through. If your fuel can\u2019t reach a stop, you\u2019ll still see the warning first',
+    '**The Next Stop sign swings farther and slower,** toward you and away through its stand'
+  ]},
+  { date:'2026-11-05', items:[
+    'Version 1.3.99',
+    '**The Next button is gone.** Tap the sign to go to your next stop',
+    '**New First stop button** takes you back to the start of your fuel plan. Previous and First stop are now orange and sit a little lower so you don\u2019t tap the wrong one',
+    '**The sign now swings front to back** through its stand'
+  ]},
+  { date:'2026-11-05', items:[
+    'Version 1.3.98',
+    '**Previous and Next buttons under the pump** walk you back and forth through the stops on your fuel plan. Previous hides at your first stop and Next hides at your last',
+    '**After the fuel optimizer, you land right on the map** at your first fuel stop, with its pump popped up. Tap the sign or Next to walk through the rest of your plan'
+  ]},
+  { date:'2026-11-05', items:[
+    'Version 1.3.97',
+    '**Tap the Next Stop sign to jump to your next fuel stop.** The map moves there and that stop\u2019s pump pops up, so you can flip through your whole fuel plan',
+    '**A wider button under the pump and sign** reads \u201cBack to map, or tap sign for next stop\u201d',
+    '**The pump\u2019s wheels roll first, then the sign swings.**',
+    '**The little pump you tapped hides** while the big pump is up',
+    '**Brand tags on the pump all have black borders.** Love\u2019s has black letters to match the sign, and TA has white letters'
+  ]},
+  { date:'2026-11-05', items:[
+    'Version 1.3.96',
+    '**The pump now shows which stop you\u2019re at.** A brand tag (TA in blue, Love\u2019s in yellow, Petro in green) with the town sits under \u201cAmount to buy at this stop\u201d',
+    '**A shorter arrow on the pump.** The arrow and its wording moved up to make room'
+  ]},
+  { date:'2026-11-05', items:[
+    'Version 1.3.95',
+    '**The pump and sign now sit right on top of the map.** No more dark screen behind them, so the map stays in view. Tap the map or Back to map to close them'
+  ]},
+  { date:'2026-11-05', items:[
+    'Version 1.3.94',
+    '**Tap a fuel stop pump and an old-style pump pops up.** Its wheels roll to the total cost and the gallons to buy at that stop, at your discount price',
+    '**A swinging sign beside the pump shows your next fuel stop.** It has the brand, the town and the miles to get there. Tap Back to map to close it'
+  ]},
+  { date:'2026-11-05', items:[
+    'Version 1.3.93',
+    '**Highway numbers show on top of your route in Satellite view.** Road names and highway numbers now sit above the orange route line instead of under it'
+  ]},
+  { date:'2026-11-05', items:[
+    'Version 1.3.92',
+    '**Old-style diesel pumps now mark your fuel stops on the route map.** Each pump has a badge for the brand: TA on blue, L for Love\u2019s on yellow, P for Petro on green. Tap a pump to see its price, how much to buy and the miles to your next fuel stop',
+    '**Satellite view now uses Google\u2019s satellite picture.** It zooms in closer and shows the highways, highway numbers and towns, with your truck route and pumps drawn on top. Tap Street to go back to the regular map'
+  ]},
+  { date:'2026-11-04', items:[
+    'Version 1.3.91',
+    '**Slide the price ticker with your finger again.** Press and drag it either way to find a state. Let go and it waits 5 seconds, then rolls on from that spot. A quick tap on a state still opens its stop list'
+  ]},
+  { date:'2026-11-04', items:[
+    'Version 1.3.90',
+    '**Radar on your route map is now live.** It plays the last couple of hours of radar in a loop, in the same blue style as the radar page, so you can see which way storms are moving on your truck route. It picks up new radar every 10 minutes'
+  ]},
+  { date:'2026-11-04', items:[
+    'Version 1.3.89',
+    '**Radar on your route map.** Tap Radar at the top of the route map to see the latest weather radar right on your truck route. Tap it again to turn it off'
+  ]},
+  { date:'2026-11-04', items:[
+    'Version 1.3.88',
+    '**A little pit crew guy marks your fuel stops.** On the route map, each stop where your plan says to buy has a pit crew guy holding up a sign in the brand\u2019s color: blue TA, yellow L for Love\u2019s, green P for Petro. Tap him to see the price, gallons to buy and miles to your next stop'
+  ]},
+  { date:'2026-11-04', items:[
+    'Version 1.3.87',
+    '**Your fuel stops now show a pit-stop sign.** Like a pit crew holding up a sign for their driver, each stop where your plan says to buy shows a sign on a pole in the brand\u2019s color: blue TA, yellow L for Love\u2019s, green P for Petro'
+  ]},
+  { date:'2026-11-04', items:[
+    'Version 1.3.86',
+    '**Stops that aren\u2019t in your fuel plan say so.** Tap a small dot on the route map and its card says Not part of your fuel plan, so you know it\u2019s not one of your buy stops'
+  ]},
+  { date:'2026-11-04', items:[
+    'Version 1.3.85',
+    '**Tapping a stop on the map hides its flag while the card is open.** The flag or dot comes back when you close the card'
+  ]},
+  { date:'2026-11-04', items:[
+    'Version 1.3.84',
+    '**Highway numbers sit on top of your route.** Road numbers and names now show over the orange route line, and the line is back to a solid orange so it\u2019s easy to follow'
+  ]},
+  { date:'2026-11-04', items:[
+    'Version 1.3.83',
+    '**You can read the highway numbers under your route.** The orange route line on the map is thinner and see-through, so the road numbers show'
+  ]},
+  { date:'2026-11-04', items:[
+    'Version 1.3.82',
+    '**Tap a flag to see your plan for that stop.** The card shows the price, how many gallons to buy there, and the miles to your next fuel stop'
+  ]},
+  { date:'2026-11-04', items:[
+    'Version 1.3.81',
+    '**Your fuel stops are flagged on the route map.** The stops where your plan says to buy show a flag in the brand\u2019s color: blue for TA, yellow for Love\u2019s, green for Petro. Other stops stay small dots. Tap any one for its price'
+  ]},
+  { date:'2026-11-04', items:[
+    'Version 1.3.80',
+    '**The route map keeps you on the truck route.** The buttons that handed your trip to Google Maps are gone, since Google plans its own way and could take you off the truck route. Use the map to see your truck route and fuel stops'
+  ]},
+  { date:'2026-11-04', items:[
+    'Version 1.3.79',
+    '**The Map button now shows your truck route right in the app.** Your route is drawn on the map with your fuel stops; the stops in your fuel plan are green. Tap Satellite for a satellite view',
+    '**A stop\u2019s Map button opens that stop on your route.** Tap the stop for Take me there',
+    '**Google Maps is still one tap away** for spoken turn-by-turn. It plans its own way, so check that it follows the truck route'
+  ]},
+  { date:'2026-11-04', items:[
+    'Version 1.3.78',
+    '**The Fuel stop optimizer looks wider when it needs to.** If your fuel won\u2019t reach a stop within your miles off route, it looks up to 10 miles off the road and tells you when it did',
+    '**No more wrong savings numbers.** If a plan can\u2019t reach a stop, the app says so instead of showing a savings amount',
+    '**A note under your route results:** routes are planned for trucks, but the app doesn\u2019t give spoken turn-by-turn directions, so use your own navigation'
+  ]},
+  { date:'2026-11-04', items:[
+    'Version 1.3.77',
+    '**Fixed: truck routes would not load.** The new truck routing now loads your route instead of falling back to a car route'
+  ]},
+  { date:'2026-11-04', items:[
+    'Version 1.3.76',
+    '**Truck routing has a new engine.** Routes now come from a truck mapping service that knows truck-legal roads, low bridges, weight limits and length limits, and keeps you on the main truck routes. As always, check signs and restrictions for yourself; the app can’t guarantee every road'
+  ]},
+  { date:'2026-11-04', items:[
+    'Version 1.3.75',
+    '**Talking in a city works better.** Say the city and state, like Troy, Michigan, and the app understands the full state name. When there is one clear match, it picks the city and takes you back on its own, no tap needed. If there is more than one match, pick from the list like before'
+  ]},
+  { date:'2026-11-04', items:[
+    'Version 1.3.73',
+    '**Buy in each state now says No savings with this plan.** The box turns gray on that side, since buying in each state is what the savings is measured against. Slide back to Cheapest plan to see what you save',
+    '**The savings button is clearer.** It now reads Where\u2019d the savings come from?'
+  ]},
   { date:'2026-11-03', items:[
     'Version 1.3.72',
     '**Cheapest plan and Buy in each state are now a slide switch.** Slide it, or tap either name, to switch the plan below',
@@ -3562,7 +3841,7 @@ function stepBack(){
   return false;
 }
 // Header Back button: pop a history entry, which triggers the popstate handler.
-function goBack(){ history.back(); }
+function goBack(){ if(history.state&&history.state.app){ history.back(); } else { try{ (window.stepBack||stepBack)(); }catch(e){} } }   /* v1.3.103: Back works even when there's no history step left */
 function scrollResultsTop(){ window.scrollTo({top:0, behavior:'smooth'}); }
 function toggleAllStates(){
   const grps=[...document.querySelectorAll('.stgrp')].filter(g=>g.querySelector('button.sthead'));
@@ -6705,16 +6984,50 @@ function cpTitle(inp){
   if(inp.closest('#planstops') && /^your location/i.test(ph)) return 'Start';
   return ph||'City';
 }
+/* v1.3.75: talked-in cities. "Troy, Michigan." -> "Troy, MI". Full state names work, with or without the comma. */
+function cpNorm(q){
+  q=String(q||'').replace(/[.!?]+\s*$/,'').replace(/\s+/g,' ').trim();
+  var names=Object.keys(STATES).sort(function(a,b){ return b.length-a.length; });
+  for(var i=0;i<names.length;i++){
+    var re=new RegExp('^(.+?)\\s*(,)?\\s+'+names[i].replace(/ /g,'\\s+')+'$','i'), m=q.match(re);
+    if(!m) re=new RegExp('^(.+?)\\s*(,)\\s*'+names[i].replace(/ /g,'\\s+')+'$','i'), m=q.match(re);
+    if(!m) continue;
+    var nq=m[1].replace(/,\s*$/,'').trim()+', '+STATES[names[i]];
+    if(m[2]) return nq;                                   // had a comma: sure thing
+    try{ if(cityLocal(q,1).length) return q; }catch(e){}  // no comma: "Fort Washington" stays a city name
+    return nq;
+  }
+  return q;
+}
 function cpFill(){
   var pin=document.getElementById('cpin'), list=document.getElementById('cplist'), inp=CP.input;
-  var q=pin.value.trim();
+  var raw=pin.value, q=cpNorm(raw);
+  var jump=raw.trim().length-(CP.seenLen||0)>=4;           // a whole phrase landed at once = talked in
+  CP.seen=raw; CP.seenLen=raw.trim().length;
   document.querySelector('#cpop .cpx').classList.toggle('on',!!pin.value);
   inp.value=pin.value;                      // the row follows what's typed, like before
   if(inp.closest('#stops')) try{ markLoc(inp); }catch(e){}
   clearTimeout(CP.timer);
   if(q.length<2){ list.innerHTML=''; try{ locOnly(list,inp); }catch(e){} cpEmpty(); return; }
-  CP.timer=setTimeout(function(){ try{ lookup(q,list,inp); }catch(e){} },150);
+  CP.timer=setTimeout(function(){
+    try{ lookup(q,list,inp); }catch(e){}
+    if(jump && /,\s*[A-Z]{2}$/.test(q)) cpAuto(q,raw,0);
+  },150);
 }
+/* talked-in "City, ST" with one clear match: pick it and go back, no tap needed */
+function cpAuto(q,raw,tries){
+  if(!window.CP_OPEN || document.getElementById('cpin').value!==raw) return;
+  var want=q.toLowerCase().replace(/\s+/g,' ');
+  var rows=[].slice.call(document.getElementById('cplist').children).filter(function(d){ return !/zipmsg|cpempty|useloc/.test(d.className); });
+  var hit=rows.filter(function(d){ return d.textContent.trim().toLowerCase()===want; });
+  if(hit.length===1){ hit[0].click(); return; }
+  if(!rows.length && tries<6) setTimeout(function(){ cpAuto(q,raw,tries+1); },400);   // web lookup still coming
+}
+/* some voice keyboards drop text in without telling the page; check the box anyway */
+setInterval(function(){
+  if(!window.CP_OPEN) return;
+  var pin=document.getElementById('cpin'); if(pin && pin.value!==CP.seen) cpFill();
+},400);
 function cpEmpty(){
   var list=document.getElementById('cplist');
   if(list.style.display==='none' || !list.children.length){
@@ -6732,6 +7045,7 @@ function openCityPicker(inp,fresh){
   var pin=document.getElementById('cpin');
   document.getElementById('cptitle').textContent=cpTitle(inp);
   pin.value=(inp.value===HERE)?'':inp.value;
+  CP.seen=pin.value; CP.seenLen=pin.value.trim().length;
   document.getElementById('cpop').classList.add('show');
   window.CP_OPEN=true;
   try{ enterScreen(); }catch(e){}
@@ -6816,6 +7130,9 @@ function cityPickerDone(){
   #fppop .fpsave b{display:block;font-size:24px;color:#fff;margin-bottom:4px}
   #fppop .fpsave span{font-size:13.5px;color:#cfe9d8}
   #fppop .fpsave.same{background:#17304f;border-color:#4f7bb0}
+  #fppop .fpsave.none{background:#2a3340;border-color:#6b7787}
+  #fppop .fpsave.none b{font-size:21px;color:#d7dee8;margin:0}
+  #fppop .fpsave.none{min-height:116px;box-sizing:border-box;display:flex;align-items:center;justify-content:center}
 .fpwhybtn{display:block;width:100%;margin:12px 0 0;padding:12px;border:0;border-radius:12px;background:#2fa85a;color:#0c1a30;font-size:16px;font-weight:800;cursor:pointer}
 #fpwhy{z-index:9600}
 #fpwhy .popbox{text-align:left;max-width:360px}
@@ -7012,7 +7329,12 @@ function fqGo(){ try{ localStorage.setItem('fps_fsopt_last',String(Date.now()));
   t.endg=Math.max(eg,+t.res||0);
   t.fpset=true; try{ localStorage.setItem('fps_truck',JSON.stringify(t)); }catch(x){} try{ truckSum(); }catch(x){}
   try{ var t2=getTruck()||t; t2.lastnow=g; localStorage.setItem('fps_truck',JSON.stringify(t2)); }catch(x){}
-  FP_NOWG=g; document.getElementById('fqpop').classList.remove('show'); fpOpenReal();
+  FP_NOWG=g; document.getElementById('fqpop').classList.remove('show');
+  /* v1.3.100: Go works out the plan and takes you straight to the map at your first fuel stop */
+  window.FP_SILENT=true; try{ fpOpenReal(); }catch(x){} window.FP_SILENT=false;
+  if(window.FP_SAVE_SHORT||!window.FP_PLANK||!FP_PLANK.length){ fpOpenReal(); return; }   /* plan can't reach a stop: show the warning */
+  try{ FP_VIEW='plan'; fpApplyView(); window.scrollTo(0,0); }catch(x){}
+  setTimeout(function(){ if(window.hmOpenPlan) hmOpenPlan(); },150);
 }
 function fqFr(f){
   var t=getTruck()||TRUCK_DEF, tk=parseFloat(document.getElementById('fqtank').value)||(+t.tank||200);
@@ -7079,7 +7401,7 @@ function fpOpenReal(){
   document.getElementById('fpend').value=(t.endg>=0&&t.endg!=='')?t.endg:50;
   var ins=[].slice.call(document.querySelectorAll('#stops input')).map(function(i){ return i.value.trim(); }).filter(Boolean);
   document.getElementById('fptrip').textContent=(ins.length>1?ins[0]+' to '+ins[ins.length-1]+', ':'')+Math.round(ROUTE_TOTAL).toLocaleString('en-US')+' miles';
-  FP_TAB='cheap';
+  FP_TAB='cheap'; if(window.FP_MODE==='each') FP_TAB='each';   /* v1.3.103: State by state from the choice page */
   { var tg=document.getElementById('fptoll'), rb=tg.nextElementSibling; tg.style.display='inline-block'; rb.style.marginLeft='8px';
     tg.textContent=t.toll?'Avoid tolls is on':'Avoid tolls is off'; tg.style.background=t.toll?'#f26a21':'#2b4a70'; tg.style.color=t.toll?'#fff':'#cfdbe9'; }
   if(window.FP_SILENT){ fpCalc(); return; }
@@ -7088,7 +7410,7 @@ function fpOpenReal(){
   fpCalc();
 }
 function fpClose(){ document.getElementById('fppop').classList.remove('show');
-  try{ if(window.FP_PLANK&&FP_PLANK.length){ FP_VIEW='plan'; fpApplyView(); window.scrollTo(0,0); } }catch(e){} }
+  try{ if(window.FP_PLANK&&FP_PLANK.length){ FP_VIEW='plan'; fpApplyView(); window.scrollTo(0,0); if(!window.FP_SAVE_SHORT&&window.hmOpenPlan) setTimeout(hmOpenPlan,150); } }catch(e){} }
 function fpMpg(){
   var v=parseFloat(document.getElementById('fpmpg').value);
   if(v>=2&&v<=15){ var t=getTruck()||Object.assign({},TRUCK_DEF); t.mpg=v; try{ localStorage.setItem('fps_truck',JSON.stringify(t)); }catch(e){} try{ truckSum(); }catch(e){} }
@@ -7100,6 +7422,21 @@ function fpEnd(){
   fpCalc();
 }
 function fpTab(k){ FP_TAB=k; fpCalc(); }
+
+/* v1.3.78: when the plan can't reach a stop, look wider (up to 10 miles off the route) for stops the setting left out */
+function fpWide(maxW){
+  var line=window.ROUTE_LINE, base=+window.FP_OFFMI||0, out=[]; if(!line||!line.length||maxW<=base) return out;
+  var laMin=90,laMax=-90,loMin=180,loMax=-180;
+  line.forEach(function(p){ if(p[0]<laMin)laMin=p[0]; if(p[0]>laMax)laMax=p[0]; if(p[1]<loMin)loMin=p[1]; if(p[1]>loMax)loMax=p[1]; });
+  var pad=maxW/69+0.3;
+  STATIONS.forEach(function(s){
+    var la=s[3], lo=s[4]; if(la<laMin-pad||la>laMax+pad||lo<loMin-pad||lo>loMax+pad) return;
+    var best=1e9, bi=0;
+    for(var i=0;i<line.length-1;i++){ var d=segDistMi(la,lo,line[i][0],line[i][1],line[i+1][0],line[i+1][1]); if(d<best){ best=d; bi=i; } }
+    if(best>base && best<=maxW) out.push({b:s[0],c:s[1],st:s[2],la:la,lo:lo,ret:s[5],disc:s[6],ifta:s[7],pre:s[8],prod:s[9],off:Math.round(best*10)/10,pos:bi,rmi:ROUTE_CUM[bi]||0,wide:true});
+  });
+  return out;
+}
 function fpCalc(){
   var t=getTruck()||TRUCK_DEF, out=document.getElementById('fpout');
   NF_LVL=parseFloat(document.getElementById('fplvl').value)||0.25;
@@ -7115,7 +7452,7 @@ function fpCalc(){
     +', arriving with '+Math.round(Math.max(endTot,res))+' gal'+(skip.length?'. Never buying in '+skip.join(', '):'')+'. Change these in Your truck.';
   var runs=fpStateRuns(); if(!runs.length){ out.innerHTML='<div class="fpwarn">Couldn\u2019t work out the states on this route. Tap Find fuel again.</div>'; return; }
   var sur=runs.map(function(r){ var x=FP_SURCH[r.st]||0; return x?r.mi/mpg*x:0; }), surT=0; sur.forEach(function(x){ surT+=x; });
-  var stns=LASTHITS.filter(function(h){ return skip.indexOf(h.st)<0 && isFinite(fpCost(h)) && h.rmi>=0 && h.rmi<=total; })
+  var stns=LASTHITS.concat(window.FP_EXTRA||[]).filter(function(h){ return skip.indexOf(h.st)<0 && isFinite(fpCost(h)) && h.rmi>=0 && h.rmi<=total; })
                    .slice().sort(function(a,b){ return a.rmi-b.rmi||fpCost(a)-fpCost(b); });
   var warn=[];
   var runOf=function(m){ for(var k=0;k<runs.length;k++) if(m>=runs[k].start-0.01 && m<=runs[k].end+0.01) return k; return runs.length-1; };
@@ -7153,21 +7490,22 @@ function fpCalc(){
   var U=5, C=Math.floor(cap/U), n=stns.length, INF=1e15;
   var stopCost=function(h){ return fpCost(h)*1 + 15; };
   /* jump straight from one buy stop to the next, so fuel is only rounded once per stop, never at every stop passed */
-  var dp=[], par=[], bestEnd=INF, endPar=null;
+  var dp=[], par=[], bestEnd=INF, endPar=null, FPN=0, FPT0=(window.performance?performance.now():Date.now());   /* v1.3.102: count the calculations */
   for(var i=0;i<n;i++){ dp.push(new Array(C+1).fill(INF)); par.push(new Array(C+1).fill(null)); }
   if(start-total/mpg>=endX-0.01){ bestEnd=0; endPar='none'; }
   for(var j=0;j<n;j++){ var arr=start-stns[j].rmi/mpg; if(arr<0) break; var nx=Math.min(C,Math.floor(arr/U+1e-9)); if(0<dp[j][nx]){ dp[j][nx]=0; par[j][nx]=null; } }
   for(var i=0;i<n;i++){
     var pr=fpCost(stns[i]), sc=stopCost(stns[i]), dE=(total-stns[i].rmi)/mpg;
     for(var av=0;av<=C;av++){ var c0=dp[i][av]; if(c0>=INF) continue;
-      for(var k=av+1;k<=C;k++){
+      for(var k=av+1;k<=C;k++){ FPN++;
         var c=c0+(k-av)*U*pr+sc;
         if(k*U-dE>=endX-0.01 && c<bestEnd){ bestEnd=c; endPar={i:i,a:av,k:k}; }
-        for(var j=i+1;j<n;j++){ var ar=k*U-(stns[j].rmi-stns[i].rmi)/mpg; if(ar<0) break;
+        for(var j=i+1;j<n;j++){ FPN++; var ar=k*U-(stns[j].rmi-stns[i].rmi)/mpg; if(ar<0) break;
           var nx=Math.floor(ar/U+1e-9); if(c<dp[j][nx]){ dp[j][nx]=c; par[j][nx]={i:i,a:av,k:k}; } }
       }
     }
   }
+  window.FP_CALCS={n:FPN, ms:(window.performance?performance.now():Date.now())-FPT0};
   if(endPar){
     var tg=[]; var cur=(endPar==='none')?null:endPar;
     while(cur){ tg.unshift({i:cur.i,k:cur.k}); cur=par[cur.i][cur.a]; }
@@ -7178,6 +7516,7 @@ function fpCalc(){
   } else short=true;
   f-=(total-pos)/mpg; if(f< -0.5) short=true; else if(f<endX-1) warn.push('You\u2019ll get there with less than '+Math.round(endTot)+' gal. There isn\u2019t a stop late enough on the route to top off.');
   if(!stns.length) short=true;
+  if(short && !window.FP_EXTRA && window.ROUTE_LINE){ window.FP_EXTRA=fpWide(10); if(window.FP_EXTRA.length) return fpCalc(); }
   var p2=runs.map(function(){ return {g:0,stops:[]}; });
   buys.forEach(function(b){ var k=runOf(b.s.rmi); p2[k].g+=b.g; p2[k].stops.push(b); });
 
@@ -7189,13 +7528,20 @@ function fpCalc(){
   var $=function(x){ return '$'+Math.round(x).toLocaleString('en-US'); }, M=function(x){ return Math.round(x).toLocaleString('en-US'); };
   var price=function(h){ return '$'+fmt(rankVal(h)); };
   var save=real1-real2, h='';
-  try{ window.FP_SAVE=save; window.FP_PLANK=buys.map(function(b){ return b.s.la+','+b.s.lo; }); fpBtnSync(); }catch(e){}
-  if(short) warn.push('Your fuel won\u2019t reach one of the stops on this plan. Check your gauge, or widen the miles off route in Settings so more stops show up.');
+  try{ window.FP_SAVE=short?0:save;
+    var src=(FP_TAB==='each')?p1.filter(function(x){ return x.stop&&x.g>0; }).map(function(x){ return {s:x.stop,g:x.g}; }):buys;   /* v1.3.103: State by state puts its stops on the map */
+    window.FP_PLANK=src.map(function(b){ return b.s.la+','+b.s.lo; }); window.FP_PLANG={}; src.forEach(function(b){ var k=b.s.la+','+b.s.lo; FP_PLANG[k]=(FP_PLANG[k]||0)+b.g; }); fpBtnSync(); }catch(e){}
+  window.FP_SAVE_SHORT=!!short&&FP_TAB!=='each';
+  if(short) warn.push('Your fuel won\u2019t reach one of the stops on this plan, even looking up to 10 miles off route. Check your gauge, or widen the miles off route in Settings so more stops show up.');
+  else if(buys.some(function(b){ return b.s.wide; })) warn.push('No fuel close enough on part of this trip, so we looked up to 10 miles off route. Stops marked (wider look) are a little farther off the road.');
   /* v1.3.71: one bottom-line number, and a button that shows where it came from. The two parts always add up to it. */
   var saveR=Math.round(save), pumpR=Math.round(pump1-pump2), taxR=saveR-pumpR;
   window.FP_WHY={save:saveR,pump:pumpR,tax:taxR,n1:n1,n2:n2};
-  if(save>=1) h+='<div class="fpsave"><b>You save '+$(saveR)+' on this trip</b>'
-    +'<button type="button" class="fpwhybtn" onclick="fpWhyOpen()">Where did it come from?</button></div>';
+  /* v1.3.73: Buy in each state is the baseline, so it saves nothing */
+  if(short) h+='<div class="fpsave none"><b>No savings shown</b><span>This plan can\u2019t reach a stop, so the numbers wouldn\u2019t be right</span></div>';
+  else if(save>=1 && FP_TAB==='each') h+='<div class="fpsave none"><b>No savings with this plan</b></div>';
+  else if(save>=1) h+='<div class="fpsave"><b>You save '+$(saveR)+' on this trip</b>'
+    +'<button type="button" class="fpwhybtn" onclick="fpWhyOpen()">Where\u2019d the savings come from?</button></div>';
   else h+='<div class="fpsave same"><b>About the same either way</b><span>Filling up in each state as you go costs about the same on this run</span></div>';
   warn.forEach(function(w){ h+='<div class="fpwarn">'+w+'</div>'; });
   h+='<div class="fptabs fptog"><button type="button" class="tl'+(FP_TAB==='cheap'?' on':'')+'" onclick="fpTab(\'cheap\')">Cheapest plan</button>'
@@ -7208,7 +7554,7 @@ function fpCalc(){
     var line='', g=0, c=0;
     if(cheap){
       g=p2[k].g; c=sum(p2[k].stops,function(b){ return b.g*fpPump(b.s); });
-      if(g>0) line=p2[k].stops.map(function(b){ return '<small class="buy"><span class="stn">'+esc(b.s.b)+', '+esc(b.s.c)+'</span> at '+price(b.s)+(p2[k].stops.length>1?', '+b.g+' gal':'')+'</small>'; }).join('');
+      if(g>0) line=p2[k].stops.map(function(b){ return '<small class="buy"><span class="stn">'+esc(b.s.b)+', '+esc(b.s.c)+'</span> at '+price(b.s)+(p2[k].stops.length>1?', '+b.g+' gal':'')+(b.s.wide?' (wider look, '+b.s.off+' mi off route)':'')+'</small>'; }).join('');
       else line='<small>'+(skip.indexOf(r.st)>=0?'You don\u2019t buy here':'Skip, drive through on what you have')+'</small>';
     }else{
       var x=p1[k]; g=x.g; c=x.stop?x.g*fpPump(x.stop):0;
@@ -7364,7 +7710,7 @@ function fpPreview(){
 }
 (function(){ var r=document.getElementById('results'); if(!r) return;
   new MutationObserver(function(){ if(!document.getElementById('fpbtn')) return; FP_VIEW='all'; window.FP_PLANK=null; window.FP_SAVE=null;
-    clearTimeout(window.FP_PVT); window.FP_PVT=setTimeout(function(){ fpPreview(); fpApplyView(); try{ if(document.body.classList.contains('on-results')) fpsRemind(); }catch(e){} },400); }).observe(r,{childList:true});
+    clearTimeout(window.FP_PVT); window.FP_PVT=setTimeout(function(){ window.FP_MODE=null; fpPreview(); fpApplyView(); try{ if(document.body.classList.contains('on-results')){ if(!(window.fpChooser&&fpChooser())) fpsRemind(); } }catch(e){} },400); }).observe(r,{childList:true});
 })();
 </script>
 
@@ -7711,7 +8057,7 @@ body.tier-free #freelist{display:block}
 </script>
 <div id="fpwhy" class="popwrap" style="display:none" onclick="if(event.target===this)history.back()">
   <div class="popbox">
-    <div class="poptitle">Where did it come from?</div>
+    <div class="poptitle">Where’d the savings come from?</div>
     <div id="fpwhytext"></div>
     <button type="button" class="tierclose" onclick="history.back()">Close</button>
   </div>
@@ -7747,6 +8093,597 @@ body.tier-free #freelist{display:block}
   window.fpWhyClose=function(){ var p=document.getElementById('fpwhy'); if(p) p.style.display='none'; };
   var ob=window.stepBack;
   window.stepBack=function(){ if(isOpen()){ fpWhyClose(); return true; } return ob.apply(this,arguments); };
+})();
+</script>
+<style id="hmapstyle">
+#hmap{position:fixed;inset:0;z-index:9500;background:#10233f;display:none;flex-direction:column}
+#hmap.show{display:flex}
+#hmbar{display:flex;align-items:center;gap:8px;padding:10px 10px calc(10px);padding-top:calc(10px + env(safe-area-inset-top,0px));background:#10233f;border-bottom:1px solid #2b4a70}
+#hmbar .t{flex:1;color:#e8eef6;font-weight:800;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#hmbar button,#hmfoot button,#hmfoot a{font:inherit;font-weight:700;font-size:14px;border-radius:9px;padding:9px 12px;border:1px solid #4f7bb0;background:#1d3a5e;color:#fff;text-decoration:none;text-align:center}
+#hmbar .x{background:#f26a21;border-color:#f26a21}
+#hmbar .t{display:none}
+#hmbar button{flex:1}
+#hmtlbl{position:absolute;top:10px;left:54px;z-index:800;background:#141414;color:#fff;font:700 13px Arial,sans-serif;padding:7px 11px;border-radius:9px;box-shadow:0 2px 6px rgba(0,0,0,.4);max-width:calc(100% - 70px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}
+#hmmap{flex:1;min-height:0}
+#hmfoot{display:flex;gap:8px;padding:10px;padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));background:#10233f;border-top:1px solid #2b4a70}
+#hmfoot>*{flex:1}
+#hmnote{color:#9fb4ce;font-size:12px;padding:0 10px 6px;background:#10233f}
+.hmpin{width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px #0008}
+.hmpop b{font-size:15px}.hmpop .p{color:#2fa85a;font-weight:800;font-size:16px}
+.hmpop a{display:inline-block;margin-top:6px;background:#f26a21;color:#fff!important;padding:6px 10px;border-radius:7px;font-weight:700;text-decoration:none}
+</style>
+<div id="hmap">
+  <div id="hmbar"><div class="t" id="hmtitle">Truck route</div><button type="button" id="hmtd">Trip details</button><button type="button" id="hmrad">Radar</button><button type="button" id="hmsat">Satellite</button></div>
+  <div id="hmmap"></div>
+  <div id="hmnote">Map shows the truck route the app planned. Always check signs and restrictions for yourself.</div>
+</div>
+<script id="hmapscript">
+/* ===== v1.3.79: truck route on a HERE map inside the app (was: straight out to Google Maps) =====
+   Map button = the whole truck route with your fuel stops. A stop's Map button = that stop on the route.
+   Google Maps is still one tap away for spoken turn-by-turn. */
+(function(){
+  var M=null, base=null, sat=false, layers=[], LREADY=null, navHref='', navLegs=false;
+  function loadLeaflet(){
+    if(window.L&&L.map) return Promise.resolve();
+    if(LREADY) return LREADY;
+    LREADY=new Promise(function(ok,bad){
+      var c=document.createElement('link'); c.rel='stylesheet'; c.href='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css'; document.head.appendChild(c);
+      var s=document.createElement('script'); s.src='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
+      s.onload=function(){ ok(); }; s.onerror=function(){ LREADY=null; bad(new Error('map')); }; document.head.appendChild(s);
+    });
+    return LREADY;
+  }
+  function tiles(){
+    if(base) M.removeLayer(base);
+    if(window.HM_LBL){ try{ M.removeLayer(HM_LBL); }catch(e){} window.HM_LBL=null; }
+    var errs=0;
+    if(sat){
+      /* v1.3.92: Satellite uses Google's satellite picture with roads, highway numbers and towns on it; your route and pumps stay on top */
+      M.setMaxZoom(21);
+      base=L.tileLayer('https://mt{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}&scale=2',{subdomains:'0123',maxZoom:21,attribution:'Imagery \u00a9 Google'}).addTo(M);
+      /* v1.3.93: Google's road names and highway numbers on their own layer, above your route line */
+      if(!M.getPane('hmlabels')){ var gp=M.createPane('hmlabels'); gp.style.zIndex=450; gp.style.pointerEvents='none'; }
+      window.HM_LBL=L.tileLayer('https://mt{s}.google.com/vt/lyrs=h&x={x}&y={y}&z={z}&scale=2',{subdomains:'0123',pane:'hmlabels',maxZoom:21}).addTo(M);
+      base.on('tileerror',function(){ if(++errs!==4) return; M.removeLayer(base);
+        base=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Esri'}).addTo(M); });
+    } else {
+      if(M.getZoom()>19) M.setZoom(19); M.setMaxZoom(19);
+      base=L.tileLayer('https://maps.hereapi.com/v3/base/mc/{z}/{x}/{y}/png8?style=explore.day&size=256&apiKey='+HERE_KEY,{maxZoom:19,attribution:'\u00a9 HERE'}).addTo(M);
+      base.on('tileerror',function(){ if(++errs!==4) return; M.removeLayer(base);
+        base=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'\u00a9 OpenStreetMap'}).addTo(M); });
+      /* v1.3.84: road numbers and names on their own layer, above the route line */
+      if(!M.getPane('hmlabels')){ var pn=M.createPane('hmlabels'); pn.style.zIndex=450; pn.style.pointerEvents='none'; }
+      var lerr=0;
+      window.HM_LBL=L.tileLayer('https://maps.hereapi.com/v3/label/mc/{z}/{x}/{y}/png?style=explore.day&size=256&apiKey='+HERE_KEY,{pane:'hmlabels',maxZoom:19}).addTo(M);
+      HM_LBL.on('tileerror',function(){ if(++lerr===4){ try{ M.removeLayer(HM_LBL); }catch(e){} } });
+    }
+    document.getElementById('hmsat').textContent=sat?'Street':'Satellite';
+  }
+  /* v1.3.103: stops not on your plan are tiny gray pumps instead of dots */
+  var tagLayers=[];
+  function tagsUpdate(){
+    if(!M) return; tagLayers.forEach(function(l){ try{ M.removeLayer(l); }catch(e){} }); tagLayers=[];
+    if(window.HM_PP) return;   /* v1.3.118: no price tags while the big pump is up */
+    var z=M.getZoom(), b=M.getBounds().pad(0.15), plan={}; (window.FP_PLANK||[]).forEach(function(k){ plan[k]=1; });
+    var cand=[];
+    if(z>=7) cand=(LASTHITS||[]).filter(function(h){ return isFinite(h.la)&&b.contains([h.la,h.lo]); });
+    else if(window.PP_OWN){ var cs=window.PP_BIG||{}; cand=(LASTHITS||[]).filter(function(h){ return cs[h.la+','+h.lo]; }); }
+    cand=cand.filter(function(h){ var v=null; try{ v=rankVal(h); }catch(e){} return v!=null&&isFinite(v); }).slice(0,150);
+    var pts=cand.map(function(h){ return {h:h,p:M.latLngToContainerPoint([h.la,h.lo])}; }), used={}, groups=[];
+    pts.forEach(function(a,i){ if(used[i]) return; var g=[a]; used[i]=1;
+      pts.forEach(function(c,j){ if(used[j]) return; if(Math.abs(c.p.x-a.p.x)<44&&Math.abs(c.p.y-a.p.y)<44){ g.push(c); used[j]=1; } }); groups.push(g); });
+    groups.forEach(function(g){
+      if(g.length===1){ var h=g[0].h, tall=plan[h.la+','+h.lo]||(window.PP_OWN&&(window.PP_BIG||{})[h.la+','+h.lo]);
+        var html='<div style="display:flex;flex-direction:column;align-items:center"><div style="background:#fff;border:1.5px solid #1f8a43;border-radius:7px;padding:2px 6px;font:800 12px Arial;color:#1f8a43;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.35)">$'+fmt(rankVal(h))+'</div><div style="width:2px;height:6px;background:#1f8a43"></div></div>';
+        var mk=L.marker([h.la,h.lo],{icon:L.divIcon({className:'',html:html,iconSize:[64,26],iconAnchor:[32,26+(tall?64:28)]}),zIndexOffset:3000}).addTo(M);
+        mk.on('click',function(){ ppOpen(h); }); tagLayers.push(mk); return; }
+      g.sort(function(x,y){ return rankVal(x.h)-rankVal(y.h); });
+      var la=0,lo=0; g.forEach(function(x){ la+=x.h.la; lo+=x.h.lo; }); la/=g.length; lo/=g.length;
+      var rows=g.slice(0,5).map(function(x){ return '<div style="white-space:nowrap"><b style="color:#1f8a43">$'+fmt(rankVal(x.h))+'</b> '+esc(x.h.b)+'</div>'; }).join('')+(g.length>5?'<div style="color:#666">+'+(g.length-5)+' more</div>':'');
+      var hgt=8+16*Math.min(g.length,6);
+      var html='<div style="position:relative;height:'+hgt+'px"><div style="position:absolute;left:0;top:'+(hgt/2-1)+'px;width:26px;height:2px;background:#1f8a43"></div>'+
+        '<div style="position:absolute;left:26px;top:0;background:#fff;border:1.5px solid #1f8a43;border-radius:7px;padding:3px 7px;font:12px Arial;color:#141414;box-shadow:0 1px 3px rgba(0,0,0,.35)">'+rows+'</div></div>';
+      var mk=L.marker([la,lo],{icon:L.divIcon({className:'',html:html,iconSize:[150,hgt],iconAnchor:[0,hgt/2]}),zIndexOffset:3000}).addTo(M);
+      mk.on('click',function(){ M.fitBounds(L.latLngBounds(g.map(function(x){ return [x.h.la,x.h.lo]; })).pad(0.6),{maxZoom:Math.max(z+2,12)}); });
+      tagLayers.push(mk);
+    });
+  }
+  function miniPump(){
+    var svg='<svg width="12" height="22" viewBox="0 0 60 112"><rect x="6" y="104" width="48" height="8" rx="2" fill="#4a4f57"/>'+
+      '<rect x="12" y="4" width="36" height="102" rx="12" fill="#6b7280" stroke="#fff" stroke-width="4"/>'+
+      '<rect x="18" y="12" width="24" height="16" rx="3" fill="#e5e7eb"/><rect x="18" y="36" width="24" height="14" rx="3" fill="#e5e7eb"/></svg>';
+    return L.divIcon({className:'',html:'<div style="width:26px;height:30px;display:flex;align-items:flex-end;justify-content:center">'+svg+'</div>',iconSize:[26,30],iconAnchor:[13,29]});
+  }
+  function pin(color,size){ return L.divIcon({className:'',html:'<div class="hmpin" style="background:'+color+';width:'+size+'px;height:'+size+'px"></div>',iconSize:[size+4,size+4],iconAnchor:[(size+4)/2,(size+4)/2]}); }
+  /* v1.3.81: your buy stops get a flag in the brand's color: TA blue, Love's yellow, Petro green */
+  /* v1.3.87: your buy stops get a pit-stop sign on a pole in the brand's color: TA blue, Love's yellow, Petro green */
+  /* v1.3.88: a little pit crew guy holds up a pit sign in the brand's color: TA blue, Love's yellow, Petro green */
+  function flag(b){
+    var n=String(b||'').toLowerCase(), isL=/love/.test(n), isP=/petro/.test(n), isT=/\bta\b|ta express|travelcenters/.test(n);
+    var c=isL?'#f5c518':isP?'#2fa85a':isT?'#2f7fe0':'#f26a21', tx=isL?'L':isP?'P':isT?'TA':'\u26fd', tc=isL?'#10233f':'#fff';
+    /* v1.3.92: the old-style diesel pump marks each buy stop, with a brand badge: TA blue, L yellow, P green, each with a thin red ring */
+    var bf=isT?14:16, by=isT?76:77;
+    var svg='<svg width="36" height="66" viewBox="0 0 60 112">'+
+      '<rect x="6" y="104" width="48" height="8" rx="2" fill="#0E1830"/>'+
+      '<path d="M14 40 C4 50 4 80 10 102" fill="none" stroke="#1C1C1E" stroke-width="3" stroke-linecap="round"/>'+
+      '<rect x="12" y="4" width="36" height="102" rx="12" fill="#1A2B4C" stroke="#fff" stroke-width="2"/>'+
+      '<rect x="16" y="9" width="28" height="92" rx="9" fill="#F4F6FA"/>'+
+      '<rect x="19" y="13" width="22" height="9" rx="2" fill="#1C9A44"/>'+
+      '<rect x="20" y="27" width="20" height="7" rx="1.5" fill="#101C33"/>'+
+      '<rect x="20" y="37" width="20" height="7" rx="1.5" fill="#101C33"/>'+
+      '<rect x="16" y="50" width="28" height="3" fill="#F28A2E"/>'+
+      '<rect x="8" y="36" width="6" height="12" rx="1.5" fill="#138A36"/>'+
+      '<circle cx="30" cy="72" r="13" fill="#1A2B4C"/><circle cx="30" cy="72" r="11.5" fill="'+c+'"/>'+
+      '<circle cx="30" cy="72" r="9" fill="none" stroke="#d62828" stroke-width="1.6"/>'+
+      '<text x="30" y="'+by+'" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="'+(isT?11:bf)+'" fill="'+tc+'">'+tx+'</text>'+
+      '</svg>';
+    return L.divIcon({className:'',html:svg,iconSize:[36,66],iconAnchor:[18,65],popupAnchor:[0,-60]});
+  }
+  function gnav(la,lo){ return 'https://www.google.com/maps/dir/?api=1&destination='+la+','+lo+'&travelmode=driving'; }
+  /* v1.3.82: on a buy stop's card, miles to the next buy stop */
+  function nextBuy(h){
+    var plan={}; (window.FP_PLANK||[]).forEach(function(k){ plan[k]=1; });
+    if(!plan[h.la+','+h.lo]) return (window.FP_PLANK&&FP_PLANK.length)?'<div style="margin-top:4px;color:#555">Not part of your fuel plan</div>':'';
+    if(!isFinite(h.rmi)) return '';
+    var gl=(window.FP_PLANG||{})[h.la+','+h.lo], buy=gl>0?'<div style="margin-top:4px;color:#10233f"><b>Buy '+Math.round(gl)+' gallons here</b></div>':'';
+    var nx=(LASTHITS||[]).filter(function(x){ return plan[x.la+','+x.lo] && isFinite(x.rmi) && x.rmi>h.rmi+0.5; })
+      .sort(function(a,b){ return a.rmi-b.rmi; })[0];
+    if(!nx) return buy+'<div style="margin-top:4px;color:#555">Last fuel stop on your plan</div>';
+    return buy+'<div style="margin-top:4px;color:#555"><b>'+Math.round(nx.rmi-h.rmi).toLocaleString('en-US')+' miles</b> to your next fuel stop: '+esc(nx.b)+' '+esc(nx.c)+', '+esc(nx.st)+'</div>';
+  }
+  /* v1.3.94: tap a fuel stop pump and an old-style pump pops up: wheels roll to the total cost and gallons to buy here; a swinging sign beside it shows your next fuel stop */
+  function ppData(h){
+    var plan={}; (window.FP_PLANK||[]).forEach(function(k){ plan[k]=1; });
+    var gl=(window.FP_PLANG||{})[h.la+','+h.lo], pr=null; try{ pr=rankVal(h); }catch(e){}
+    if(!plan[h.la+','+h.lo]||!(gl>0)||pr==null||!isFinite(pr)) return null;
+    var nx=(LASTHITS||[]).filter(function(x){ return plan[x.la+','+x.lo] && isFinite(x.rmi) && isFinite(h.rmi) && x.rmi>h.rmi+0.5; }).sort(function(a,b){ return a.rmi-b.rmi; })[0];
+    var pv=(LASTHITS||[]).filter(function(x){ return plan[x.la+','+x.lo] && isFinite(x.rmi) && isFinite(h.rmi) && x.rmi<h.rmi-0.5; }).sort(function(a,b){ return b.rmi-a.rmi; })[0];
+    var fs=(LASTHITS||[]).filter(function(x){ return plan[x.la+','+x.lo] && isFinite(x.rmi); }).sort(function(a,b){ return a.rmi-b.rmi; })[0];
+    var g=Math.round(gl); return {h:h, pv:pv, fs:pv?fs:null, only:(!nx&&!pv), g:g, pr:pr, tot:(g*pr).toFixed(2), nx:nx, mi:nx?Math.round(nx.rmi-h.rmi):0};
+  }
+  /* v1.3.103: a stop that isn't on your fuel plan gets its own big pump: its prices, and the sign points to your next plan stop */
+  function ppDataOff(h){
+    var pr=null; try{ pr=rankVal(h); }catch(e){} if(pr==null||!isFinite(pr)) return null;
+    var plan={}; (window.FP_PLANK||[]).forEach(function(k){ plan[k]=1; }); var hasPlan=!!(window.FP_PLANK&&FP_PLANK.length);
+    var nx=hasPlan?(LASTHITS||[]).filter(function(x){ return plan[x.la+','+x.lo] && isFinite(x.rmi) && isFinite(h.rmi) && x.rmi>h.rmi+0.5; }).sort(function(a,b){ return a.rmi-b.rmi; })[0]:null;
+    var ret=(h.ret!=null&&isFinite(h.ret))?+h.ret:null;
+    return {h:h, off:true, hasPlan:hasPlan, pr:pr, ret:ret, nx:nx, mi:nx?Math.round(nx.rmi-h.rmi):0, pv:null, fs:null, only:false, g:0, tot:pr.toFixed(3)};
+  }
+  /* v1.3.104: Pick my own stops: every pump shows its prices, and the cheapest on your route in each state is called out */
+  function ppStName(st){ try{ for(var k in STATES){ if(STATES[k]===st) return k; } }catch(e){} return st; }
+  function ppStateList(st){ return (LASTHITS||[]).filter(function(x){ var v=null; try{ v=rankVal(x); }catch(e){} return x.st===st && v!=null && isFinite(v); })
+    .sort(function(a,b){ return rankVal(a)-rankVal(b); }); }
+  function ppCheapSet(){ var best={}; (LASTHITS||[]).forEach(function(x){ var v=null; try{ v=rankVal(x); }catch(e){} if(v==null||!isFinite(v)) return;
+      if(!best[x.st]||v<best[x.st].v) best[x.st]={v:v,h:x}; }); var out={}; Object.keys(best).forEach(function(k){ var h=best[k].h; out[h.la+','+h.lo]=1; }); return out; }
+  function ppDataOwn(h){ var d=ppDataOff(h); if(!d) return null; var L2=ppStateList(h.st);
+    d.own=true; d.list=L2; d.rank=L2.indexOf(h); d.miAhead=isFinite(h.rmi)?Math.round(h.rmi):null; d.nx=null; return d; }
+  function ppBrand(b){ var n=String(b||'').toLowerCase();
+    if(/love/.test(n)) return {t:"LOVE\u2019S",bg:'#f5c518',fg:'#1A2B4C'};
+    if(/petro/.test(n)) return {t:'PETRO',bg:'#2fa85a',fg:'#fff'};
+    if(/\bta\b|ta express|travelcenters/.test(n)) return {t:'TA',bg:'#2f7fe0',fg:'#fff'};
+    return {t:String(b||'').toUpperCase(),bg:'#f26a21',fg:'#fff'}; }
+  /* v1.3.96: the stop you're at shows as a brand tag on the pump: TA blue, Love's yellow with red, Petro green; town under it */
+  /* v1.3.106: interstate and exit, like "I-80 \u00b7 Exit 332" */
+  function ppExit(h){ try{ var inf=stopInfo(h); if(!inf) return ''; var p=parseRoads(inf.exit);
+      var r=p.roads.map(function(x){ return (x.k==='I'?'I-':'US-')+x.n; }).join(' / ');
+      return (r+(p.exit?(r?' \u00b7 ':'')+'EXIT '+p.exit:'')).toUpperCase(); }catch(e){ return ''; } }
+  function ppTag(h){
+    var n=String(h.b||'').toLowerCase(), t, bg, bd='#141414', fg;
+    if(/love/.test(n)){ t="LOVE\u2019S"; bg='#f5c518'; fg='#141414'; }
+    else if(/petro/.test(n)){ t='PETRO'; bg='#2fa85a'; fg='#fff'; }
+    else if(/\bta\b|ta express|travelcenters/.test(n)){ t='TA'; bg='#2f7fe0'; fg='#fff'; }
+    else { t=String(h.b||'').toUpperCase(); bg='#f26a21'; fg='#fff'; }
+    var w=t.length>6?190:150, fs=Math.min(24,(w-18)/Math.max(1,t.length*0.8)).toFixed(1);   /* v1.3.116: brand name the size of the sign's */
+    var town=String(h.c||'').toUpperCase()+(h.st?', '+String(h.st).toUpperCase():''), tfs=Math.min(17,228/Math.max(1,town.length*0.66)).toFixed(1);
+    var ex=ppExit(h), efs=Math.min(17,228/Math.max(1,ex.length*0.66)).toFixed(1);
+    return '<line x1="120" y1="530" x2="250" y2="530" stroke="#c9ced8" stroke-width="1.5"/>'+
+      '<rect x="'+(185-w/2)+'" y="540" width="'+w+'" height="40" rx="9" fill="'+bg+'" stroke="'+bd+'" stroke-width="1.2"/>'+
+      '<text x="185" y="'+(560+fs*0.36).toFixed(1)+'" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="'+fs+'" fill="'+fg+'" letter-spacing=".5">'+esc(t)+'</text>'+
+      '<text x="185" y="608" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="'+tfs+'" fill="#1A2B4C" letter-spacing=".5">'+esc(town)+'</text>'+
+      (ex?'<text x="185" y="630" text-anchor="middle" font-family="Arial,sans-serif" font-weight="900" font-size="'+efs+'" fill="#141414" letter-spacing=".5">'+esc(ex)+'</text>':'');
+  }
+  /* v1.3.115: a wider, taller pump with a bigger price face; a narrower sign set lower on its stand, over on the right */
+  function ppSvg(d){
+    var noPlan=d.off&&!d.hasPlan;
+    var nb=d.nx?ppBrand(d.nx.b):d.only?{t:'ONE STOP',bg:'#1A2B4C',fg:'#fff'}:noPlan?{t:'NONE YET',bg:'#1A2B4C',fg:'#fff'}:{t:'END OF PLAN',bg:'#1A2B4C',fg:'#fff'};
+    var town=d.nx?esc(String(d.nx.c||'').toUpperCase()+', '+String(d.nx.st||'').toUpperCase()):(d.only||noPlan)?'':'NO MORE FUEL STOPS';
+    var tfs=Math.min(14,106/Math.max(1,town.length*0.62)).toFixed(1), bfs=Math.min(24,106/Math.max(1,nb.t.length*0.8)).toFixed(1);
+    var miT=d.nx?d.mi.toLocaleString('en-US')+' MI':'', mfs=Math.min(26,106/Math.max(1,miT.length*0.72)).toFixed(1);
+    var nxEx=d.nx?ppExit(d.nx):'', nfs=Math.min(11,106/Math.max(1,nxEx.length*0.66)).toFixed(1);
+    var L='font-family="Arial,sans-serif" font-weight="800" fill="#1A2B4C"';
+    return '<svg viewBox="0 0 560 756" style="width:100%;max-width:520px;display:block;margin:0 auto;filter:drop-shadow(0 3px 6px rgba(0,0,0,.45))">'+
+    '<defs><linearGradient id="ppFr" x1="0" x2="1"><stop offset="0" stop-color="#22355C"/><stop offset=".5" stop-color="#1A2B4C"/><stop offset="1" stop-color="#101C33"/></linearGradient>'+
+    '<linearGradient id="ppPn" x1="0" x2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#E9EDF3"/></linearGradient>'+
+    '<linearGradient id="ppCh" x1="0" x2="1"><stop offset="0" stop-color="#9AA3AE"/><stop offset=".45" stop-color="#F2F4F7"/><stop offset="1" stop-color="#7D8692"/></linearGradient>'+
+    '<linearGradient id="ppGn" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#22B04B"/><stop offset="1" stop-color="#138A36"/></linearGradient>'+
+    '<linearGradient id="ppWh" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity=".55"/><stop offset=".3" stop-color="#000" stop-opacity="0"/><stop offset=".7" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".55"/></linearGradient>'+
+    '<linearGradient id="ppIr" x1="0" x2="1"><stop offset="0" stop-color="#2a2f38"/><stop offset=".5" stop-color="#4a5260"/><stop offset="1" stop-color="#22262e"/></linearGradient>'+
+    '<clipPath id="ppcT"><rect x="105" y="188" width="160" height="46" rx="5"/></clipPath><clipPath id="ppcG"><rect x="105" y="264" width="160" height="46" rx="5"/></clipPath></defs>'+
+    '<rect x="26" y="702" width="318" height="30" rx="6" fill="#0E1830"/><rect x="38" y="692" width="294" height="16" rx="4" fill="#24385F"/>'+
+    '<path d="M46 168 C 12 200, 8 400, 20 560 S 36 696, 50 694" fill="none" stroke="#1C1C1E" stroke-width="9" stroke-linecap="round"/>'+
+    '<rect x="46" y="36" width="278" height="662" rx="50" fill="url(#ppFr)"/><rect x="64" y="56" width="242" height="622" rx="36" fill="url(#ppPn)"/>'+
+    '<rect x="54" y="70" width="6" height="576" rx="3" fill="#fff" opacity=".25"/>'+
+    /* v1.3.117: more room up top (taken from the bottom section): Diesel centered above the price face, all three windows the same height, bigger numbers */
+    '<rect x="94" y="78" width="182" height="56" rx="9" fill="url(#ppGn)" stroke="#1A2B4C" stroke-width="3"/>'+
+    '<text x="185" y="117" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="31" fill="#fff" letter-spacing="3">DIESEL</text>'+
+    '<rect x="94" y="156" width="182" height="244" rx="10" fill="#fff" stroke="#1A2B4C" stroke-width="4"/>'+
+    '<text x="185" y="180" text-anchor="middle" '+L+' font-size="14" letter-spacing=".5">'+(d.off?'DISCOUNT PRICE':'TOTAL COST')+'</text>'+
+    '<rect x="105" y="188" width="160" height="46" rx="5" fill="#101C33"/><g id="ppT" clip-path="url(#ppcT)"></g><rect x="105" y="188" width="160" height="46" rx="5" fill="url(#ppWh)"/>'+
+    '<text x="185" y="256" text-anchor="middle" '+L+' font-size="14" letter-spacing=".5">'+(d.off?'RETAIL PRICE':'GALLONS TO BUY')+'</text>'+
+    '<rect x="105" y="264" width="160" height="46" rx="5" fill="#101C33"/><g id="ppG" clip-path="url(#ppcG)"></g><rect x="105" y="264" width="160" height="46" rx="5" fill="url(#ppWh)"/>'+
+    '<text x="185" y="332" text-anchor="middle" '+L+' font-size="14" letter-spacing=".5">'+(d.off?'DISCOUNT':'DISCOUNT PRICE')+'</text>'+
+    '<rect x="105" y="340" width="160" height="46" rx="5" fill="#1C9A44"/>'+
+    '<text x="185" y="372" text-anchor="middle" font-family="Courier New,monospace" font-weight="700" font-size="26" fill="#fff">'+(d.off?(d.ret!=null?Math.max(0,Math.round((d.ret-d.pr)*100))+'\u00a2':'--'):'$'+fmt(d.pr))+'</text>'+
+    '<rect x="64" y="414" width="242" height="8" fill="#141414"/>'+
+    (d.own?'<text x="185" y="460" text-anchor="middle" '+L+' font-size="17" letter-spacing="1">'+(d.rank===0?'CHEAPEST':'#'+(d.rank+1)+' OF '+d.list.length)+'</text>'+
+      '<text x="185" y="482" text-anchor="middle" '+L+' font-size="17" letter-spacing=".5">ON YOUR ROUTE</text>'+
+      '<text x="185" y="504" text-anchor="middle" '+L+' font-size="'+Math.min(17,220/Math.max(1,(3+ppStName(d.h.st).length)*0.72)).toFixed(1)+'" letter-spacing="1">IN '+esc(ppStName(d.h.st).toUpperCase())+'</text>'
+    :d.off?'<text x="185" y="470" text-anchor="middle" '+L+' font-size="17" letter-spacing="1">NOT PART OF</text>'+
+      '<text x="185" y="494" text-anchor="middle" '+L+' font-size="17" letter-spacing="1">YOUR FUEL PLAN</text>'
+    :'<path d="M185 434 L197 448 L189 448 L189 466 L181 466 L181 448 L173 448 Z" fill="url(#ppGn)" stroke="#141414" stroke-width="1.3" stroke-linejoin="round"/>'+
+    '<text x="185" y="492" text-anchor="middle" '+L+' font-size="17" letter-spacing="1">AMOUNT TO BUY</text>'+
+    '<text x="185" y="514" text-anchor="middle" '+L+' font-size="17" letter-spacing="1">AT THIS STOP</text>')+
+    ppTag(d.h)+(d.own&&d.miAhead!=null?'<text x="185" y="660" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="16" fill="#d62828" letter-spacing="1">'+d.miAhead.toLocaleString('en-US')+' MI AHEAD</text>':'')+
+    '<rect x="34" y="150" width="20" height="40" rx="4" fill="#138A36"/>'+
+    '<path d="M22 156 h22 v34 h-8 v18 a6 6 0 0 1 -12 0 v-18 h-2 z" fill="url(#ppCh)" stroke="#5E6672" stroke-width="1.5"/>'+
+    '<path d="M18 170 q-12 6 -10 30" fill="none" stroke="#138A36" stroke-width="4" stroke-linecap="round"/><rect x="26" y="146" width="16" height="12" rx="3" fill="url(#ppGn)"/>'+
+    (d.own?'':(
+    '<rect x="372" y="430" width="8" height="296" rx="2" fill="url(#ppIr)"/><rect x="528" y="430" width="8" height="296" rx="2" fill="url(#ppIr)"/>'+
+    '<rect x="358" y="724" width="36" height="8" rx="2" fill="#2a2f38"/><rect x="514" y="724" width="36" height="8" rx="2" fill="#2a2f38"/>'+
+    '<rect x="366" y="424" width="176" height="10" rx="3" fill="url(#ppIr)"/><circle cx="376" cy="418" r="7" fill="#2a2f38"/><circle cx="532" cy="418" r="7" fill="#2a2f38"/>'+
+    '<circle cx="419" cy="436" r="4" fill="none" stroke="#2a2f38" stroke-width="2.5"/><circle cx="489" cy="436" r="4" fill="none" stroke="#2a2f38" stroke-width="2.5"/>'+
+    '<g id="ppS"><line x1="419" y1="440" x2="419" y2="466" stroke="#3a404b" stroke-width="2.5" stroke-dasharray="4 3"/><line x1="489" y1="440" x2="489" y2="466" stroke="#3a404b" stroke-width="2.5" stroke-dasharray="4 3"/>'+
+    '<rect x="390" y="466" width="128" height="200" rx="10" fill="#1A2B4C"/><rect x="397" y="473" width="114" height="186" rx="7" fill="#FBF6E9"/>'+
+    '<rect x="397" y="473" width="114" height="72" rx="7" fill="'+nb.bg+'"/><rect x="397" y="530" width="114" height="15" fill="'+nb.bg+'"/>'+
+    '<text x="454" y="497" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="12" fill="'+nb.fg+'" letter-spacing="1.5">'+(d.only?'YOUR PLAN':noPlan?'FUEL PLAN':'NEXT STOP')+'</text>'+
+    '<text x="454" y="530" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="'+bfs+'" fill="'+nb.fg+'" letter-spacing="1">'+esc(nb.t)+'</text>'+
+    '<text x="454" y="564" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="'+tfs+'" fill="#1A2B4C">'+town+'</text>'+
+    (nxEx?'<text x="454" y="579" text-anchor="middle" font-family="Arial,sans-serif" font-weight="900" font-size="'+nfs+'" fill="#141414">'+esc(nxEx)+'</text>':'')+
+    '<line x1="406" y1="588" x2="502" y2="588" stroke="#E86A10" stroke-width="2"/>'+
+    (d.nx?'<text x="454" y="620" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="'+mfs+'" fill="#d62828">'+miT+'</text>'+
+      '<text x="454" y="642" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="10.5" fill="#1A2B4C" letter-spacing="1">TO GET THERE</text>'
+     :'<text x="454" y="618" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="13" fill="#1A2B4C">'+(d.only?'YOUR ONLY':noPlan?'NO FUEL PLAN':'LAST FUEL STOP')+'</text>'+
+      '<text x="454" y="640" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="10" fill="#1A2B4C" letter-spacing=".5">'+(d.only?'FUEL STOP':noPlan?'RUN THE OPTIMIZER':'ON YOUR PLAN')+'</text>')+
+    '<circle cx="404" cy="480" r="2.5" fill="#8a8f99"/><circle cx="504" cy="480" r="2.5" fill="#8a8f99"/><circle cx="404" cy="652" r="2.5" fill="#8a8f99"/><circle cx="504" cy="652" r="2.5" fill="#8a8f99"/><rect id="ppShade" x="390" y="466" width="128" height="200" rx="10" fill="#000" opacity="0"/></g>'))+'</svg>';
+  }
+  var ppTimer=null;
+  function ppRoll(d){
+    var NS='http://www.w3.org/2000/svg', H=40, CW=14.5;
+    function tx(x,y,c){ var t=document.createElementNS(NS,'text'); t.setAttribute('x',x); t.setAttribute('y',y); t.setAttribute('text-anchor','middle');
+      t.setAttribute('font-family','Courier New,monospace'); t.setAttribute('font-weight','700'); t.setAttribute('font-size','23'); t.setAttribute('fill','#fff'); t.textContent=c; return t; }
+    function reels(id,str,y){ var g=document.getElementById(id), n=str.length, x0=185-(n*CW)/2+CW/2, out=[];
+      for(var i=0;i<n;i++){ var c=str[i], x=x0+i*CW;
+        if(!/[0-9]/.test(c)){ g.appendChild(tx(x,y+30,c)); continue; }
+        var s=document.createElementNS(NS,'g'); for(var k=0;k<120;k++) s.appendChild(tx(x,y+30+k*H,String(k%10)));
+        g.appendChild(s); out.push({el:s,d:+c}); }
+      return out; }
+    var all=[];
+    reels('ppT','$'+d.tot,188).forEach(function(r,i){ r.end=((2+i)*10+r.d)*H; r.dur=1600+i*350; all.push(r); });
+    reels('ppG',d.off?(d.ret!=null?'$'+d.ret.toFixed(3):'--'):String(d.g),264).forEach(function(r,i){ r.end=((1+i)*10+r.d)*H; r.dur=1900+i*300; all.push(r); });
+    var sign=document.getElementById('ppS'), t0=performance.now(), wait=0; cancelAnimationFrame(ppTimer);
+    all.forEach(function(r){ if(r.dur>wait) wait=r.dur; });   /* v1.3.97: the sign waits until the last wheel stops */
+    function step(now){ var live=false, t=(now-t0-wait)/1000;
+      all.forEach(function(r){ var q=Math.min(1,(now-t0)/r.dur), e=1-Math.pow(1-q,3); r.el.setAttribute('transform','translate(0,'+(-e*r.end)+')'); if(q<1) live=true; });
+      /* v1.3.99: the sign swings front to back on its hooks, through the stand */
+      /* v1.3.100: swings farther toward you and away, and slower; a little wider coming toward you, a little darker going away */
+      var ang=t<0?0:1.15*Math.exp(-0.55*t)*Math.cos(2.6*t), sy=Math.cos(ang), sx=1+0.07*Math.sin(ang), sh=document.getElementById('ppShade');
+      if(sign) sign.setAttribute('transform','translate(454 436) scale('+sx.toFixed(3)+' '+sy.toFixed(3)+') translate(-454 -436)');
+      if(sh) sh.setAttribute('opacity',(Math.max(0,-Math.sin(ang))*0.35).toFixed(3));
+      if(Math.abs(ang)>0.004||t<1) live=true;
+      if(live) ppTimer=requestAnimationFrame(step); else if(sign) sign.removeAttribute('transform'); }
+    ppTimer=requestAnimationFrame(step);
+  }
+  /* v1.3.101: trip totals for the trip card and Trip details */
+  function ppTrip(){
+    var plan={}; (window.FP_PLANK||[]).forEach(function(k){ plan[k]=1; });
+    var stops=(LASTHITS||[]).filter(function(x){ return plan[x.la+','+x.lo] && isFinite(x.rmi); }).sort(function(a,b){ return a.rmi-b.rmi; });
+    var gal=0, cost=0, rows=stops.map(function(h){ var g=Math.round((window.FP_PLANG||{})[h.la+','+h.lo]||0), pr=null; try{ pr=rankVal(h); }catch(e){}
+      gal+=g; if(pr!=null&&isFinite(pr)) cost+=g*pr; return {h:h,g:g,pr:pr}; });
+    var ins=[].slice.call(document.querySelectorAll('#stops input')).map(function(i){ return i.value.trim(); }).filter(Boolean).map(function(v){ return v===HERE?'Your location':v; });
+    return {rows:rows, gal:gal, cost:cost, cities:ins, mi:Math.round(ROUTE_TOTAL||0)};
+  }
+  function ppCalcLine(){ var c=window.FP_CALCS; if(!c||!c.n) return ''; try{ if(FP_TAB==='each') return ''; }catch(e){}   /* v1.3.104: only for the Fuel Optimizer */
+    var sec=c.ms<100?'under a tenth of a second':(c.ms/1000).toFixed(1)+' seconds';
+    return 'Ran <b style="color:#1f8a43;font-size:13px">'+c.n.toLocaleString('en-US')+' fuel calculations</b> in '+sec+' to find this plan'; }
+  function ppMoney(x){ return '$'+x.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+  function ppCities(t){ return t.cities.map(esc).join(' <span style="color:#f26a21">\u2192</span> '); }
+  function ppStopsLine(t){ var n=t.rows.length, x=Math.max(0,t.cities.length-2);
+    return (x?x+' stop'+(x===1?'':'s')+' plus ':'')+n+' fuel stop'+(n===1?'':'s'); }
+  function ppCard(t){
+    var c='font:700 11px Arial,sans-serif;color:#6b7686;letter-spacing:.5px', v='font:700 17px Arial,sans-serif;color:#141414';
+    return '<div style="margin:0 0 50px 9%;width:87%;box-sizing:border-box;background:#fff;border:1px solid #c9cfd8;border-radius:12px;padding:10px 14px;box-shadow:0 3px 8px rgba(0,0,0,.35);font-family:Arial,sans-serif">'+
+      '<div style="display:flex;justify-content:space-between;align-items:baseline"><b style="font-size:15px;color:#10233f">Your trip</b><b style="font-size:12px;color:#f26a21">Stop 1 of '+t.rows.length+'</b></div>'+
+      '<div style="font-size:13px;color:#3d4a5c;margin-top:3px;line-height:1.35">'+ppCities(t)+'</div>'+
+      '<div style="font-size:12px;color:#6b7686;margin-top:2px">'+ppStopsLine(t)+'</div>'+
+      '<div style="display:flex;justify-content:space-between;border-top:1px solid #e3e7ee;margin-top:7px;padding-top:6px;gap:6px">'+
+      '<div><div style="'+c+'">MILES</div><div style="'+v+'">'+t.mi.toLocaleString('en-US')+'</div></div>'+
+      '<div><div style="'+c+'">GALLONS</div><div style="'+v+'">'+t.gal.toLocaleString('en-US')+'</div></div>'+
+      '<div><div style="'+c+'">TOTAL COST</div><div style="'+v+';color:#1f8a43">'+ppMoney(t.cost)+'</div></div></div>'+
+      (ppCalcLine()?'<div style="font-size:11px;color:#6b7686;margin-top:6px;text-align:center">'+ppCalcLine()+'</div>':'')+'</div>';
+  }
+  function tdOpen(){
+    var t=ppTrip(), o=document.getElementById('hmtdp');
+    if(!o){ o=document.createElement('div'); o.id='hmtdp';
+      o.style.cssText='position:absolute;inset:0;z-index:2100;background:rgba(0,0,0,.25);display:flex;justify-content:center;align-items:flex-start;padding:12px;box-sizing:border-box;overflow-y:auto';
+      o.addEventListener('click',function(e){ if(e.target===o||e.target.id==='hmtdx') tdClose(); });
+      document.getElementById('hmap').appendChild(o); }
+    var legs=[], L=window.ROUTE_LEGS;
+    if(L&&L.length>1){ legs=L.map(function(g,k){ var a=ROUTE_CUM[g.s]||0, b=k<L.length-1?(ROUTE_CUM[L[k+1].s]||1e9):1e9; return {from:g.from,to:g.to,mi:g.mi,a:a,b:b}; }); }
+    else legs=[{from:t.cities[0]||'Start',to:t.cities[t.cities.length-1]||'End',mi:t.mi,a:-1,b:1e9}];
+    var h='<div style="background:#fff;color:#141414;max-width:520px;width:100%;border-radius:14px;padding:14px 16px 16px;box-sizing:border-box;font-family:Arial,sans-serif;box-shadow:0 4px 14px rgba(0,0,0,.35)">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:19px">Trip details</b><button type="button" id="hmtdx" style="border:0;border-radius:9px;background:#f26a21;color:#fff;font:700 14px Arial;padding:8px 14px">Close</button></div>'+
+      '<div style="font-size:14px;margin-top:8px;line-height:1.4">'+ppCities(t)+'</div>'+
+      '<div style="font-size:13px;color:#555;margin-top:2px">'+ppStopsLine(t)+'</div>'+
+      '<div style="display:flex;justify-content:space-between;background:#f6f7f9;border-radius:10px;padding:9px 12px;margin-top:10px">'+
+      '<div><div style="font-size:11px;color:#666">MILES</div><b style="font-size:17px">'+t.mi.toLocaleString('en-US')+'</b></div>'+
+      '<div><div style="font-size:11px;color:#666">FUEL STOPS</div><b style="font-size:17px">'+t.rows.length+'</b></div>'+
+      '<div><div style="font-size:11px;color:#666">GALLONS</div><b style="font-size:17px">'+t.gal.toLocaleString('en-US')+'</b></div>'+
+      '<div><div style="font-size:11px;color:#666">TOTAL COST</div><b style="font-size:17px;color:#1f8a43">'+ppMoney(t.cost)+'</b></div></div>';
+    if(t.rows.length&&ppCalcLine()) h+='<div style="font-size:12px;color:#666;margin-top:6px;text-align:center">'+ppCalcLine()+'</div>';
+    if(!t.rows.length) h+='<div style="margin-top:12px;font-size:14px;color:#555">No fuel plan yet. Run the Fuel Optimizer to see where to buy on each leg.</div>';
+    legs.forEach(function(g,k){
+      var rs=t.rows.filter(function(r){ return r.h.rmi>=g.a && r.h.rmi<g.b; });
+      h+='<div style="margin-top:14px;border-top:2px solid #f26a21;padding-top:8px"><div style="display:flex;justify-content:space-between;gap:8px"><b style="color:#f26a21;font-size:15px">'+(legs.length>1?'Leg '+(k+1)+': ':'')+esc(g.from)+' \u2192 '+esc(g.to)+'</b><b style="font-size:14px;white-space:nowrap">'+(g.mi||0).toLocaleString('en-US')+' mi</b></div>';
+      if(!rs.length&&t.rows.length) h+='<div style="font-size:13px;color:#777;margin-top:4px">No fuel stop on this leg</div>';
+      rs.forEach(function(r){ var x=r.h;
+        h+='<div style="display:flex;justify-content:space-between;gap:8px;margin-top:7px;font-size:14px"><div><b>'+esc(x.b)+'</b> '+esc(x.c)+', '+esc(x.st)+'<div style="font-size:12px;color:#666">Mile '+Math.round(x.rmi).toLocaleString('en-US')+' \u00b7 '+r.g+' gal at $'+(r.pr!=null?fmt(r.pr):'?')+'</div></div>'+
+          '<b style="color:#1f8a43;white-space:nowrap">'+(r.pr!=null?ppMoney(r.g*r.pr):'')+'</b></div>'; });
+      h+='</div>';
+    });
+    o.innerHTML=h+'</div>'; o.style.display='flex'; window.HM_TD=true;
+  }
+  function tdClose(){ var o=document.getElementById('hmtdp'); if(o) o.style.display='none'; window.HM_TD=false; }
+  document.getElementById('hmtd').addEventListener('click',function(){ tdOpen(); });
+  var ppMk={}, ppCur=null;
+  function ppOpen(h){
+    var d=window.PP_OWN?ppDataOwn(h):(ppData(h)||ppDataOff(h)); if(!d) return false;
+    window.PP_LAST=h;
+    if(ppCur){ try{ ppCur.setOpacity(1); }catch(e){} ppCur=null; }
+    var mk=ppMk[h.la+','+h.lo]; if(mk){ mk.setOpacity(0); ppCur=mk; }   /* v1.3.97: the little pump hides while the big one is up */
+    var o=document.getElementById('hmpp');
+    if(!o){ o=document.createElement('div'); o.id='hmpp';
+      o.style.cssText='position:absolute;left:0;right:0;bottom:0;top:0;z-index:2000;background:transparent;display:flex;flex-direction:column;align-items:center;padding:52px 14px calc(52px + env(safe-area-inset-bottom,0px));box-sizing:border-box;overflow-y:auto';   /* v1.3.109: bottom row up one button height */
+      o.addEventListener('click',function(e){ if(e.target===o||e.target.id==='hmppx'||(e.target.parentNode===o)) ppClose(); });
+      document.getElementById('hmap').appendChild(o); }
+    var lbl='Back to map';
+    var card=''; window.PP_CARD=false;   /* v1.3.116: no trip banner (it pushed everything down); the trip's details are under Trip details */
+    var lst='';
+    if(d.own){ lst='<div style="position:absolute;left:60%;top:5%;width:38%;height:91%;display:flex;flex-direction:column;background:#fff;border:2px solid #1A2B4C;border-radius:12px;overflow:hidden;box-shadow:0 3px 8px rgba(0,0,0,.35);font-family:Arial,sans-serif">'+
+      '<div style="background:#f26a21;color:#fff;padding:7px 6px;font:900 clamp(10px,2.8vw,12px) Arial;letter-spacing:.5px;text-align:center">OTHER STOPS IN '+esc(ppStName(d.h.st).toUpperCase())+'</div>'+
+      '<div style="font-size:11px;color:#6b7686;padding:4px 8px 2px">Cheapest first \u00b7 tap one</div><div style="flex:1;overflow-y:auto;padding:0 8px 6px">'+
+      d.list.filter(function(x){ return x!==d.h; }).map(function(x){ var k=(LASTHITS||[]).indexOf(x);
+        return '<div class="pplrow" data-k="'+k+'" style="display:flex;justify-content:space-between;gap:6px;padding:7px 0;border-bottom:1px solid #eef0f4;font-size:13px;cursor:pointer;color:#141414"><div><b>'+esc(x.b)+'</b><div style="font-size:11px;color:#666">'+esc(x.c)+'</div></div><b style="color:#1f8a43">$'+fmt(rankVal(x))+'</b></div>'; }).join('')+
+      (d.list.length<2?'<div style="font-size:12px;color:#777;padding:8px 0">No other stops in this state on your route</div>':'')+'</div></div>'; }
+    o.innerHTML='<div style="width:100%;max-width:520px;flex:1;display:flex;flex-direction:column">'+card+'<div id="ppbox" style="position:relative;margin:auto">'+ppSvg(d)+lst+'</div>'+
+      /* v1.3.105: Back to map and List view side by side */
+      '<div style="display:flex;gap:8px;margin:-6px 0 0 9%;width:87%">'+   /* v1.3.113: buttons up toward the pump */
+      '<button type="button" id="hmppx" style="flex:1;padding:10px 6px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 clamp(12px,3.7vw,16px) Arial,sans-serif">Back to map</button>'+
+      '<button type="button" id="hmpplv" style="flex:1;padding:10px 6px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 clamp(12px,3.7vw,16px) Arial,sans-serif">List view</button></div>'+
+      /* v1.3.103: Previous, Details and Next under Back to map. Previous hides at your first stop, Next at your last */
+      '<div style="display:flex;justify-content:space-between;gap:8px;margin:10px 0 0 9%;width:87%">'+
+      (d.own?'<button type="button" id="hmppd" style="flex:1;padding:10px 6px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 clamp(12px,3.7vw,16px) Arial,sans-serif">Details</button>'+
+        '<button type="button" id="hmppo" style="flex:1.6;padding:10px 6px;border-radius:10px;border:0;background:#1f8a43;color:#fff;font:700 clamp(12px,3.7vw,16px) Arial,sans-serif">Run Fuel Optimizer</button>':
+      '<button type="button" id="hmppv" style="display:'+(d.pv?'block':'none')+';flex:1;padding:10px 6px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 clamp(12px,3.7vw,16px) Arial,sans-serif">Previous</button>'+
+      '<button type="button" id="hmppd" style="flex:1;padding:10px 6px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 clamp(12px,3.7vw,16px) Arial,sans-serif">Details</button>'+
+      '<button type="button" id="hmppn" style="display:'+((d.nx&&!d.off)?'block':'none')+';flex:1;padding:10px 6px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 clamp(12px,3.7vw,16px) Arial,sans-serif">Next</button>')+
+      '</div></div>';
+    var go=function(n){ if(!n) return; try{ M.panTo([n.la,n.lo]); }catch(x){} ppOpen(n); };
+    var bv=document.getElementById('hmppv'), bn=document.getElementById('hmppn'), bo=document.getElementById('hmppo');
+    if(bv) bv.addEventListener('click',function(e){ e.stopPropagation(); go(d.pv); });
+    if(bn) bn.addEventListener('click',function(e){ e.stopPropagation(); go(d.nx); });
+    if(bo) bo.addEventListener('click',function(e){ e.stopPropagation(); runOpt(); });
+    document.getElementById('hmpplv').addEventListener('click',function(e){ e.stopPropagation(); listView(); });
+    document.getElementById('hmppd').addEventListener('click',function(e){ e.stopPropagation(); ppDetails(h); });
+    [].slice.call(o.querySelectorAll('.pplrow')).forEach(function(r){ r.addEventListener('click',function(e){ e.stopPropagation(); var x=(LASTHITS||[])[+r.getAttribute('data-k')]; if(x) go(x); }); });
+    /* v1.3.108: the pump layer starts under the top bar so Trip details, Radar and Satellite work on the first tap; everything sits low so the trip label stays in view */
+    { var hb=document.getElementById('hmbar'); o.style.top=(hb?hb.offsetHeight:0)+'px'; }
+    o.style.display='flex'; window.HM_PP=true; try{ optBtn(false); }catch(x){} ppDim(true); ppFit(o); ppRoll(d); return true;
+  }
+  /* v1.3.103: Details opens the same stop details as the fuel cards (prices, DEF, IFTA, Show all services); back returns to the map */
+  function ppDetails(h){
+    var i=(LASTHITS||[]).indexOf(h); if(i<0) return;
+    window.PP_RET=h; document.getElementById('hmap').classList.remove('show'); window.HM_OPEN=false;
+    try{ enterScreen(); }catch(e){}
+    openDetail(i);
+  }
+  function ppBackToMap(){
+    try{ closeDetail(); }catch(e){} window.PP_RET=null;
+    document.getElementById('hmap').classList.add('show'); window.HM_OPEN=true;
+    setTimeout(function(){ try{ M.invalidateSize(); }catch(e){} },60);
+  }
+  /* v1.3.105: leave the map for the stop list, or switch to the Fuel Optimizer */
+  function mapAway(){ ppClose(); try{ tdClose(); }catch(e){} try{ ownHint(false); }catch(e){} var ob=document.getElementById('hmopt'); if(ob) ob.style.display='none';
+    window.HM_OPEN=false; document.getElementById('hmap').classList.remove('show'); }
+  function listView(){ var own=window.PP_OWN; mapAway(); window.PP_OWN=false;
+    FP_VIEW=(!own&&window.FP_PLANK&&FP_PLANK.length)?'plan':'all'; fpApplyView(); window.scrollTo(0,0); }
+  function runOpt(){ mapAway(); window.PP_OWN=false; fpChoose('cheap'); }
+  /* v1.3.111: shrink the pump and sign to fit the screen, so the pop-up never scrolls */
+  function ppFit(o){ try{
+    var box=document.getElementById('ppbox'); if(!box) return; var svg=box.querySelector('svg'), wrap=box.parentNode;
+    box.style.width='100%'; svg.style.width='100%'; svg.style.height='auto';
+    var cs=getComputedStyle(o), avail=o.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom);
+    var others=0, W=wrap.clientWidth; [].forEach.call(wrap.children,function(c){ if(c!==box){ var cc=getComputedStyle(c); others+=c.offsetHeight+parseFloat(cc.marginTop)+parseFloat(cc.marginBottom); } });
+    var full=W*756/560, h=Math.min(full, avail-others-4); if(h<full*0.85) h=full*0.85; var w=h*560/756;   /* v1.3.112: at most 15% smaller */
+    box.style.width=w+'px'; svg.style.width=w+'px'; svg.style.height=h+'px';
+  }catch(e){} }
+  window.addEventListener('resize',function(){ var o=document.getElementById('hmpp'); if(o&&window.HM_PP) ppFit(o); });
+  /* v1.3.118: while the big pump is up, the price tags hide and the map fades toward white */
+  function ppDim(on){
+    /* v1.3.119: the fade sits inside the map, under the trip label and the + / - buttons, so those stay sharp */
+    var f=document.getElementById('hmfade'), mm=document.getElementById('hmmap');
+    if(!f&&mm){ f=document.createElement('div'); f.id='hmfade'; f.style.cssText='position:absolute;left:0;top:0;right:0;bottom:0;z-index:790;background:rgba(255,255,255,.6);pointer-events:none;display:none'; mm.appendChild(f); }
+    if(f) f.style.display=on?'block':'none';
+    try{ tagsUpdate(); }catch(e){}
+  }
+  function ppClose(){ setTimeout(function(){ ppDim(false); },0); if(ppCur){ try{ ppCur.setOpacity(1); }catch(e){} ppCur=null; } var o=document.getElementById('hmpp'); if(o) o.style.display='none'; window.HM_PP=false; if(window.HM_OPEN){ try{ optBtn(true); }catch(x){} } cancelAnimationFrame(ppTimer); }
+  window.ppClose=ppClose;
+  function stopPop(h){
+    var pr=null; try{ pr=rankVal(h); }catch(e){}
+    return '<div class="hmpop"><b>'+esc(h.b)+' '+esc(h.c)+', '+esc(h.st)+'</b><br>'+(pr!=null?'<span class="p">$'+fmt(pr)+'</span>':'')+nextBuy(h)+'</div>';
+  }
+  function draw(focus){
+    layers.forEach(function(x){ M.removeLayer(x); }); layers=[];
+    var line=window.ROUTE_LINE, plan={};
+    (window.FP_PLANK||[]).forEach(function(k){ plan[k]=1; });
+    if(line&&line.length){
+      layers.push(L.polyline(line,{color:'#f26a21',weight:4,opacity:.9}).addTo(M));   /* v1.3.84: darker again; road numbers now sit on top */
+      layers.push(L.marker(line[0],{icon:pin('#2fa85a',16)}).addTo(M).bindTooltip('Start'));
+      layers.push(L.marker(line[line.length-1],{icon:pin('#d93a2b',16)}).addTo(M).bindTooltip('End'));
+    }
+    var best=null; try{ best=(LASTHITS||[])[0]; }catch(e){}
+    var ownCheap=window.PP_OWN?ppCheapSet():{}; window.PP_BIG=ownCheap;
+    (window.LASTHITS||LASTHITS||[]).forEach(function(h){
+      if(!isFinite(h.la)||!isFinite(h.lo)) return;
+      var inPlan=plan[h.la+','+h.lo];
+      var big=inPlan||(window.PP_OWN&&ownCheap[h.la+','+h.lo]);
+      var mk=L.marker([h.la,h.lo],big?{icon:flag(h.b),zIndexOffset:1000}:{icon:miniPump()}).addTo(M);
+      if((window.PP_OWN&&ppDataOwn(h))||(inPlan&&ppData(h))||(!inPlan&&ppDataOff(h))){ ppMk[h.la+','+h.lo]=mk; mk.on('click',function(){ ppOpen(h); }); } else mk.bindPopup(stopPop(h));
+      mk.on('popupopen',function(){ mk.setOpacity(0); }); mk.on('popupclose',function(){ mk.setOpacity(1); });   /* v1.3.85: the tapped flag or dot hides while its card shows */
+      layers.push(mk);
+      if(focus&&Math.abs(h.la-focus[0])<1e-4&&Math.abs(h.lo-focus[1])<1e-4) focus.mk=mk;
+    });
+    if(focus){ M.setView([focus[0],focus[1]],13); if(focus.mk) setTimeout(function(){ if(focus.mk.getPopup()) focus.mk.openPopup(); else focus.mk.fire('click'); },300);
+      else layers.push(L.marker([focus[0],focus[1]],{icon:pin('#f2b36b',14)}).addTo(M)); }
+    else if(line&&line.length) M.fitBounds(L.latLngBounds(line),{padding:[24,24]});
+    setTimeout(tagsUpdate,80);
+  }
+  function open(title,focus,href,legs){
+    navHref=href||''; navLegs=!!legs;
+    document.getElementById('hmtitle').textContent=title;
+    /* v1.3.107: the trip name floats on the map beside the zoom buttons */
+    window.PP_LAST=null;   /* v1.3.120: new map, no pump to go back to yet */
+    { var tl=document.getElementById('hmtlbl'); if(!tl){ tl=document.createElement('div'); tl.id='hmtlbl'; document.getElementById('hmmap').appendChild(tl); }
+      tl.textContent=String(title).replace(/ to /g,' \u2192 ')+(ROUTE_TOTAL>0?'\u2003\u00b7\u2003'+Math.round(ROUTE_TOTAL).toLocaleString('en-US')+' mi':''); tl.style.display='block'; }
+    document.getElementById('hmap').classList.add('show'); window.HM_OPEN=true;
+    try{ enterScreen(); }catch(e){} try{ optBtn(true); }catch(e){}
+    return loadLeaflet().then(function(){
+      if(!M){ M=L.map('hmmap',{zoomControl:true,attributionControl:true}); tiles(); M.on('zoomend moveend',function(){ tagsUpdate(); }); }
+      setTimeout(function(){ M.invalidateSize(); draw(focus); },60);
+    });
+  }
+  window.hmClose=function(){ if(!window.HM_OPEN) return; if(window.HM_TD){ tdClose(); return; } if(window.HM_PP){ ppClose(); return; } window.PP_OWN=false; try{ ownHint(false); optBtn(false); }catch(e){} window.HM_OPEN=false; document.getElementById('hmap').classList.remove('show'); };
+  document.getElementById('hmsat').addEventListener('click',function(){ sat=!sat; if(M) tiles(); });
+  /* v1.3.90: live radar on the truck route. Loops the last couple of hours (same blue style as the radar page) so you see which way storms move; pulls new frames every 10 minutes */
+  var radOn=false, RL=[], RF=0, RT=null, RR=null, RHOST='';
+  function radBtn(){ var b=document.getElementById('hmrad'); b.style.background=radOn?'#2fa85a':''; b.style.borderColor=radOn?'#2fa85a':''; b.textContent=radOn?'Radar on':'Radar'; }
+  function radTime(t){ var el=document.getElementById('hmradt'); if(!el){ el=document.createElement('div'); el.id='hmradt';
+      el.style.cssText='position:absolute;left:10px;bottom:10px;z-index:800;background:#10233fdd;color:#fff;font:700 13px Arial;padding:5px 9px;border-radius:8px;pointer-events:none';
+      document.getElementById('hmmap').appendChild(el); }
+    el.style.display=t?'block':'none'; if(t) el.textContent='Radar '+t; }
+  function radClear(){ clearTimeout(RT); clearInterval(RR); RT=RR=null; RL.forEach(function(l){ try{ M.removeLayer(l); }catch(e){} }); RL=[]; radTime(''); }
+  function radLoad(){
+    return fetch('https://api.rainviewer.com/public/weather-maps.json',{cache:'no-store'}).then(function(r){ return r.json(); }).then(function(d){
+      var fr=((d.radar&&d.radar.past)||[]).slice(-12); if(!fr.length||!radOn) throw 0;
+      if(!M.getPane('hmradar')){ var pn=M.createPane('hmradar'); pn.style.zIndex=430; pn.style.pointerEvents='none'; }
+      clearTimeout(RT); RL.forEach(function(l){ try{ M.removeLayer(l); }catch(e){} }); RL=[];
+      RL=fr.map(function(f){ var l=L.tileLayer(d.host+f.path+'/256/{z}/{x}/{y}/2/1_1.png',{pane:'hmradar',opacity:0,maxNativeZoom:7,maxZoom:19,attribution:'RainViewer'}); l._t=f.time; l.addTo(M); return l; });
+      RF=RL.length-1; RL[RF].setOpacity(.7);
+      var show=function(k){ RL.forEach(function(l,x){ l.setOpacity(x===k?.7:0); });
+        var dt=new Date(RL[k]._t*1000); radTime(dt.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})); };
+      show(RF);
+      var step=function(){ if(!radOn) return; if(window.HM_OPEN){ RF=(RF+1)%RL.length; show(RF); } RT=setTimeout(step, RF===RL.length-1?1800:600); };
+      clearTimeout(RT); RT=setTimeout(step,600);
+    });
+  }
+  document.getElementById('hmrad').addEventListener('click',function(){
+    if(!M) return;
+    if(radOn){ radOn=false; radClear(); radBtn(); return; }
+    radOn=true; radBtn();
+    radLoad().then(function(){ RR=setInterval(function(){ if(radOn) radLoad().catch(function(){}); },600000); })
+      .catch(function(){ radOn=false; radClear(); radBtn(); alert('Radar isn\u2019t available right now. Try again in a minute.'); });
+  });
+  /* the big Map button */
+  var origTap=window.gmapsTap;
+  window.gmapsTap=gmapsTap=function(){
+    var g=document.getElementById('gmaps');
+    if(g.classList.contains('off')||!window.ROUTE_LINE||NEAR_R) return origTap.apply(this,arguments);
+    var ins=[].slice.call(document.querySelectorAll('#stops input')).map(function(i){ return i.value.trim(); }).filter(Boolean);
+    var t=ins.length>1?(ins[0]===HERE?'Your location':ins[0])+' to '+ins[ins.length-1]:'Truck route';
+    open(t,null,(LEGS.length===1?LEGS[0].url:''),LEGS.length>1).catch(function(){ hmClose(); if(origTap()!==false && g.href) window.open(g.href,'_blank'); });
+    return false;
+  };
+  /* a stop's Map button (on the card and in Details) */
+  document.addEventListener('click',function(e){
+    var a=e.target.closest&&e.target.closest('a.maplink,a.drive'); if(!a) return;
+    var m=/destination=(-?[\d.]+),(-?[\d.]+)/.exec(a.getAttribute('href')||''); if(!m) return;
+    e.preventDefault();
+    var f=[+m[1],+m[2]], hit=(LASTHITS||[]).filter(function(h){ return Math.abs(h.la-f[0])<1e-4&&Math.abs(h.lo-f[1])<1e-4; })[0];
+    open(hit?(hit.b+' '+hit.c+', '+hit.st):'Fuel stop',f,a.href,false).catch(function(){ hmClose(); window.open(a.href,'_blank'); });
+  },false);
+  /* v1.3.98: after the fuel optimizer, land right on the map at your first fuel stop with its pump up */
+  window.hmOpenPlan=function(){
+    if(!window.ROUTE_LINE||!window.FP_PLANK||!FP_PLANK.length) return;
+    var plan={}; FP_PLANK.forEach(function(k){ plan[k]=1; });
+    var first=(LASTHITS||[]).filter(function(x){ return plan[x.la+','+x.lo] && isFinite(x.rmi); }).sort(function(a,b){ return a.rmi-b.rmi; })[0];
+    if(!first||!ppData(first)) return;
+    var ins=[].slice.call(document.querySelectorAll('#stops input')).map(function(i){ return i.value.trim(); }).filter(Boolean);
+    var t=ins.length>1?(ins[0]===HERE?'Your location':ins[0])+' to '+ins[ins.length-1]:'Your fuel plan';
+    window.PP_CARD=true; window.PP_OWN=false;
+    open(t,[first.la,first.lo],'',false).catch(function(){ hmClose(); });
+  };
+  /* v1.3.103: after Find fuel, the driver picks how to buy: Fuel Optimizer, State by state, or Pick my own stops */
+  window.fpChooser=function(){
+    try{ if(typeof fpOn==='function'&&!fpOn()) return false; }catch(e){ return false; }
+    if(!window.FP_CH_WANT) return false; window.FP_CH_WANT=false;   /* v1.3.104: every time Find fuel is tapped */
+    var o=document.getElementById('fpch');
+    if(!o){ o=document.createElement('div'); o.id='fpch';
+      o.style.cssText='position:fixed;inset:0;z-index:9400;background:rgba(5,12,24,.72);display:none;align-items:center;justify-content:center;padding:18px;box-sizing:border-box';
+      document.body.appendChild(o); }
+    var sv=(window.FP_SAVE>=1)?'<div style="font-size:14px;color:#1f8a43;font-weight:700;margin-top:4px">The Fuel Optimizer saves about $'+Math.round(FP_SAVE).toLocaleString('en-US')+' on this trip</div>':'';
+    var b=function(m,t,sub){ return '<button type="button" onclick="fpChoose(\''+m+'\')" style="display:block;width:100%;margin-top:12px;padding:12px 14px;border:0;border-radius:12px;background:#f26a21;color:#fff;text-align:left;font-family:Arial,sans-serif"><b style="font-size:18px">'+t+'</b><div style="font-size:13px;opacity:.92;margin-top:2px">'+sub+'</div></button>'; };
+    o.innerHTML='<div style="background:#fff;color:#141414;border-radius:16px;max-width:420px;width:100%;padding:18px;box-sizing:border-box;font-family:Arial,sans-serif">'+
+      '<b style="font-size:19px">How do you want to buy fuel on this trip?</b>'+sv+
+      b('cheap','Fuel Optimizer','The cheapest plan, with the fewest stops')+
+      b('each','State by state','Buy what each state burns, at its cheapest stop')+
+      b('own','Pick my own stops','See every stop on your route, cheapest first')+'</div>';
+    o.style.display='flex'; try{ enterScreen(); }catch(e){}
+    return true;
+  };
+  window.fpChoose=function(m){
+    var o=document.getElementById('fpch'); if(o) o.style.display='none';
+    if(m==='own'){ window.FP_MODE=null; window.FP_PLANK=null; window.FP_PLANG={}; FP_VIEW='all'; fpApplyView(); window.scrollTo(0,0);
+      if(window.ROUTE_LINE){ window.PP_OWN=true;   /* v1.3.104: Pick my own stops goes to the map with every stop's price */
+        var ins=[].slice.call(document.querySelectorAll('#stops input')).map(function(i){ return i.value.trim(); }).filter(Boolean);
+        var t=ins.length>1?(ins[0]===HERE?'Your location':ins[0])+' to '+ins[ins.length-1]:'Pick your stops';
+        open(t,null,'',false).then(function(){ ownHint(true); optBtn(true); }).catch(function(){ hmClose(); }); }
+      return; }
+    window.PP_OWN=false; window.FP_MODE=(m==='each')?'each':'cheap'; openFuelPlan();
+  };
+  /* v1.3.106: List view at the bottom of the map (Close left the top bar), plus Run Fuel Optimizer in Pick my own stops */
+  function optBtn(on){ var b=document.getElementById('hmopt');
+    if(!b){ b=document.createElement('div'); b.id='hmopt';
+      b.style.cssText='position:absolute;left:12px;right:12px;bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:1500;display:flex;gap:10px;justify-content:center';
+      b.innerHTML='<button type="button" id="hmbbp" style="flex:1;max-width:220px;border:0;border-radius:12px;background:#f26a21;color:#fff;font:700 16px Arial,sans-serif;padding:12px 10px;box-shadow:0 3px 8px rgba(0,0,0,.4);display:none">Back to pump</button>'+
+        '<button type="button" id="hmblv" style="flex:1;max-width:220px;border:0;border-radius:12px;background:#f26a21;color:#fff;font:700 16px Arial,sans-serif;padding:12px 10px;box-shadow:0 3px 8px rgba(0,0,0,.4)">List view</button>'+
+        '<button type="button" id="hmbro" style="flex:1;max-width:220px;border:0;border-radius:12px;background:#1f8a43;color:#fff;font:700 16px Arial,sans-serif;padding:12px 10px;box-shadow:0 3px 8px rgba(0,0,0,.4)">Run Fuel Optimizer</button>';
+      document.getElementById('hmap').appendChild(b);
+      document.getElementById('hmblv').addEventListener('click',function(){ listView(); });
+      /* v1.3.120: Back to pump reopens the pump you were last on */
+      document.getElementById('hmbbp').addEventListener('click',function(){ if(window.PP_LAST) ppOpen(window.PP_LAST); });
+      document.getElementById('hmbro').addEventListener('click',function(){ runOpt(); }); }
+    document.getElementById('hmbro').style.display=window.PP_OWN?'block':'none';
+    document.getElementById('hmbbp').style.display=window.PP_LAST?'block':'none';
+    b.style.display=on?'flex':'none'; }
+  function ownHint(on){ var h=document.getElementById('hmown');
+    if(!h){ h=document.createElement('div'); h.id='hmown';
+      h.style.cssText='position:absolute;left:50%;transform:translateX(-50%);top:70px;z-index:1500;background:#fff;color:#141414;border:1.5px solid #1f8a43;border-radius:10px;padding:7px 12px;font:13px Arial;box-shadow:0 2px 6px rgba(0,0,0,.35);max-width:86%;text-align:center';
+      h.addEventListener('click',function(){ h.style.display='none'; }); document.getElementById('hmap').appendChild(h); }
+    h.innerHTML='<b style="color:#1f8a43">Green tags</b> mark the cheapest stop in each state. Zoom in to see every price, then tap a pump. <span style="color:#888">(tap to hide)</span>';
+    h.style.display=on?'block':'none'; if(on) setTimeout(function(){ h.style.display='none'; },9000); }
+  (function(){ var ff=window.findFuel; if(typeof ff!=='function') return;
+    window.findFuel=function(){ window.FP_CH_WANT=true; return ff.apply(this,arguments); }; try{ findFuel=window.findFuel; }catch(e){} })();
+  /* v1.3.103: if a screen is still open but no back step is left, add one so the back arrow keeps working */
+  window.addEventListener('popstate',function(){
+    var b=document.body.classList, open=window.HM_OPEN||['on-results','on-detail','on-svc','on-news','on-plan','on-tools','on-trip','on-vspec'].some(function(c){ return b.contains(c); });
+    if(open&&!(history.state&&history.state.app)){ try{ history.pushState({app:1},''); }catch(e){} }
+  });
+  /* phone back arrow closes the map */
+  var origBack=window.stepBack;
+  window.stepBack=stepBack=function(){
+    var ch=document.getElementById('fpch'); if(ch&&ch.style.display==='flex'){ fpChoose('own'); return true; }
+    if(window.PP_RET&&document.body.classList.contains('on-detail')){ ppBackToMap(); return true; }
+    if(window.HM_OPEN){ hmClose(); return true; } return origBack.apply(this,arguments); };
 })();
 </script>
 </body>
