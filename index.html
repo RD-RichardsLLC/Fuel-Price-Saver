@@ -3067,6 +3067,11 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
   { date:'2026-11-05', items:[
+    'Version 1.3.121',
+    '**New route button on the pump.** Next to Back to map and List view, it takes you straight back to where you type in a new trip',
+    '**Satellite view now uses HERE**, the same map company as your truck route, with road names and highway numbers on top'
+  ]},
+  { date:'2026-11-05', items:[
     'Version 1.3.120',
     '**New Back to pump button.** After you go back to the map, the orange Back to pump button reopens the pump you were on',
     '**More room before the miles** in the black trip label at the top of the map'
@@ -8139,14 +8144,13 @@ body.tier-free #freelist{display:block}
     if(window.HM_LBL){ try{ M.removeLayer(HM_LBL); }catch(e){} window.HM_LBL=null; }
     var errs=0;
     if(sat){
-      /* v1.3.92: Satellite uses Google's satellite picture with roads, highway numbers and towns on it; your route and pumps stay on top */
-      M.setMaxZoom(21);
-      base=L.tileLayer('https://mt{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}&scale=2',{subdomains:'0123',maxZoom:21,attribution:'Imagery \u00a9 Google'}).addTo(M);
-      /* v1.3.93: Google's road names and highway numbers on their own layer, above your route line */
+      /* v1.3.121: Satellite is HERE's satellite picture again (no Google), with HERE road names and highway numbers above your route */
+      if(M.getZoom()>20) M.setZoom(20); M.setMaxZoom(20);
+      base=L.tileLayer('https://maps.hereapi.com/v3/base/mc/{z}/{x}/{y}/jpeg?style=satellite.day&size=512&apiKey='+HERE_KEY,{tileSize:512,zoomOffset:-1,maxZoom:20,attribution:'\u00a9 HERE'}).addTo(M);
       if(!M.getPane('hmlabels')){ var gp=M.createPane('hmlabels'); gp.style.zIndex=450; gp.style.pointerEvents='none'; }
-      window.HM_LBL=L.tileLayer('https://mt{s}.google.com/vt/lyrs=h&x={x}&y={y}&z={z}&scale=2',{subdomains:'0123',pane:'hmlabels',maxZoom:21}).addTo(M);
-      base.on('tileerror',function(){ if(++errs!==4) return; M.removeLayer(base);
-        base=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Esri'}).addTo(M); });
+      window.HM_LBL=L.tileLayer('https://maps.hereapi.com/v3/label/mc/{z}/{x}/{y}/png?style=explore.satellite.day&size=512&apiKey='+HERE_KEY,{tileSize:512,zoomOffset:-1,pane:'hmlabels',maxZoom:20}).addTo(M);
+      window.HM_LBL.on('tileerror',function(){ if(++errs!==4) return; try{ M.removeLayer(HM_LBL); }catch(e){}
+        window.HM_LBL=L.tileLayer('https://maps.hereapi.com/v3/label/mc/{z}/{x}/{y}/png?style=explore.day&size=512&apiKey='+HERE_KEY,{tileSize:512,zoomOffset:-1,pane:'hmlabels',maxZoom:20}).addTo(M); });
     } else {
       if(M.getZoom()>19) M.setZoom(19); M.setMaxZoom(19);
       base=L.tileLayer('https://maps.hereapi.com/v3/base/mc/{z}/{x}/{y}/png8?style=explore.day&size=256&apiKey='+HERE_KEY,{maxZoom:19,attribution:'\u00a9 HERE'}).addTo(M);
@@ -8459,7 +8463,8 @@ body.tier-free #freelist{display:block}
       /* v1.3.105: Back to map and List view side by side */
       '<div style="display:flex;gap:8px;margin:-6px 0 0 9%;width:87%">'+   /* v1.3.113: buttons up toward the pump */
       '<button type="button" id="hmppx" style="flex:1;padding:10px 6px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 clamp(12px,3.7vw,16px) Arial,sans-serif">Back to map</button>'+
-      '<button type="button" id="hmpplv" style="flex:1;padding:10px 6px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 clamp(12px,3.7vw,16px) Arial,sans-serif">List view</button></div>'+
+      '<button type="button" id="hmpplv" style="flex:1;padding:10px 6px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 clamp(12px,3.7vw,16px) Arial,sans-serif">List view</button>'+
+      '<button type="button" id="hmppnr" style="flex:1;padding:10px 6px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 clamp(12px,3.7vw,16px) Arial,sans-serif">New route</button></div>'+   /* v1.3.121 */
       /* v1.3.103: Previous, Details and Next under Back to map. Previous hides at your first stop, Next at your last */
       '<div style="display:flex;justify-content:space-between;gap:8px;margin:10px 0 0 9%;width:87%">'+
       (d.own?'<button type="button" id="hmppd" style="flex:1;padding:10px 6px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 clamp(12px,3.7vw,16px) Arial,sans-serif">Details</button>'+
@@ -8474,6 +8479,7 @@ body.tier-free #freelist{display:block}
     if(bn) bn.addEventListener('click',function(e){ e.stopPropagation(); go(d.nx); });
     if(bo) bo.addEventListener('click',function(e){ e.stopPropagation(); runOpt(); });
     document.getElementById('hmpplv').addEventListener('click',function(e){ e.stopPropagation(); listView(); });
+    document.getElementById('hmppnr').addEventListener('click',function(e){ e.stopPropagation(); newRoute(); });
     document.getElementById('hmppd').addEventListener('click',function(e){ e.stopPropagation(); ppDetails(h); });
     [].slice.call(o.querySelectorAll('.pplrow')).forEach(function(r){ r.addEventListener('click',function(e){ e.stopPropagation(); var x=(LASTHITS||[])[+r.getAttribute('data-k')]; if(x) go(x); }); });
     /* v1.3.108: the pump layer starts under the top bar so Trip details, Radar and Satellite work on the first tap; everything sits low so the trip label stays in view */
@@ -8497,6 +8503,11 @@ body.tier-free #freelist{display:block}
     window.HM_OPEN=false; document.getElementById('hmap').classList.remove('show'); }
   function listView(){ var own=window.PP_OWN; mapAway(); window.PP_OWN=false;
     FP_VIEW=(!own&&window.FP_PLANK&&FP_PLANK.length)?'plan':'all'; fpApplyView(); window.scrollTo(0,0); }
+  /* v1.3.121: New route closes the map and goes back to where you type in a trip */
+  function newRoute(){ mapAway(); window.PP_OWN=false;
+    try{ var fp=document.getElementById('fppop'); if(fp&&fp.classList.contains('show')) fpClose(); }catch(e){}
+    document.body.classList.remove('on-results','on-detail','on-svc','on-news','on-plan','on-trip');
+    window.scrollTo(0,0); }
   function runOpt(){ mapAway(); window.PP_OWN=false; fpChoose('cheap'); }
   /* v1.3.111: shrink the pump and sign to fit the screen, so the pop-up never scrolls */
   function ppFit(o){ try{
