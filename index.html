@@ -3049,6 +3049,22 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
   { date:'2026-11-04', items:[
+    'Version 1.3.83',
+    '**You can read the highway numbers under your route.** The orange route line on the map is thinner and see-through, so the road numbers show'
+  ]},
+  { date:'2026-11-04', items:[
+    'Version 1.3.82',
+    '**Tap a flag to see your plan for that stop.** The card shows the price, how many gallons to buy there, and the miles to your next fuel stop'
+  ]},
+  { date:'2026-11-04', items:[
+    'Version 1.3.81',
+    '**Your fuel stops are flagged on the route map.** The stops where your plan says to buy show a flag in the brand\u2019s color: blue for TA, yellow for Love\u2019s, green for Petro. Other stops stay small dots. Tap any one for its price'
+  ]},
+  { date:'2026-11-04', items:[
+    'Version 1.3.80',
+    '**The route map keeps you on the truck route.** The buttons that handed your trip to Google Maps are gone, since Google plans its own way and could take you off the truck route. Use the map to see your truck route and fuel stops'
+  ]},
+  { date:'2026-11-04', items:[
     'Version 1.3.79',
     '**The Map button now shows your truck route right in the app.** Your route is drawn on the map with your fuel stops; the stops in your fuel plan are green. Tap Satellite for a satellite view',
     '**A stop\u2019s Map button opens that stop on your route.** Tap the stop for Take me there',
@@ -7295,7 +7311,7 @@ function fpCalc(){
   var $=function(x){ return '$'+Math.round(x).toLocaleString('en-US'); }, M=function(x){ return Math.round(x).toLocaleString('en-US'); };
   var price=function(h){ return '$'+fmt(rankVal(h)); };
   var save=real1-real2, h='';
-  try{ window.FP_SAVE=short?0:save; window.FP_PLANK=buys.map(function(b){ return b.s.la+','+b.s.lo; }); fpBtnSync(); }catch(e){}
+  try{ window.FP_SAVE=short?0:save; window.FP_PLANK=buys.map(function(b){ return b.s.la+','+b.s.lo; }); window.FP_PLANG={}; buys.forEach(function(b){ var k=b.s.la+','+b.s.lo; FP_PLANG[k]=(FP_PLANG[k]||0)+b.g; }); fpBtnSync(); }catch(e){}
   if(short) warn.push('Your fuel won\u2019t reach one of the stops on this plan, even looking up to 10 miles off route. Check your gauge, or widen the miles off route in Settings so more stops show up.');
   else if(buys.some(function(b){ return b.s.wide; })) warn.push('No fuel close enough on part of this trip, so we looked up to 10 miles off route. Stops marked (wider look) are a little farther off the road.');
   /* v1.3.71: one bottom-line number, and a button that shows where it came from. The two parts always add up to it. */
@@ -7878,7 +7894,6 @@ body.tier-free #freelist{display:block}
   <div id="hmbar"><div class="t" id="hmtitle">Truck route</div><button type="button" id="hmsat">Satellite</button><button type="button" class="x" onclick="hmClose()">Close</button></div>
   <div id="hmmap"></div>
   <div id="hmnote">Map shows the truck route the app planned. Always check signs and restrictions for yourself.</div>
-  <div id="hmfoot"><a id="hmnav" target="_blank" rel="noopener">Turn-by-turn in Google Maps</a></div>
 </div>
 <script id="hmapscript">
 /* ===== v1.3.79: truck route on a HERE map inside the app (was: straight out to Google Maps) =====
@@ -7905,27 +7920,42 @@ body.tier-free #freelist{display:block}
     document.getElementById('hmsat').textContent=sat?'Street':'Satellite';
   }
   function pin(color,size){ return L.divIcon({className:'',html:'<div class="hmpin" style="background:'+color+';width:'+size+'px;height:'+size+'px"></div>',iconSize:[size+4,size+4],iconAnchor:[(size+4)/2,(size+4)/2]}); }
+  /* v1.3.81: your buy stops get a flag in the brand's color: TA blue, Love's yellow, Petro green */
+  function flag(b){
+    var n=String(b||'').toLowerCase(), c=/love/.test(n)?'#f5c518':/petro/.test(n)?'#2fa85a':/\bta\b|ta express|travelcenters/.test(n)?'#2f7fe0':'#f26a21';
+    var svg='<svg width="30" height="38" viewBox="0 0 30 38"><line x1="5" y1="3" x2="5" y2="36" stroke="#fff" stroke-width="3"/><line x1="5" y1="3" x2="5" y2="36" stroke="#10233f" stroke-width="1.5"/>'+
+      '<path d="M6 4 L27 9.5 L6 15 Z" fill="'+c+'" stroke="#10233f" stroke-width="1.2"/><circle cx="5" cy="36" r="2.5" fill="#10233f"/></svg>';
+    return L.divIcon({className:'',html:svg,iconSize:[30,38],iconAnchor:[5,36],popupAnchor:[8,-30]});
+  }
   function gnav(la,lo){ return 'https://www.google.com/maps/dir/?api=1&destination='+la+','+lo+'&travelmode=driving'; }
+  /* v1.3.82: on a buy stop's card, miles to the next buy stop */
+  function nextBuy(h){
+    var plan={}; (window.FP_PLANK||[]).forEach(function(k){ plan[k]=1; });
+    if(!plan[h.la+','+h.lo]||!isFinite(h.rmi)) return '';
+    var gl=(window.FP_PLANG||{})[h.la+','+h.lo], buy=gl>0?'<div style="margin-top:4px;color:#10233f"><b>Buy '+Math.round(gl)+' gallons here</b></div>':'';
+    var nx=(LASTHITS||[]).filter(function(x){ return plan[x.la+','+x.lo] && isFinite(x.rmi) && x.rmi>h.rmi+0.5; })
+      .sort(function(a,b){ return a.rmi-b.rmi; })[0];
+    if(!nx) return buy+'<div style="margin-top:4px;color:#555">Last fuel stop on your plan</div>';
+    return buy+'<div style="margin-top:4px;color:#555"><b>'+Math.round(nx.rmi-h.rmi).toLocaleString('en-US')+' miles</b> to your next fuel stop: '+esc(nx.b)+' '+esc(nx.c)+', '+esc(nx.st)+'</div>';
+  }
   function stopPop(h){
     var pr=null; try{ pr=rankVal(h); }catch(e){}
-    return '<div class="hmpop"><b>'+esc(h.b)+' '+esc(h.c)+', '+esc(h.st)+'</b><br>'+(pr!=null?'<span class="p">$'+fmt(pr)+'</span>':'')+
-      '<br><a target="_blank" rel="noopener" href="'+gnav(h.la,h.lo)+'">Take me there</a></div>';
+    return '<div class="hmpop"><b>'+esc(h.b)+' '+esc(h.c)+', '+esc(h.st)+'</b><br>'+(pr!=null?'<span class="p">$'+fmt(pr)+'</span>':'')+nextBuy(h)+'</div>';
   }
   function draw(focus){
     layers.forEach(function(x){ M.removeLayer(x); }); layers=[];
     var line=window.ROUTE_LINE, plan={};
     (window.FP_PLANK||[]).forEach(function(k){ plan[k]=1; });
     if(line&&line.length){
-      layers.push(L.polyline(line,{color:'#10233f',weight:9,opacity:.55}).addTo(M));
-      layers.push(L.polyline(line,{color:'#f26a21',weight:5}).addTo(M));
+      layers.push(L.polyline(line,{color:'#f26a21',weight:4,opacity:.45}).addTo(M));   /* v1.3.83: thin and see-through so highway numbers show */
       layers.push(L.marker(line[0],{icon:pin('#2fa85a',16)}).addTo(M).bindTooltip('Start'));
       layers.push(L.marker(line[line.length-1],{icon:pin('#d93a2b',16)}).addTo(M).bindTooltip('End'));
     }
     var best=null; try{ best=(LASTHITS||[])[0]; }catch(e){}
     (window.LASTHITS||LASTHITS||[]).forEach(function(h){
       if(!isFinite(h.la)||!isFinite(h.lo)) return;
-      var inPlan=plan[h.la+','+h.lo], c=inPlan?'#2fa85a':(h===best?'#f2b36b':'#4f7bb0');
-      var mk=L.marker([h.la,h.lo],{icon:pin(c,inPlan||h===best?14:10)}).addTo(M).bindPopup(stopPop(h));
+      var inPlan=plan[h.la+','+h.lo];
+      var mk=L.marker([h.la,h.lo],inPlan?{icon:flag(h.b),zIndexOffset:1000}:{icon:pin('#4f7bb0',10)}).addTo(M).bindPopup(stopPop(h));
       layers.push(mk);
       if(focus&&Math.abs(h.la-focus[0])<1e-4&&Math.abs(h.lo-focus[1])<1e-4) focus.mk=mk;
     });
@@ -7936,7 +7966,6 @@ body.tier-free #freelist{display:block}
   function open(title,focus,href,legs){
     navHref=href||''; navLegs=!!legs;
     document.getElementById('hmtitle').textContent=title;
-    var nav=document.getElementById('hmnav'); if(navHref) nav.href=navHref; else nav.removeAttribute('href');
     document.getElementById('hmap').classList.add('show'); window.HM_OPEN=true;
     try{ enterScreen(); }catch(e){}
     return loadLeaflet().then(function(){
@@ -7946,9 +7975,6 @@ body.tier-free #freelist{display:block}
   }
   window.hmClose=function(){ if(!window.HM_OPEN) return; window.HM_OPEN=false; document.getElementById('hmap').classList.remove('show'); };
   document.getElementById('hmsat').addEventListener('click',function(){ sat=!sat; if(M) tiles(); });
-  document.getElementById('hmnav').addEventListener('click',function(e){
-    if(navLegs){ e.preventDefault(); hmClose(); try{ history.back(); }catch(x){} setTimeout(function(){ try{ origTap(); }catch(x){} },150); }
-  });
   /* the big Map button */
   var origTap=window.gmapsTap;
   window.gmapsTap=gmapsTap=function(){
