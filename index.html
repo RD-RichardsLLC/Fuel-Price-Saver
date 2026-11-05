@@ -3049,6 +3049,10 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
   { date:'2026-11-04', items:[
+    'Version 1.3.89',
+    '**Radar on your route map.** Tap Radar at the top of the route map to see the latest weather radar right on your truck route. Tap it again to turn it off'
+  ]},
+  { date:'2026-11-04', items:[
     'Version 1.3.88',
     '**A little pit crew guy marks your fuel stops.** On the route map, each stop where your plan says to buy has a pit crew guy holding up a sign in the brand\u2019s color: blue TA, yellow L for Love\u2019s, green P for Petro. Tap him to see the price, gallons to buy and miles to your next stop'
   ]},
@@ -7911,7 +7915,7 @@ body.tier-free #freelist{display:block}
 .hmpop a{display:inline-block;margin-top:6px;background:#f26a21;color:#fff!important;padding:6px 10px;border-radius:7px;font-weight:700;text-decoration:none}
 </style>
 <div id="hmap">
-  <div id="hmbar"><div class="t" id="hmtitle">Truck route</div><button type="button" id="hmsat">Satellite</button><button type="button" class="x" onclick="hmClose()">Close</button></div>
+  <div id="hmbar"><div class="t" id="hmtitle">Truck route</div><button type="button" id="hmrad">Radar</button><button type="button" id="hmsat">Satellite</button><button type="button" class="x" onclick="hmClose()">Close</button></div>
   <div id="hmmap"></div>
   <div id="hmnote">Map shows the truck route the app planned. Always check signs and restrictions for yourself.</div>
 </div>
@@ -8014,6 +8018,19 @@ body.tier-free #freelist{display:block}
   }
   window.hmClose=function(){ if(!window.HM_OPEN) return; window.HM_OPEN=false; document.getElementById('hmap').classList.remove('show'); };
   document.getElementById('hmsat').addEventListener('click',function(){ sat=!sat; if(M) tiles(); });
+  /* v1.3.89: weather radar laid right on the truck route, on and off with the Radar button */
+  var rad=null, radOn=false;
+  function radBtn(){ var b=document.getElementById('hmrad'); b.style.background=radOn?'#2fa85a':''; b.style.borderColor=radOn?'#2fa85a':''; b.textContent=radOn?'Radar on':'Radar'; }
+  document.getElementById('hmrad').addEventListener('click',function(){
+    if(!M) return;
+    if(radOn){ radOn=false; if(rad){ M.removeLayer(rad); rad=null; } radBtn(); return; }
+    radOn=true; radBtn();
+    fetch('https://api.rainviewer.com/public/weather-maps.json',{cache:'no-store'}).then(function(r){ return r.json(); }).then(function(d){
+      var past=(d.radar&&d.radar.past)||[], f=past[past.length-1]; if(!f||!radOn) throw 0;
+      if(!M.getPane('hmradar')){ var pn=M.createPane('hmradar'); pn.style.zIndex=430; pn.style.pointerEvents='none'; }
+      rad=L.tileLayer(d.host+f.path+'/256/{z}/{x}/{y}/4/1_1.png',{pane:'hmradar',opacity:.65,maxNativeZoom:7,maxZoom:19,attribution:'RainViewer'}).addTo(M);
+    }).catch(function(){ radOn=false; radBtn(); alert('Radar isn\u2019t available right now. Try again in a minute.'); });
+  });
   /* the big Map button */
   var origTap=window.gmapsTap;
   window.gmapsTap=gmapsTap=function(){
