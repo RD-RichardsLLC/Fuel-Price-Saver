@@ -3067,6 +3067,11 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
   { date:'2026-11-05', items:[
+    'Version 1.3.111',
+    '**The pump, sign and buttons moved up,** clear of the bottom of the screen',
+    '**No more scrolling on the pump screen.** The pump and sign size themselves to fit your phone'
+  ]},
+  { date:'2026-11-05', items:[
     'Version 1.3.110',
     '**A taller pump with bigger, easier-to-read writing,** including the town and the interstate and exit',
     '**A shorter arrow** on the pump',
@@ -8388,7 +8393,7 @@ body.tier-free #freelist{display:block}
     var mk=ppMk[h.la+','+h.lo]; if(mk){ mk.setOpacity(0); ppCur=mk; }   /* v1.3.97: the little pump hides while the big one is up */
     var o=document.getElementById('hmpp');
     if(!o){ o=document.createElement('div'); o.id='hmpp';
-      o.style.cssText='position:absolute;left:0;right:0;bottom:0;top:0;z-index:2000;background:transparent;display:flex;flex-direction:column;align-items:center;padding:52px 14px calc(90px + env(safe-area-inset-bottom,0px));box-sizing:border-box;overflow-y:auto';   /* v1.3.109: bottom row up one button height */
+      o.style.cssText='position:absolute;left:0;right:0;bottom:0;top:0;z-index:2000;background:transparent;display:flex;flex-direction:column;align-items:center;padding:52px 14px calc(170px + env(safe-area-inset-bottom,0px));box-sizing:border-box;overflow-y:auto';   /* v1.3.109: bottom row up one button height */
       o.addEventListener('click',function(e){ if(e.target===o||e.target.id==='hmppx'||(e.target.parentNode===o)) ppClose(); });
       document.getElementById('hmap').appendChild(o); }
     var lbl='Back to map';
@@ -8400,7 +8405,7 @@ body.tier-free #freelist{display:block}
       d.list.filter(function(x){ return x!==d.h; }).map(function(x){ var k=(LASTHITS||[]).indexOf(x);
         return '<div class="pplrow" data-k="'+k+'" style="display:flex;justify-content:space-between;gap:6px;padding:7px 0;border-bottom:1px solid #eef0f4;font-size:13px;cursor:pointer;color:#141414"><div><b>'+esc(x.b)+'</b><div style="font-size:11px;color:#666">'+esc(x.c)+'</div></div><b style="color:#1f8a43">$'+fmt(rankVal(x))+'</b></div>'; }).join('')+
       (d.list.length<2?'<div style="font-size:12px;color:#777;padding:8px 0">No other stops in this state on your route</div>':'')+'</div></div>'; }
-    o.innerHTML='<div style="width:100%;max-width:520px;margin-top:auto">'+card+'<div style="position:relative">'+ppSvg(d)+lst+'</div>'+
+    o.innerHTML='<div style="width:100%;max-width:520px;margin-top:auto">'+card+'<div id="ppbox" style="position:relative;margin:0 auto">'+ppSvg(d)+lst+'</div>'+
       /* v1.3.105: Back to map and List view side by side */
       '<div style="display:flex;gap:8px;margin:6px 0 0 9%;width:87%">'+
       '<button type="button" id="hmppx" style="flex:1;padding:10px 6px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 clamp(12px,3.7vw,16px) Arial,sans-serif">Back to map</button>'+
@@ -8423,7 +8428,7 @@ body.tier-free #freelist{display:block}
     [].slice.call(o.querySelectorAll('.pplrow')).forEach(function(r){ r.addEventListener('click',function(e){ e.stopPropagation(); var x=(LASTHITS||[])[+r.getAttribute('data-k')]; if(x) go(x); }); });
     /* v1.3.108: the pump layer starts under the top bar so Trip details, Radar and Satellite work on the first tap; everything sits low so the trip label stays in view */
     { var hb=document.getElementById('hmbar'); o.style.top=(hb?hb.offsetHeight:0)+'px'; }
-    o.style.display='flex'; window.HM_PP=true; try{ optBtn(false); }catch(x){} ppRoll(d); return true;
+    o.style.display='flex'; window.HM_PP=true; try{ optBtn(false); }catch(x){} ppFit(o); ppRoll(d); return true;
   }
   /* v1.3.103: Details opens the same stop details as the fuel cards (prices, DEF, IFTA, Show all services); back returns to the map */
   function ppDetails(h){
@@ -8443,6 +8448,16 @@ body.tier-free #freelist{display:block}
   function listView(){ var own=window.PP_OWN; mapAway(); window.PP_OWN=false;
     FP_VIEW=(!own&&window.FP_PLANK&&FP_PLANK.length)?'plan':'all'; fpApplyView(); window.scrollTo(0,0); }
   function runOpt(){ mapAway(); window.PP_OWN=false; fpChoose('cheap'); }
+  /* v1.3.111: shrink the pump and sign to fit the screen, so the pop-up never scrolls */
+  function ppFit(o){ try{
+    var box=document.getElementById('ppbox'); if(!box) return; var svg=box.querySelector('svg'), wrap=box.parentNode;
+    box.style.width='100%'; svg.style.width='100%'; svg.style.height='auto';
+    var cs=getComputedStyle(o), avail=o.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom);
+    var others=wrap.offsetHeight-box.offsetHeight, W=wrap.clientWidth;
+    var h=Math.min(W*620/560, avail-others-4); if(h<220) h=220; var w=h*560/620;
+    box.style.width=w+'px'; svg.style.width=w+'px'; svg.style.height=h+'px';
+  }catch(e){} }
+  window.addEventListener('resize',function(){ var o=document.getElementById('hmpp'); if(o&&window.HM_PP) ppFit(o); });
   function ppClose(){ if(ppCur){ try{ ppCur.setOpacity(1); }catch(e){} ppCur=null; } var o=document.getElementById('hmpp'); if(o) o.style.display='none'; window.HM_PP=false; if(window.HM_OPEN){ try{ optBtn(true); }catch(x){} } cancelAnimationFrame(ppTimer); }
   window.ppClose=ppClose;
   function stopPop(h){
