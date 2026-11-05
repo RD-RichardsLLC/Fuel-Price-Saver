@@ -3067,6 +3067,12 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
   { date:'2026-11-05', items:[
+    'Version 1.3.116',
+    '**Easier-to-read pump.** Taller price windows with bigger numbers, a bigger Diesel sign, and bigger writing at the bottom, with a bigger brand tag',
+    '**Your trip\u2019s miles now show in the black trip label** at the top of the map. The trip card that came up at the first stop is gone, so the screen no longer scrolls',
+    '**The pump and sign sit centered** between the trip label and the buttons, and the Next Stop sign is centered between its posts'
+  ]},
+  { date:'2026-11-05', items:[
     'Version 1.3.115',
     '**A bigger pump.** It\u2019s wider and taller, with a wider price face, bigger labels and a bigger Diesel sign',
     '**Bigger writing on the bottom of the pump.** Amount to buy, the town, and the interstate and exit now match the size of the town on the sign',
@@ -8248,23 +8254,23 @@ body.tier-free #freelist{display:block}
     else if(/petro/.test(n)){ t='PETRO'; bg='#2fa85a'; fg='#fff'; }
     else if(/\bta\b|ta express|travelcenters/.test(n)){ t='TA'; bg='#2f7fe0'; fg='#fff'; }
     else { t=String(h.b||'').toUpperCase(); bg='#f26a21'; fg='#fff'; }
-    var w=t.length>6?110:84, fs=Math.min(t==='TA'?16:15,(w-12)/Math.max(1,t.length*0.75)).toFixed(1);
-    var town=String(h.c||'').toUpperCase()+(h.st?', '+String(h.st).toUpperCase():''), tfs=Math.min(14,225/Math.max(1,town.length*0.66)).toFixed(1);
-    var ex=ppExit(h), efs=Math.min(14,225/Math.max(1,ex.length*0.66)).toFixed(1);
-    return '<line x1="125" y1="462" x2="245" y2="462" stroke="#c9ced8" stroke-width="1.5"/>'+
-      '<rect x="'+(185-w/2)+'" y="474" width="'+w+'" height="30" rx="8" fill="'+bg+'" stroke="'+bd+'" stroke-width="1"/>'+
-      '<text x="185" y="495" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="'+fs+'" fill="'+fg+'" letter-spacing=".5">'+esc(t)+'</text>'+
-      '<text x="185" y="534" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="'+tfs+'" fill="#1A2B4C" letter-spacing=".5">'+esc(town)+'</text>'+
-      (ex?'<text x="185" y="556" text-anchor="middle" font-family="Arial,sans-serif" font-weight="900" font-size="'+efs+'" fill="#141414" letter-spacing=".5">'+esc(ex)+'</text>':'');
+    var w=t.length>6?190:150, fs=Math.min(24,(w-18)/Math.max(1,t.length*0.8)).toFixed(1);   /* v1.3.116: brand name the size of the sign's */
+    var town=String(h.c||'').toUpperCase()+(h.st?', '+String(h.st).toUpperCase():''), tfs=Math.min(17,228/Math.max(1,town.length*0.66)).toFixed(1);
+    var ex=ppExit(h), efs=Math.min(17,228/Math.max(1,ex.length*0.66)).toFixed(1);
+    return '<line x1="120" y1="514" x2="250" y2="514" stroke="#c9ced8" stroke-width="1.5"/>'+
+      '<rect x="'+(185-w/2)+'" y="526" width="'+w+'" height="40" rx="9" fill="'+bg+'" stroke="'+bd+'" stroke-width="1.2"/>'+
+      '<text x="185" y="'+(546+fs*0.36).toFixed(1)+'" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="'+fs+'" fill="'+fg+'" letter-spacing=".5">'+esc(t)+'</text>'+
+      '<text x="185" y="596" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="'+tfs+'" fill="#1A2B4C" letter-spacing=".5">'+esc(town)+'</text>'+
+      (ex?'<text x="185" y="620" text-anchor="middle" font-family="Arial,sans-serif" font-weight="900" font-size="'+efs+'" fill="#141414" letter-spacing=".5">'+esc(ex)+'</text>':'');
   }
   /* v1.3.115: a wider, taller pump with a bigger price face; a narrower sign set lower on its stand, over on the right */
   function ppSvg(d){
     var noPlan=d.off&&!d.hasPlan;
     var nb=d.nx?ppBrand(d.nx.b):d.only?{t:'ONE STOP',bg:'#1A2B4C',fg:'#fff'}:noPlan?{t:'NONE YET',bg:'#1A2B4C',fg:'#fff'}:{t:'END OF PLAN',bg:'#1A2B4C',fg:'#fff'};
     var town=d.nx?esc(String(d.nx.c||'').toUpperCase()+', '+String(d.nx.st||'').toUpperCase()):(d.only||noPlan)?'':'NO MORE FUEL STOPS';
-    var tfs=Math.min(14,100/Math.max(1,town.length*0.62)).toFixed(1), bfs=Math.min(24,100/Math.max(1,nb.t.length*0.8)).toFixed(1);
-    var miT=d.nx?d.mi.toLocaleString('en-US')+' MI':'', mfs=Math.min(26,100/Math.max(1,miT.length*0.72)).toFixed(1);
-    var nxEx=d.nx?ppExit(d.nx):'', nfs=Math.min(11,100/Math.max(1,nxEx.length*0.66)).toFixed(1);
+    var tfs=Math.min(14,106/Math.max(1,town.length*0.62)).toFixed(1), bfs=Math.min(24,106/Math.max(1,nb.t.length*0.8)).toFixed(1);
+    var miT=d.nx?d.mi.toLocaleString('en-US')+' MI':'', mfs=Math.min(26,106/Math.max(1,miT.length*0.72)).toFixed(1);
+    var nxEx=d.nx?ppExit(d.nx):'', nfs=Math.min(11,106/Math.max(1,nxEx.length*0.66)).toFixed(1);
     var L='font-family="Arial,sans-serif" font-weight="800" fill="#1A2B4C"';
     return '<svg viewBox="0 0 560 756" style="width:100%;max-width:520px;display:block;margin:0 auto;filter:drop-shadow(0 3px 6px rgba(0,0,0,.45))">'+
     '<defs><linearGradient id="ppFr" x1="0" x2="1"><stop offset="0" stop-color="#22355C"/><stop offset=".5" stop-color="#1A2B4C"/><stop offset="1" stop-color="#101C33"/></linearGradient>'+
@@ -8273,31 +8279,32 @@ body.tier-free #freelist{display:block}
     '<linearGradient id="ppGn" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#22B04B"/><stop offset="1" stop-color="#138A36"/></linearGradient>'+
     '<linearGradient id="ppWh" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity=".55"/><stop offset=".3" stop-color="#000" stop-opacity="0"/><stop offset=".7" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".55"/></linearGradient>'+
     '<linearGradient id="ppIr" x1="0" x2="1"><stop offset="0" stop-color="#2a2f38"/><stop offset=".5" stop-color="#4a5260"/><stop offset="1" stop-color="#22262e"/></linearGradient>'+
-    '<clipPath id="ppcT"><rect x="110" y="170" width="150" height="30" rx="4"/></clipPath><clipPath id="ppcG"><rect x="110" y="226" width="150" height="30" rx="4"/></clipPath></defs>'+
+    '<clipPath id="ppcT"><rect x="105" y="162" width="160" height="42" rx="5"/></clipPath><clipPath id="ppcG"><rect x="105" y="232" width="160" height="42" rx="5"/></clipPath></defs>'+
     '<rect x="26" y="702" width="318" height="30" rx="6" fill="#0E1830"/><rect x="38" y="692" width="294" height="16" rx="4" fill="#24385F"/>'+
     '<path d="M46 168 C 12 200, 8 400, 20 560 S 36 696, 50 694" fill="none" stroke="#1C1C1E" stroke-width="9" stroke-linecap="round"/>'+
     '<rect x="46" y="36" width="278" height="662" rx="50" fill="url(#ppFr)"/><rect x="64" y="56" width="242" height="622" rx="36" fill="url(#ppPn)"/>'+
     '<rect x="54" y="70" width="6" height="576" rx="3" fill="#fff" opacity=".25"/>'+
-    '<rect x="102" y="78" width="166" height="50" rx="8" fill="url(#ppGn)" stroke="#1A2B4C" stroke-width="3"/>'+
-    '<text x="185" y="114" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="28" fill="#fff" letter-spacing="3">DIESEL</text>'+
-    '<rect x="102" y="144" width="166" height="164" rx="10" fill="#fff" stroke="#1A2B4C" stroke-width="4"/>'+
-    '<text x="185" y="164" text-anchor="middle" '+L+' font-size="13" letter-spacing=".5">'+(d.off?'DISCOUNT PRICE':'TOTAL COST')+'</text>'+
-    '<rect x="110" y="170" width="150" height="30" rx="4" fill="#101C33"/><g id="ppT" clip-path="url(#ppcT)"></g><rect x="110" y="170" width="150" height="30" rx="4" fill="url(#ppWh)"/>'+
-    '<text x="185" y="220" text-anchor="middle" '+L+' font-size="13" letter-spacing=".5">'+(d.off?'RETAIL PRICE':'GALLONS TO BUY')+'</text>'+
-    '<rect x="110" y="226" width="150" height="30" rx="4" fill="#101C33"/><g id="ppG" clip-path="url(#ppcG)"></g><rect x="110" y="226" width="150" height="30" rx="4" fill="url(#ppWh)"/>'+
-    '<text x="185" y="275" text-anchor="middle" '+L+' font-size="13" letter-spacing=".5">'+(d.off?'DISCOUNT':'DISCOUNT PRICE')+'</text>'+
-    '<rect x="140" y="280" width="90" height="24" rx="4" fill="#1C9A44"/>'+
-    '<text x="185" y="297" text-anchor="middle" font-family="Courier New,monospace" font-weight="700" font-size="16" fill="#fff">'+(d.off?(d.ret!=null?Math.max(0,Math.round((d.ret-d.pr)*100))+'\u00a2':'--'):'$'+fmt(d.pr))+'</text>'+
-    '<rect x="64" y="326" width="242" height="8" fill="#141414"/>'+
-    (d.own?'<text x="185" y="390" text-anchor="middle" '+L+' font-size="14" letter-spacing="1">'+(d.rank===0?'CHEAPEST':'#'+(d.rank+1)+' OF '+d.list.length)+'</text>'+
-      '<text x="185" y="410" text-anchor="middle" '+L+' font-size="14" letter-spacing=".5">ON YOUR ROUTE</text>'+
-      '<text x="185" y="430" text-anchor="middle" '+L+' font-size="'+Math.min(14,220/Math.max(1,(3+ppStName(d.h.st).length)*0.72)).toFixed(1)+'" letter-spacing="1">IN '+esc(ppStName(d.h.st).toUpperCase())+'</text>'
-    :d.off?'<text x="185" y="404" text-anchor="middle" '+L+' font-size="14" letter-spacing="1">NOT PART OF</text>'+
-      '<text x="185" y="426" text-anchor="middle" '+L+' font-size="14" letter-spacing="1">YOUR FUEL PLAN</text>'
-    :'<path d="M185 360 L196 372 L189 372 L189 382 L181 382 L181 372 L174 372 Z" fill="url(#ppGn)" stroke="#141414" stroke-width="1.3" stroke-linejoin="round"/>'+
-    '<text x="185" y="414" text-anchor="middle" '+L+' font-size="14" letter-spacing="1">AMOUNT TO BUY</text>'+
-    '<text x="185" y="436" text-anchor="middle" '+L+' font-size="14" letter-spacing="1">AT THIS STOP</text>')+
-    ppTag(d.h)+(d.own&&d.miAhead!=null?'<text x="185" y="592" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="14" fill="#d62828" letter-spacing="1">'+d.miAhead.toLocaleString('en-US')+' MI AHEAD</text>':'')+
+    /* v1.3.116: taller top of the pump: Diesel moved up, taller windows, bigger numbers */
+    '<rect x="94" y="64" width="182" height="54" rx="9" fill="url(#ppGn)" stroke="#1A2B4C" stroke-width="3"/>'+
+    '<text x="185" y="103" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="31" fill="#fff" letter-spacing="3">DIESEL</text>'+
+    '<rect x="94" y="132" width="182" height="210" rx="10" fill="#fff" stroke="#1A2B4C" stroke-width="4"/>'+
+    '<text x="185" y="155" text-anchor="middle" '+L+' font-size="14" letter-spacing=".5">'+(d.off?'DISCOUNT PRICE':'TOTAL COST')+'</text>'+
+    '<rect x="105" y="162" width="160" height="42" rx="5" fill="#101C33"/><g id="ppT" clip-path="url(#ppcT)"></g><rect x="105" y="162" width="160" height="42" rx="5" fill="url(#ppWh)"/>'+
+    '<text x="185" y="225" text-anchor="middle" '+L+' font-size="14" letter-spacing=".5">'+(d.off?'RETAIL PRICE':'GALLONS TO BUY')+'</text>'+
+    '<rect x="105" y="232" width="160" height="42" rx="5" fill="#101C33"/><g id="ppG" clip-path="url(#ppcG)"></g><rect x="105" y="232" width="160" height="42" rx="5" fill="url(#ppWh)"/>'+
+    '<text x="185" y="295" text-anchor="middle" '+L+' font-size="14" letter-spacing=".5">'+(d.off?'DISCOUNT':'DISCOUNT PRICE')+'</text>'+
+    '<rect x="128" y="301" width="114" height="34" rx="5" fill="#1C9A44"/>'+
+    '<text x="185" y="325" text-anchor="middle" font-family="Courier New,monospace" font-weight="700" font-size="21" fill="#fff">'+(d.off?(d.ret!=null?Math.max(0,Math.round((d.ret-d.pr)*100))+'\u00a2':'--'):'$'+fmt(d.pr))+'</text>'+
+    '<rect x="64" y="354" width="242" height="8" fill="#141414"/>'+
+    (d.own?'<text x="185" y="440" text-anchor="middle" '+L+' font-size="17" letter-spacing="1">'+(d.rank===0?'CHEAPEST':'#'+(d.rank+1)+' OF '+d.list.length)+'</text>'+
+      '<text x="185" y="462" text-anchor="middle" '+L+' font-size="17" letter-spacing=".5">ON YOUR ROUTE</text>'+
+      '<text x="185" y="484" text-anchor="middle" '+L+' font-size="'+Math.min(17,220/Math.max(1,(3+ppStName(d.h.st).length)*0.72)).toFixed(1)+'" letter-spacing="1">IN '+esc(ppStName(d.h.st).toUpperCase())+'</text>'
+    :d.off?'<text x="185" y="452" text-anchor="middle" '+L+' font-size="17" letter-spacing="1">NOT PART OF</text>'+
+      '<text x="185" y="476" text-anchor="middle" '+L+' font-size="17" letter-spacing="1">YOUR FUEL PLAN</text>'
+    :'<path d="M185 410 L197 424 L189 424 L189 444 L181 444 L181 424 L173 424 Z" fill="url(#ppGn)" stroke="#141414" stroke-width="1.3" stroke-linejoin="round"/>'+
+    '<text x="185" y="474" text-anchor="middle" '+L+' font-size="17" letter-spacing="1">AMOUNT TO BUY</text>'+
+    '<text x="185" y="496" text-anchor="middle" '+L+' font-size="17" letter-spacing="1">AT THIS STOP</text>')+
+    ppTag(d.h)+(d.own&&d.miAhead!=null?'<text x="185" y="650" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="16" fill="#d62828" letter-spacing="1">'+d.miAhead.toLocaleString('en-US')+' MI AHEAD</text>':'')+
     '<rect x="34" y="150" width="20" height="40" rx="4" fill="#138A36"/>'+
     '<path d="M22 156 h22 v34 h-8 v18 a6 6 0 0 1 -12 0 v-18 h-2 z" fill="url(#ppCh)" stroke="#5E6672" stroke-width="1.5"/>'+
     '<path d="M18 170 q-12 6 -10 30" fill="none" stroke="#138A36" stroke-width="4" stroke-linecap="round"/><rect x="26" y="146" width="16" height="12" rx="3" fill="url(#ppGn)"/>'+
@@ -8305,35 +8312,35 @@ body.tier-free #freelist{display:block}
     '<rect x="372" y="430" width="8" height="296" rx="2" fill="url(#ppIr)"/><rect x="528" y="430" width="8" height="296" rx="2" fill="url(#ppIr)"/>'+
     '<rect x="358" y="724" width="36" height="8" rx="2" fill="#2a2f38"/><rect x="514" y="724" width="36" height="8" rx="2" fill="#2a2f38"/>'+
     '<rect x="366" y="424" width="176" height="10" rx="3" fill="url(#ppIr)"/><circle cx="376" cy="418" r="7" fill="#2a2f38"/><circle cx="532" cy="418" r="7" fill="#2a2f38"/>'+
-    '<circle cx="416" cy="436" r="4" fill="none" stroke="#2a2f38" stroke-width="2.5"/><circle cx="486" cy="436" r="4" fill="none" stroke="#2a2f38" stroke-width="2.5"/>'+
-    '<g id="ppS"><line x1="416" y1="440" x2="416" y2="466" stroke="#3a404b" stroke-width="2.5" stroke-dasharray="4 3"/><line x1="486" y1="440" x2="486" y2="466" stroke="#3a404b" stroke-width="2.5" stroke-dasharray="4 3"/>'+
-    '<rect x="390" y="466" width="122" height="200" rx="10" fill="#1A2B4C"/><rect x="397" y="473" width="108" height="186" rx="7" fill="#FBF6E9"/>'+
-    '<rect x="397" y="473" width="108" height="72" rx="7" fill="'+nb.bg+'"/><rect x="397" y="530" width="108" height="15" fill="'+nb.bg+'"/>'+
-    '<text x="451" y="497" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="12" fill="'+nb.fg+'" letter-spacing="1.5">'+(d.only?'YOUR PLAN':noPlan?'FUEL PLAN':'NEXT STOP')+'</text>'+
-    '<text x="451" y="530" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="'+bfs+'" fill="'+nb.fg+'" letter-spacing="1">'+esc(nb.t)+'</text>'+
-    '<text x="451" y="564" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="'+tfs+'" fill="#1A2B4C">'+town+'</text>'+
-    (nxEx?'<text x="451" y="579" text-anchor="middle" font-family="Arial,sans-serif" font-weight="900" font-size="'+nfs+'" fill="#141414">'+esc(nxEx)+'</text>':'')+
-    '<line x1="405" y1="588" x2="497" y2="588" stroke="#E86A10" stroke-width="2"/>'+
-    (d.nx?'<text x="451" y="620" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="'+mfs+'" fill="#d62828">'+miT+'</text>'+
-      '<text x="451" y="642" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="10.5" fill="#1A2B4C" letter-spacing="1">TO GET THERE</text>'
-     :'<text x="451" y="618" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="13" fill="#1A2B4C">'+(d.only?'YOUR ONLY':noPlan?'NO FUEL PLAN':'LAST FUEL STOP')+'</text>'+
-      '<text x="451" y="640" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="10" fill="#1A2B4C" letter-spacing=".5">'+(d.only?'FUEL STOP':noPlan?'RUN THE OPTIMIZER':'ON YOUR PLAN')+'</text>')+
-    '<circle cx="404" cy="480" r="2.5" fill="#8a8f99"/><circle cx="498" cy="480" r="2.5" fill="#8a8f99"/><circle cx="404" cy="652" r="2.5" fill="#8a8f99"/><circle cx="498" cy="652" r="2.5" fill="#8a8f99"/><rect id="ppShade" x="390" y="466" width="122" height="200" rx="10" fill="#000" opacity="0"/></g>'))+'</svg>';
+    '<circle cx="419" cy="436" r="4" fill="none" stroke="#2a2f38" stroke-width="2.5"/><circle cx="489" cy="436" r="4" fill="none" stroke="#2a2f38" stroke-width="2.5"/>'+
+    '<g id="ppS"><line x1="419" y1="440" x2="419" y2="466" stroke="#3a404b" stroke-width="2.5" stroke-dasharray="4 3"/><line x1="489" y1="440" x2="489" y2="466" stroke="#3a404b" stroke-width="2.5" stroke-dasharray="4 3"/>'+
+    '<rect x="390" y="466" width="128" height="200" rx="10" fill="#1A2B4C"/><rect x="397" y="473" width="114" height="186" rx="7" fill="#FBF6E9"/>'+
+    '<rect x="397" y="473" width="114" height="72" rx="7" fill="'+nb.bg+'"/><rect x="397" y="530" width="114" height="15" fill="'+nb.bg+'"/>'+
+    '<text x="454" y="497" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="12" fill="'+nb.fg+'" letter-spacing="1.5">'+(d.only?'YOUR PLAN':noPlan?'FUEL PLAN':'NEXT STOP')+'</text>'+
+    '<text x="454" y="530" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="'+bfs+'" fill="'+nb.fg+'" letter-spacing="1">'+esc(nb.t)+'</text>'+
+    '<text x="454" y="564" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="'+tfs+'" fill="#1A2B4C">'+town+'</text>'+
+    (nxEx?'<text x="454" y="579" text-anchor="middle" font-family="Arial,sans-serif" font-weight="900" font-size="'+nfs+'" fill="#141414">'+esc(nxEx)+'</text>':'')+
+    '<line x1="406" y1="588" x2="502" y2="588" stroke="#E86A10" stroke-width="2"/>'+
+    (d.nx?'<text x="454" y="620" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="'+mfs+'" fill="#d62828">'+miT+'</text>'+
+      '<text x="454" y="642" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="10.5" fill="#1A2B4C" letter-spacing="1">TO GET THERE</text>'
+     :'<text x="454" y="618" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="13" fill="#1A2B4C">'+(d.only?'YOUR ONLY':noPlan?'NO FUEL PLAN':'LAST FUEL STOP')+'</text>'+
+      '<text x="454" y="640" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="10" fill="#1A2B4C" letter-spacing=".5">'+(d.only?'FUEL STOP':noPlan?'RUN THE OPTIMIZER':'ON YOUR PLAN')+'</text>')+
+    '<circle cx="404" cy="480" r="2.5" fill="#8a8f99"/><circle cx="504" cy="480" r="2.5" fill="#8a8f99"/><circle cx="404" cy="652" r="2.5" fill="#8a8f99"/><circle cx="504" cy="652" r="2.5" fill="#8a8f99"/><rect id="ppShade" x="390" y="466" width="128" height="200" rx="10" fill="#000" opacity="0"/></g>'))+'</svg>';
   }
   var ppTimer=null;
   function ppRoll(d){
-    var NS='http://www.w3.org/2000/svg', H=24, CW=11;
+    var NS='http://www.w3.org/2000/svg', H=36, CW=13.5;
     function tx(x,y,c){ var t=document.createElementNS(NS,'text'); t.setAttribute('x',x); t.setAttribute('y',y); t.setAttribute('text-anchor','middle');
-      t.setAttribute('font-family','Courier New,monospace'); t.setAttribute('font-weight','700'); t.setAttribute('font-size','17'); t.setAttribute('fill','#fff'); t.textContent=c; return t; }
+      t.setAttribute('font-family','Courier New,monospace'); t.setAttribute('font-weight','700'); t.setAttribute('font-size','21'); t.setAttribute('fill','#fff'); t.textContent=c; return t; }
     function reels(id,str,y){ var g=document.getElementById(id), n=str.length, x0=185-(n*CW)/2+CW/2, out=[];
       for(var i=0;i<n;i++){ var c=str[i], x=x0+i*CW;
-        if(!/[0-9]/.test(c)){ g.appendChild(tx(x,y+20,c)); continue; }
-        var s=document.createElementNS(NS,'g'); for(var k=0;k<120;k++) s.appendChild(tx(x,y+20+k*H,String(k%10)));
+        if(!/[0-9]/.test(c)){ g.appendChild(tx(x,y+29,c)); continue; }
+        var s=document.createElementNS(NS,'g'); for(var k=0;k<120;k++) s.appendChild(tx(x,y+29+k*H,String(k%10)));
         g.appendChild(s); out.push({el:s,d:+c}); }
       return out; }
     var all=[];
-    reels('ppT','$'+d.tot,172).forEach(function(r,i){ r.end=((2+i)*10+r.d)*H; r.dur=1600+i*350; all.push(r); });
-    reels('ppG',d.off?(d.ret!=null?'$'+d.ret.toFixed(3):'--'):String(d.g),228).forEach(function(r,i){ r.end=((1+i)*10+r.d)*H; r.dur=1900+i*300; all.push(r); });
+    reels('ppT','$'+d.tot,162).forEach(function(r,i){ r.end=((2+i)*10+r.d)*H; r.dur=1600+i*350; all.push(r); });
+    reels('ppG',d.off?(d.ret!=null?'$'+d.ret.toFixed(3):'--'):String(d.g),232).forEach(function(r,i){ r.end=((1+i)*10+r.d)*H; r.dur=1900+i*300; all.push(r); });
     var sign=document.getElementById('ppS'), t0=performance.now(), wait=0; cancelAnimationFrame(ppTimer);
     all.forEach(function(r){ if(r.dur>wait) wait=r.dur; });   /* v1.3.97: the sign waits until the last wheel stops */
     function step(now){ var live=false, t=(now-t0-wait)/1000;
@@ -8341,7 +8348,7 @@ body.tier-free #freelist{display:block}
       /* v1.3.99: the sign swings front to back on its hooks, through the stand */
       /* v1.3.100: swings farther toward you and away, and slower; a little wider coming toward you, a little darker going away */
       var ang=t<0?0:1.15*Math.exp(-0.55*t)*Math.cos(2.6*t), sy=Math.cos(ang), sx=1+0.07*Math.sin(ang), sh=document.getElementById('ppShade');
-      if(sign) sign.setAttribute('transform','translate(451 436) scale('+sx.toFixed(3)+' '+sy.toFixed(3)+') translate(-451 -436)');
+      if(sign) sign.setAttribute('transform','translate(454 436) scale('+sx.toFixed(3)+' '+sy.toFixed(3)+') translate(-454 -436)');
       if(sh) sh.setAttribute('opacity',(Math.max(0,-Math.sin(ang))*0.35).toFixed(3));
       if(Math.abs(ang)>0.004||t<1) live=true;
       if(live) ppTimer=requestAnimationFrame(step); else if(sign) sign.removeAttribute('transform'); }
@@ -8419,7 +8426,7 @@ body.tier-free #freelist{display:block}
       o.addEventListener('click',function(e){ if(e.target===o||e.target.id==='hmppx'||(e.target.parentNode===o)) ppClose(); });
       document.getElementById('hmap').appendChild(o); }
     var lbl='Back to map';
-    var card=(window.PP_CARD&&!d.pv&&!d.off)?ppCard(ppTrip()):''; window.PP_CARD=false;   /* v1.3.101: trip card only on landing at the first stop */
+    var card=''; window.PP_CARD=false;   /* v1.3.116: no trip banner (it pushed everything down); the trip's details are under Trip details */
     var lst='';
     if(d.own){ lst='<div style="position:absolute;left:60%;top:5%;width:38%;height:91%;display:flex;flex-direction:column;background:#fff;border:2px solid #1A2B4C;border-radius:12px;overflow:hidden;box-shadow:0 3px 8px rgba(0,0,0,.35);font-family:Arial,sans-serif">'+
       '<div style="background:#f26a21;color:#fff;padding:7px 6px;font:900 clamp(10px,2.8vw,12px) Arial;letter-spacing:.5px;text-align:center">OTHER STOPS IN '+esc(ppStName(d.h.st).toUpperCase())+'</div>'+
@@ -8427,7 +8434,7 @@ body.tier-free #freelist{display:block}
       d.list.filter(function(x){ return x!==d.h; }).map(function(x){ var k=(LASTHITS||[]).indexOf(x);
         return '<div class="pplrow" data-k="'+k+'" style="display:flex;justify-content:space-between;gap:6px;padding:7px 0;border-bottom:1px solid #eef0f4;font-size:13px;cursor:pointer;color:#141414"><div><b>'+esc(x.b)+'</b><div style="font-size:11px;color:#666">'+esc(x.c)+'</div></div><b style="color:#1f8a43">$'+fmt(rankVal(x))+'</b></div>'; }).join('')+
       (d.list.length<2?'<div style="font-size:12px;color:#777;padding:8px 0">No other stops in this state on your route</div>':'')+'</div></div>'; }
-    o.innerHTML='<div style="width:100%;max-width:520px;margin-top:auto">'+card+'<div id="ppbox" style="position:relative;margin:0 auto">'+ppSvg(d)+lst+'</div>'+
+    o.innerHTML='<div style="width:100%;max-width:520px;flex:1;display:flex;flex-direction:column">'+card+'<div id="ppbox" style="position:relative;margin:auto">'+ppSvg(d)+lst+'</div>'+
       /* v1.3.105: Back to map and List view side by side */
       '<div style="display:flex;gap:8px;margin:-6px 0 0 9%;width:87%">'+   /* v1.3.113: buttons up toward the pump */
       '<button type="button" id="hmppx" style="flex:1;padding:10px 6px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 clamp(12px,3.7vw,16px) Arial,sans-serif">Back to map</button>'+
@@ -8475,7 +8482,7 @@ body.tier-free #freelist{display:block}
     var box=document.getElementById('ppbox'); if(!box) return; var svg=box.querySelector('svg'), wrap=box.parentNode;
     box.style.width='100%'; svg.style.width='100%'; svg.style.height='auto';
     var cs=getComputedStyle(o), avail=o.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom);
-    var others=wrap.offsetHeight-box.offsetHeight, W=wrap.clientWidth;
+    var others=0, W=wrap.clientWidth; [].forEach.call(wrap.children,function(c){ if(c!==box){ var cc=getComputedStyle(c); others+=c.offsetHeight+parseFloat(cc.marginTop)+parseFloat(cc.marginBottom); } });
     var full=W*756/560, h=Math.min(full, avail-others-4); if(h<full*0.85) h=full*0.85; var w=h*560/756;   /* v1.3.112: at most 15% smaller */
     box.style.width=w+'px'; svg.style.width=w+'px'; svg.style.height=h+'px';
   }catch(e){} }
@@ -8517,7 +8524,7 @@ body.tier-free #freelist{display:block}
     document.getElementById('hmtitle').textContent=title;
     /* v1.3.107: the trip name floats on the map beside the zoom buttons */
     { var tl=document.getElementById('hmtlbl'); if(!tl){ tl=document.createElement('div'); tl.id='hmtlbl'; document.getElementById('hmmap').appendChild(tl); }
-      tl.textContent=String(title).replace(/ to /g,' \u2192 '); tl.style.display='block'; }
+      tl.textContent=String(title).replace(/ to /g,' \u2192 ')+(ROUTE_TOTAL>0?'  \u00b7  '+Math.round(ROUTE_TOTAL).toLocaleString('en-US')+' mi':''); tl.style.display='block'; }
     document.getElementById('hmap').classList.add('show'); window.HM_OPEN=true;
     try{ enterScreen(); }catch(e){} try{ optBtn(true); }catch(e){}
     return loadLeaflet().then(function(){
