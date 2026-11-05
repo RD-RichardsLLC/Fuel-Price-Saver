@@ -3067,6 +3067,11 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
   { date:'2026-11-05', items:[
+    'Version 1.3.101',
+    '**A trip card when you land on the map.** At your first fuel stop, a card over the pump shows your cities in order, how many stops and fuel stops, total miles, gallons and total cost. It goes away when you move on',
+    '**New Trip details button on the map.** It shows your trip leg by leg, with the fuel stops, gallons and cost on each leg, in easy-to-read black on white'
+  ]},
+  { date:'2026-11-05', items:[
     'Version 1.3.100',
     '**Go on the Fuel plan takes you straight to the map** at your first fuel stop, with its pump up. No more pages to click through. If your fuel can\u2019t reach a stop, you\u2019ll still see the warning first',
     '**The Next Stop sign swings farther and slower,** toward you and away through its stand'
@@ -7994,7 +7999,7 @@ body.tier-free #freelist{display:block}
 .hmpop a{display:inline-block;margin-top:6px;background:#f26a21;color:#fff!important;padding:6px 10px;border-radius:7px;font-weight:700;text-decoration:none}
 </style>
 <div id="hmap">
-  <div id="hmbar"><div class="t" id="hmtitle">Truck route</div><button type="button" id="hmrad">Radar</button><button type="button" id="hmsat">Satellite</button><button type="button" class="x" onclick="hmClose()">Close</button></div>
+  <div id="hmbar"><div class="t" id="hmtitle">Truck route</div><button type="button" id="hmtd">Trip details</button><button type="button" id="hmrad">Radar</button><button type="button" id="hmsat">Satellite</button><button type="button" class="x" onclick="hmClose()">Close</button></div>
   <div id="hmmap"></div>
   <div id="hmnote">Map shows the truck route the app planned. Always check signs and restrictions for yourself.</div>
 </div>
@@ -8184,6 +8189,62 @@ body.tier-free #freelist{display:block}
       if(live) ppTimer=requestAnimationFrame(step); else if(sign) sign.removeAttribute('transform'); }
     ppTimer=requestAnimationFrame(step);
   }
+  /* v1.3.101: trip totals for the trip card and Trip details */
+  function ppTrip(){
+    var plan={}; (window.FP_PLANK||[]).forEach(function(k){ plan[k]=1; });
+    var stops=(LASTHITS||[]).filter(function(x){ return plan[x.la+','+x.lo] && isFinite(x.rmi); }).sort(function(a,b){ return a.rmi-b.rmi; });
+    var gal=0, cost=0, rows=stops.map(function(h){ var g=Math.round((window.FP_PLANG||{})[h.la+','+h.lo]||0), pr=null; try{ pr=rankVal(h); }catch(e){}
+      gal+=g; if(pr!=null&&isFinite(pr)) cost+=g*pr; return {h:h,g:g,pr:pr}; });
+    var ins=[].slice.call(document.querySelectorAll('#stops input')).map(function(i){ return i.value.trim(); }).filter(Boolean).map(function(v){ return v===HERE?'Your location':v; });
+    return {rows:rows, gal:gal, cost:cost, cities:ins, mi:Math.round(ROUTE_TOTAL||0)};
+  }
+  function ppMoney(x){ return '$'+x.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+  function ppCities(t){ return t.cities.map(esc).join(' <span style="color:#f26a21">\u2192</span> '); }
+  function ppStopsLine(t){ var n=t.rows.length, x=Math.max(0,t.cities.length-2);
+    return (x?x+' stop'+(x===1?'':'s')+' plus ':'')+n+' fuel stop'+(n===1?'':'s'); }
+  function ppCard(t){
+    var c='font:700 11px Arial,sans-serif;color:#6b7686;letter-spacing:.5px', v='font:700 17px Arial,sans-serif;color:#141414';
+    return '<div style="margin:0 0 8px 9%;width:87%;box-sizing:border-box;background:#fff;border:1px solid #c9cfd8;border-radius:12px;padding:10px 14px;box-shadow:0 3px 8px rgba(0,0,0,.35);font-family:Arial,sans-serif">'+
+      '<div style="display:flex;justify-content:space-between;align-items:baseline"><b style="font-size:15px;color:#10233f">Your trip</b><b style="font-size:12px;color:#f26a21">Stop 1 of '+t.rows.length+'</b></div>'+
+      '<div style="font-size:13px;color:#3d4a5c;margin-top:3px;line-height:1.35">'+ppCities(t)+'</div>'+
+      '<div style="font-size:12px;color:#6b7686;margin-top:2px">'+ppStopsLine(t)+'</div>'+
+      '<div style="display:flex;justify-content:space-between;border-top:1px solid #e3e7ee;margin-top:7px;padding-top:6px;gap:6px">'+
+      '<div><div style="'+c+'">MILES</div><div style="'+v+'">'+t.mi.toLocaleString('en-US')+'</div></div>'+
+      '<div><div style="'+c+'">GALLONS</div><div style="'+v+'">'+t.gal.toLocaleString('en-US')+'</div></div>'+
+      '<div><div style="'+c+'">TOTAL COST</div><div style="'+v+';color:#1f8a43">'+ppMoney(t.cost)+'</div></div></div></div>';
+  }
+  function tdOpen(){
+    var t=ppTrip(), o=document.getElementById('hmtdp');
+    if(!o){ o=document.createElement('div'); o.id='hmtdp';
+      o.style.cssText='position:absolute;inset:0;z-index:2100;background:rgba(0,0,0,.25);display:flex;justify-content:center;align-items:flex-start;padding:12px;box-sizing:border-box;overflow-y:auto';
+      o.addEventListener('click',function(e){ if(e.target===o||e.target.id==='hmtdx') tdClose(); });
+      document.getElementById('hmap').appendChild(o); }
+    var legs=[], L=window.ROUTE_LEGS;
+    if(L&&L.length>1){ legs=L.map(function(g,k){ var a=ROUTE_CUM[g.s]||0, b=k<L.length-1?(ROUTE_CUM[L[k+1].s]||1e9):1e9; return {from:g.from,to:g.to,mi:g.mi,a:a,b:b}; }); }
+    else legs=[{from:t.cities[0]||'Start',to:t.cities[t.cities.length-1]||'End',mi:t.mi,a:-1,b:1e9}];
+    var h='<div style="background:#fff;color:#141414;max-width:520px;width:100%;border-radius:14px;padding:14px 16px 16px;box-sizing:border-box;font-family:Arial,sans-serif;box-shadow:0 4px 14px rgba(0,0,0,.35)">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:19px">Trip details</b><button type="button" id="hmtdx" style="border:0;border-radius:9px;background:#f26a21;color:#fff;font:700 14px Arial;padding:8px 14px">Close</button></div>'+
+      '<div style="font-size:14px;margin-top:8px;line-height:1.4">'+ppCities(t)+'</div>'+
+      '<div style="font-size:13px;color:#555;margin-top:2px">'+ppStopsLine(t)+'</div>'+
+      '<div style="display:flex;justify-content:space-between;background:#f6f7f9;border-radius:10px;padding:9px 12px;margin-top:10px">'+
+      '<div><div style="font-size:11px;color:#666">MILES</div><b style="font-size:17px">'+t.mi.toLocaleString('en-US')+'</b></div>'+
+      '<div><div style="font-size:11px;color:#666">FUEL STOPS</div><b style="font-size:17px">'+t.rows.length+'</b></div>'+
+      '<div><div style="font-size:11px;color:#666">GALLONS</div><b style="font-size:17px">'+t.gal.toLocaleString('en-US')+'</b></div>'+
+      '<div><div style="font-size:11px;color:#666">TOTAL COST</div><b style="font-size:17px;color:#1f8a43">'+ppMoney(t.cost)+'</b></div></div>';
+    if(!t.rows.length) h+='<div style="margin-top:12px;font-size:14px;color:#555">No fuel plan yet. Run the Fuel Optimizer to see where to buy on each leg.</div>';
+    legs.forEach(function(g,k){
+      var rs=t.rows.filter(function(r){ return r.h.rmi>=g.a && r.h.rmi<g.b; });
+      h+='<div style="margin-top:14px;border-top:2px solid #f26a21;padding-top:8px"><div style="display:flex;justify-content:space-between;gap:8px"><b style="color:#f26a21;font-size:15px">'+(legs.length>1?'Leg '+(k+1)+': ':'')+esc(g.from)+' \u2192 '+esc(g.to)+'</b><b style="font-size:14px;white-space:nowrap">'+(g.mi||0).toLocaleString('en-US')+' mi</b></div>';
+      if(!rs.length&&t.rows.length) h+='<div style="font-size:13px;color:#777;margin-top:4px">No fuel stop on this leg</div>';
+      rs.forEach(function(r){ var x=r.h;
+        h+='<div style="display:flex;justify-content:space-between;gap:8px;margin-top:7px;font-size:14px"><div><b>'+esc(x.b)+'</b> '+esc(x.c)+', '+esc(x.st)+'<div style="font-size:12px;color:#666">Mile '+Math.round(x.rmi).toLocaleString('en-US')+' \u00b7 '+r.g+' gal at $'+(r.pr!=null?fmt(r.pr):'?')+'</div></div>'+
+          '<b style="color:#1f8a43;white-space:nowrap">'+(r.pr!=null?ppMoney(r.g*r.pr):'')+'</b></div>'; });
+      h+='</div>';
+    });
+    o.innerHTML=h+'</div>'; o.style.display='flex'; window.HM_TD=true;
+  }
+  function tdClose(){ var o=document.getElementById('hmtdp'); if(o) o.style.display='none'; window.HM_TD=false; }
+  document.getElementById('hmtd').addEventListener('click',function(){ tdOpen(); });
   var ppMk={}, ppCur=null;
   function ppOpen(h){
     var d=ppData(h); if(!d) return false;
@@ -8195,7 +8256,8 @@ body.tier-free #freelist{display:block}
       o.addEventListener('click',function(e){ if(e.target===o||e.target.id==='hmppx'||(e.target.parentNode===o)) ppClose(); });
       document.getElementById('hmap').appendChild(o); }
     var lbl=d.nx?'Back to map&nbsp;&nbsp;&nbsp;or&nbsp;&nbsp;&nbsp;tap sign for next stop':'Back to map';
-    o.innerHTML='<div style="width:100%;max-width:520px">'+ppSvg(d)+
+    var card=(window.PP_CARD&&!d.pv)?ppCard(ppTrip()):''; window.PP_CARD=false;   /* v1.3.101: trip card only on landing at the first stop */
+    o.innerHTML='<div style="width:100%;max-width:520px">'+card+ppSvg(d)+
       '<button type="button" id="hmppx" style="display:block;margin:12px 0 0 9%;width:87%;padding:10px 8px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 clamp(12px,3.7vw,16px) Arial,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+lbl+'</button>'+
       /* v1.3.98: Previous and Next walk through the stops on your fuel plan; each one hides at its end of the plan */
       /* v1.3.99: Previous and First stop, in orange, set lower so they're not tapped by mistake */
@@ -8250,7 +8312,7 @@ body.tier-free #freelist{display:block}
       setTimeout(function(){ M.invalidateSize(); draw(focus); },60);
     });
   }
-  window.hmClose=function(){ if(!window.HM_OPEN) return; if(window.HM_PP){ ppClose(); return; } window.HM_OPEN=false; document.getElementById('hmap').classList.remove('show'); };
+  window.hmClose=function(){ if(!window.HM_OPEN) return; if(window.HM_TD){ tdClose(); return; } if(window.HM_PP){ ppClose(); return; } window.HM_OPEN=false; document.getElementById('hmap').classList.remove('show'); };
   document.getElementById('hmsat').addEventListener('click',function(){ sat=!sat; if(M) tiles(); });
   /* v1.3.90: live radar on the truck route. Loops the last couple of hours (same blue style as the radar page) so you see which way storms move; pulls new frames every 10 minutes */
   var radOn=false, RL=[], RF=0, RT=null, RR=null, RHOST='';
@@ -8307,6 +8369,7 @@ body.tier-free #freelist{display:block}
     if(!first||!ppData(first)) return;
     var ins=[].slice.call(document.querySelectorAll('#stops input')).map(function(i){ return i.value.trim(); }).filter(Boolean);
     var t=ins.length>1?(ins[0]===HERE?'Your location':ins[0])+' to '+ins[ins.length-1]:'Your fuel plan';
+    window.PP_CARD=true;
     open(t,[first.la,first.lo],'',false).catch(function(){ hmClose(); });
   };
   /* phone back arrow closes the map */
