@@ -3067,6 +3067,11 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
   { date:'2026-11-05', items:[
+    'Version 1.3.117',
+    '**Bigger, centered numbers on the pump.** The total cost, gallons and discount price windows are all the same height, and the numbers are bigger and centered',
+    '**More room around the Diesel sign** at the top of the pump'
+  ]},
+  { date:'2026-11-05', items:[
     'Version 1.3.116',
     '**Easier-to-read pump.** Taller price windows with bigger numbers, a bigger Diesel sign, and bigger writing at the bottom, with a bigger brand tag',
     '**Your trip\u2019s miles now show in the black trip label** at the top of the map. The trip card that came up at the first stop is gone, so the screen no longer scrolls',
@@ -8257,11 +8262,11 @@ body.tier-free #freelist{display:block}
     var w=t.length>6?190:150, fs=Math.min(24,(w-18)/Math.max(1,t.length*0.8)).toFixed(1);   /* v1.3.116: brand name the size of the sign's */
     var town=String(h.c||'').toUpperCase()+(h.st?', '+String(h.st).toUpperCase():''), tfs=Math.min(17,228/Math.max(1,town.length*0.66)).toFixed(1);
     var ex=ppExit(h), efs=Math.min(17,228/Math.max(1,ex.length*0.66)).toFixed(1);
-    return '<line x1="120" y1="514" x2="250" y2="514" stroke="#c9ced8" stroke-width="1.5"/>'+
-      '<rect x="'+(185-w/2)+'" y="526" width="'+w+'" height="40" rx="9" fill="'+bg+'" stroke="'+bd+'" stroke-width="1.2"/>'+
-      '<text x="185" y="'+(546+fs*0.36).toFixed(1)+'" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="'+fs+'" fill="'+fg+'" letter-spacing=".5">'+esc(t)+'</text>'+
-      '<text x="185" y="596" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="'+tfs+'" fill="#1A2B4C" letter-spacing=".5">'+esc(town)+'</text>'+
-      (ex?'<text x="185" y="620" text-anchor="middle" font-family="Arial,sans-serif" font-weight="900" font-size="'+efs+'" fill="#141414" letter-spacing=".5">'+esc(ex)+'</text>':'');
+    return '<line x1="120" y1="530" x2="250" y2="530" stroke="#c9ced8" stroke-width="1.5"/>'+
+      '<rect x="'+(185-w/2)+'" y="540" width="'+w+'" height="40" rx="9" fill="'+bg+'" stroke="'+bd+'" stroke-width="1.2"/>'+
+      '<text x="185" y="'+(560+fs*0.36).toFixed(1)+'" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="'+fs+'" fill="'+fg+'" letter-spacing=".5">'+esc(t)+'</text>'+
+      '<text x="185" y="608" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="'+tfs+'" fill="#1A2B4C" letter-spacing=".5">'+esc(town)+'</text>'+
+      (ex?'<text x="185" y="630" text-anchor="middle" font-family="Arial,sans-serif" font-weight="900" font-size="'+efs+'" fill="#141414" letter-spacing=".5">'+esc(ex)+'</text>':'');
   }
   /* v1.3.115: a wider, taller pump with a bigger price face; a narrower sign set lower on its stand, over on the right */
   function ppSvg(d){
@@ -8279,32 +8284,32 @@ body.tier-free #freelist{display:block}
     '<linearGradient id="ppGn" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#22B04B"/><stop offset="1" stop-color="#138A36"/></linearGradient>'+
     '<linearGradient id="ppWh" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity=".55"/><stop offset=".3" stop-color="#000" stop-opacity="0"/><stop offset=".7" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".55"/></linearGradient>'+
     '<linearGradient id="ppIr" x1="0" x2="1"><stop offset="0" stop-color="#2a2f38"/><stop offset=".5" stop-color="#4a5260"/><stop offset="1" stop-color="#22262e"/></linearGradient>'+
-    '<clipPath id="ppcT"><rect x="105" y="162" width="160" height="42" rx="5"/></clipPath><clipPath id="ppcG"><rect x="105" y="232" width="160" height="42" rx="5"/></clipPath></defs>'+
+    '<clipPath id="ppcT"><rect x="105" y="188" width="160" height="46" rx="5"/></clipPath><clipPath id="ppcG"><rect x="105" y="264" width="160" height="46" rx="5"/></clipPath></defs>'+
     '<rect x="26" y="702" width="318" height="30" rx="6" fill="#0E1830"/><rect x="38" y="692" width="294" height="16" rx="4" fill="#24385F"/>'+
     '<path d="M46 168 C 12 200, 8 400, 20 560 S 36 696, 50 694" fill="none" stroke="#1C1C1E" stroke-width="9" stroke-linecap="round"/>'+
     '<rect x="46" y="36" width="278" height="662" rx="50" fill="url(#ppFr)"/><rect x="64" y="56" width="242" height="622" rx="36" fill="url(#ppPn)"/>'+
     '<rect x="54" y="70" width="6" height="576" rx="3" fill="#fff" opacity=".25"/>'+
-    /* v1.3.116: taller top of the pump: Diesel moved up, taller windows, bigger numbers */
-    '<rect x="94" y="64" width="182" height="54" rx="9" fill="url(#ppGn)" stroke="#1A2B4C" stroke-width="3"/>'+
-    '<text x="185" y="103" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="31" fill="#fff" letter-spacing="3">DIESEL</text>'+
-    '<rect x="94" y="132" width="182" height="210" rx="10" fill="#fff" stroke="#1A2B4C" stroke-width="4"/>'+
-    '<text x="185" y="155" text-anchor="middle" '+L+' font-size="14" letter-spacing=".5">'+(d.off?'DISCOUNT PRICE':'TOTAL COST')+'</text>'+
-    '<rect x="105" y="162" width="160" height="42" rx="5" fill="#101C33"/><g id="ppT" clip-path="url(#ppcT)"></g><rect x="105" y="162" width="160" height="42" rx="5" fill="url(#ppWh)"/>'+
-    '<text x="185" y="225" text-anchor="middle" '+L+' font-size="14" letter-spacing=".5">'+(d.off?'RETAIL PRICE':'GALLONS TO BUY')+'</text>'+
-    '<rect x="105" y="232" width="160" height="42" rx="5" fill="#101C33"/><g id="ppG" clip-path="url(#ppcG)"></g><rect x="105" y="232" width="160" height="42" rx="5" fill="url(#ppWh)"/>'+
-    '<text x="185" y="295" text-anchor="middle" '+L+' font-size="14" letter-spacing=".5">'+(d.off?'DISCOUNT':'DISCOUNT PRICE')+'</text>'+
-    '<rect x="128" y="301" width="114" height="34" rx="5" fill="#1C9A44"/>'+
-    '<text x="185" y="325" text-anchor="middle" font-family="Courier New,monospace" font-weight="700" font-size="21" fill="#fff">'+(d.off?(d.ret!=null?Math.max(0,Math.round((d.ret-d.pr)*100))+'\u00a2':'--'):'$'+fmt(d.pr))+'</text>'+
-    '<rect x="64" y="354" width="242" height="8" fill="#141414"/>'+
-    (d.own?'<text x="185" y="440" text-anchor="middle" '+L+' font-size="17" letter-spacing="1">'+(d.rank===0?'CHEAPEST':'#'+(d.rank+1)+' OF '+d.list.length)+'</text>'+
-      '<text x="185" y="462" text-anchor="middle" '+L+' font-size="17" letter-spacing=".5">ON YOUR ROUTE</text>'+
-      '<text x="185" y="484" text-anchor="middle" '+L+' font-size="'+Math.min(17,220/Math.max(1,(3+ppStName(d.h.st).length)*0.72)).toFixed(1)+'" letter-spacing="1">IN '+esc(ppStName(d.h.st).toUpperCase())+'</text>'
-    :d.off?'<text x="185" y="452" text-anchor="middle" '+L+' font-size="17" letter-spacing="1">NOT PART OF</text>'+
-      '<text x="185" y="476" text-anchor="middle" '+L+' font-size="17" letter-spacing="1">YOUR FUEL PLAN</text>'
-    :'<path d="M185 410 L197 424 L189 424 L189 444 L181 444 L181 424 L173 424 Z" fill="url(#ppGn)" stroke="#141414" stroke-width="1.3" stroke-linejoin="round"/>'+
-    '<text x="185" y="474" text-anchor="middle" '+L+' font-size="17" letter-spacing="1">AMOUNT TO BUY</text>'+
-    '<text x="185" y="496" text-anchor="middle" '+L+' font-size="17" letter-spacing="1">AT THIS STOP</text>')+
-    ppTag(d.h)+(d.own&&d.miAhead!=null?'<text x="185" y="650" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="16" fill="#d62828" letter-spacing="1">'+d.miAhead.toLocaleString('en-US')+' MI AHEAD</text>':'')+
+    /* v1.3.117: more room up top (taken from the bottom section): Diesel centered above the price face, all three windows the same height, bigger numbers */
+    '<rect x="94" y="78" width="182" height="56" rx="9" fill="url(#ppGn)" stroke="#1A2B4C" stroke-width="3"/>'+
+    '<text x="185" y="117" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="31" fill="#fff" letter-spacing="3">DIESEL</text>'+
+    '<rect x="94" y="156" width="182" height="244" rx="10" fill="#fff" stroke="#1A2B4C" stroke-width="4"/>'+
+    '<text x="185" y="180" text-anchor="middle" '+L+' font-size="14" letter-spacing=".5">'+(d.off?'DISCOUNT PRICE':'TOTAL COST')+'</text>'+
+    '<rect x="105" y="188" width="160" height="46" rx="5" fill="#101C33"/><g id="ppT" clip-path="url(#ppcT)"></g><rect x="105" y="188" width="160" height="46" rx="5" fill="url(#ppWh)"/>'+
+    '<text x="185" y="256" text-anchor="middle" '+L+' font-size="14" letter-spacing=".5">'+(d.off?'RETAIL PRICE':'GALLONS TO BUY')+'</text>'+
+    '<rect x="105" y="264" width="160" height="46" rx="5" fill="#101C33"/><g id="ppG" clip-path="url(#ppcG)"></g><rect x="105" y="264" width="160" height="46" rx="5" fill="url(#ppWh)"/>'+
+    '<text x="185" y="332" text-anchor="middle" '+L+' font-size="14" letter-spacing=".5">'+(d.off?'DISCOUNT':'DISCOUNT PRICE')+'</text>'+
+    '<rect x="105" y="340" width="160" height="46" rx="5" fill="#1C9A44"/>'+
+    '<text x="185" y="372" text-anchor="middle" font-family="Courier New,monospace" font-weight="700" font-size="26" fill="#fff">'+(d.off?(d.ret!=null?Math.max(0,Math.round((d.ret-d.pr)*100))+'\u00a2':'--'):'$'+fmt(d.pr))+'</text>'+
+    '<rect x="64" y="414" width="242" height="8" fill="#141414"/>'+
+    (d.own?'<text x="185" y="460" text-anchor="middle" '+L+' font-size="17" letter-spacing="1">'+(d.rank===0?'CHEAPEST':'#'+(d.rank+1)+' OF '+d.list.length)+'</text>'+
+      '<text x="185" y="482" text-anchor="middle" '+L+' font-size="17" letter-spacing=".5">ON YOUR ROUTE</text>'+
+      '<text x="185" y="504" text-anchor="middle" '+L+' font-size="'+Math.min(17,220/Math.max(1,(3+ppStName(d.h.st).length)*0.72)).toFixed(1)+'" letter-spacing="1">IN '+esc(ppStName(d.h.st).toUpperCase())+'</text>'
+    :d.off?'<text x="185" y="470" text-anchor="middle" '+L+' font-size="17" letter-spacing="1">NOT PART OF</text>'+
+      '<text x="185" y="494" text-anchor="middle" '+L+' font-size="17" letter-spacing="1">YOUR FUEL PLAN</text>'
+    :'<path d="M185 434 L197 448 L189 448 L189 466 L181 466 L181 448 L173 448 Z" fill="url(#ppGn)" stroke="#141414" stroke-width="1.3" stroke-linejoin="round"/>'+
+    '<text x="185" y="492" text-anchor="middle" '+L+' font-size="17" letter-spacing="1">AMOUNT TO BUY</text>'+
+    '<text x="185" y="514" text-anchor="middle" '+L+' font-size="17" letter-spacing="1">AT THIS STOP</text>')+
+    ppTag(d.h)+(d.own&&d.miAhead!=null?'<text x="185" y="660" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="16" fill="#d62828" letter-spacing="1">'+d.miAhead.toLocaleString('en-US')+' MI AHEAD</text>':'')+
     '<rect x="34" y="150" width="20" height="40" rx="4" fill="#138A36"/>'+
     '<path d="M22 156 h22 v34 h-8 v18 a6 6 0 0 1 -12 0 v-18 h-2 z" fill="url(#ppCh)" stroke="#5E6672" stroke-width="1.5"/>'+
     '<path d="M18 170 q-12 6 -10 30" fill="none" stroke="#138A36" stroke-width="4" stroke-linecap="round"/><rect x="26" y="146" width="16" height="12" rx="3" fill="url(#ppGn)"/>'+
@@ -8329,18 +8334,18 @@ body.tier-free #freelist{display:block}
   }
   var ppTimer=null;
   function ppRoll(d){
-    var NS='http://www.w3.org/2000/svg', H=36, CW=13.5;
+    var NS='http://www.w3.org/2000/svg', H=40, CW=14.5;
     function tx(x,y,c){ var t=document.createElementNS(NS,'text'); t.setAttribute('x',x); t.setAttribute('y',y); t.setAttribute('text-anchor','middle');
-      t.setAttribute('font-family','Courier New,monospace'); t.setAttribute('font-weight','700'); t.setAttribute('font-size','21'); t.setAttribute('fill','#fff'); t.textContent=c; return t; }
+      t.setAttribute('font-family','Courier New,monospace'); t.setAttribute('font-weight','700'); t.setAttribute('font-size','23'); t.setAttribute('fill','#fff'); t.textContent=c; return t; }
     function reels(id,str,y){ var g=document.getElementById(id), n=str.length, x0=185-(n*CW)/2+CW/2, out=[];
       for(var i=0;i<n;i++){ var c=str[i], x=x0+i*CW;
-        if(!/[0-9]/.test(c)){ g.appendChild(tx(x,y+29,c)); continue; }
-        var s=document.createElementNS(NS,'g'); for(var k=0;k<120;k++) s.appendChild(tx(x,y+29+k*H,String(k%10)));
+        if(!/[0-9]/.test(c)){ g.appendChild(tx(x,y+30,c)); continue; }
+        var s=document.createElementNS(NS,'g'); for(var k=0;k<120;k++) s.appendChild(tx(x,y+30+k*H,String(k%10)));
         g.appendChild(s); out.push({el:s,d:+c}); }
       return out; }
     var all=[];
-    reels('ppT','$'+d.tot,162).forEach(function(r,i){ r.end=((2+i)*10+r.d)*H; r.dur=1600+i*350; all.push(r); });
-    reels('ppG',d.off?(d.ret!=null?'$'+d.ret.toFixed(3):'--'):String(d.g),232).forEach(function(r,i){ r.end=((1+i)*10+r.d)*H; r.dur=1900+i*300; all.push(r); });
+    reels('ppT','$'+d.tot,188).forEach(function(r,i){ r.end=((2+i)*10+r.d)*H; r.dur=1600+i*350; all.push(r); });
+    reels('ppG',d.off?(d.ret!=null?'$'+d.ret.toFixed(3):'--'):String(d.g),264).forEach(function(r,i){ r.end=((1+i)*10+r.d)*H; r.dur=1900+i*300; all.push(r); });
     var sign=document.getElementById('ppS'), t0=performance.now(), wait=0; cancelAnimationFrame(ppTimer);
     all.forEach(function(r){ if(r.dur>wait) wait=r.dur; });   /* v1.3.97: the sign waits until the last wheel stops */
     function step(now){ var live=false, t=(now-t0-wait)/1000;
