@@ -3067,6 +3067,10 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
   { date:'2026-11-05', items:[
+    'Version 1.3.114',
+    '**The pump, sign and buttons all moved up together** a little higher on the screen'
+  ]},
+  { date:'2026-11-05', items:[
     'Version 1.3.113',
     '**The buttons sit a little closer to the pump**'
   ]},
@@ -8401,7 +8405,7 @@ body.tier-free #freelist{display:block}
     var mk=ppMk[h.la+','+h.lo]; if(mk){ mk.setOpacity(0); ppCur=mk; }   /* v1.3.97: the little pump hides while the big one is up */
     var o=document.getElementById('hmpp');
     if(!o){ o=document.createElement('div'); o.id='hmpp';
-      o.style.cssText='position:absolute;left:0;right:0;bottom:0;top:0;z-index:2000;background:transparent;display:flex;flex-direction:column;align-items:center;padding:52px 14px calc(30px + env(safe-area-inset-bottom,0px));box-sizing:border-box;overflow-y:auto';   /* v1.3.109: bottom row up one button height */
+      o.style.cssText='position:absolute;left:0;right:0;bottom:0;top:0;z-index:2000;background:transparent;display:flex;flex-direction:column;align-items:center;padding:52px 14px calc(52px + env(safe-area-inset-bottom,0px));box-sizing:border-box;overflow-y:auto';   /* v1.3.109: bottom row up one button height */
       o.addEventListener('click',function(e){ if(e.target===o||e.target.id==='hmppx'||(e.target.parentNode===o)) ppClose(); });
       document.getElementById('hmap').appendChild(o); }
     var lbl='Back to map';
