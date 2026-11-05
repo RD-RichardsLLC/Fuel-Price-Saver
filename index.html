@@ -3067,6 +3067,11 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
   { date:'2026-11-05', items:[
+    'Version 1.3.100',
+    '**Go on the Fuel plan takes you straight to the map** at your first fuel stop, with its pump up. No more pages to click through. If your fuel can\u2019t reach a stop, you\u2019ll still see the warning first',
+    '**The Next Stop sign swings farther and slower,** toward you and away through its stand'
+  ]},
+  { date:'2026-11-05', items:[
     'Version 1.3.99',
     '**The Next button is gone.** Tap the sign to go to your next stop',
     '**New First stop button** takes you back to the start of your fuel plan. Previous and First stop are now orange and sit a little lower so you don\u2019t tap the wrong one',
@@ -7210,7 +7215,12 @@ function fqGo(){ try{ localStorage.setItem('fps_fsopt_last',String(Date.now()));
   t.endg=Math.max(eg,+t.res||0);
   t.fpset=true; try{ localStorage.setItem('fps_truck',JSON.stringify(t)); }catch(x){} try{ truckSum(); }catch(x){}
   try{ var t2=getTruck()||t; t2.lastnow=g; localStorage.setItem('fps_truck',JSON.stringify(t2)); }catch(x){}
-  FP_NOWG=g; document.getElementById('fqpop').classList.remove('show'); fpOpenReal();
+  FP_NOWG=g; document.getElementById('fqpop').classList.remove('show');
+  /* v1.3.100: Go works out the plan and takes you straight to the map at your first fuel stop */
+  window.FP_SILENT=true; try{ fpOpenReal(); }catch(x){} window.FP_SILENT=false;
+  if(window.FP_SAVE_SHORT||!window.FP_PLANK||!FP_PLANK.length){ fpOpenReal(); return; }   /* plan can't reach a stop: show the warning */
+  try{ FP_VIEW='plan'; fpApplyView(); window.scrollTo(0,0); }catch(x){}
+  setTimeout(function(){ if(window.hmOpenPlan) hmOpenPlan(); },150);
 }
 function fqFr(f){
   var t=getTruck()||TRUCK_DEF, tk=parseFloat(document.getElementById('fqtank').value)||(+t.tank||200);
@@ -8145,7 +8155,7 @@ body.tier-free #freelist{display:block}
       '<text x="420" y="436" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="11" fill="#1A2B4C" letter-spacing="1">TO GET THERE</text>'
      :'<text x="420" y="414" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="16" fill="#1A2B4C">LAST FUEL STOP</text>'+
       '<text x="420" y="436" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="11" fill="#1A2B4C" letter-spacing="1">ON YOUR PLAN</text>')+
-    '<circle cx="348" cy="276" r="2.5" fill="#8a8f99"/><circle cx="492" cy="276" r="2.5" fill="#8a8f99"/><circle cx="348" cy="448" r="2.5" fill="#8a8f99"/><circle cx="492" cy="448" r="2.5" fill="#8a8f99"/></g></svg>';
+    '<circle cx="348" cy="276" r="2.5" fill="#8a8f99"/><circle cx="492" cy="276" r="2.5" fill="#8a8f99"/><circle cx="348" cy="448" r="2.5" fill="#8a8f99"/><circle cx="492" cy="448" r="2.5" fill="#8a8f99"/><rect id="ppShade" x="334" y="262" width="172" height="200" rx="10" fill="#000" opacity="0"/></g></svg>';
   }
   var ppTimer=null;
   function ppRoll(d){
@@ -8166,8 +8176,10 @@ body.tier-free #freelist{display:block}
     function step(now){ var live=false, t=(now-t0-wait)/1000;
       all.forEach(function(r){ var q=Math.min(1,(now-t0)/r.dur), e=1-Math.pow(1-q,3); r.el.setAttribute('transform','translate(0,'+(-e*r.end)+')'); if(q<1) live=true; });
       /* v1.3.99: the sign swings front to back on its hooks, through the stand */
-      var ang=t<0?0:0.75*Math.exp(-0.9*t)*Math.cos(4.2*t), sy=Math.cos(ang);
-      if(sign) sign.setAttribute('transform','translate(0 232) scale(1 '+sy.toFixed(3)+') translate(0 -232)');
+      /* v1.3.100: swings farther toward you and away, and slower; a little wider coming toward you, a little darker going away */
+      var ang=t<0?0:1.15*Math.exp(-0.55*t)*Math.cos(2.6*t), sy=Math.cos(ang), sx=1+0.07*Math.sin(ang), sh=document.getElementById('ppShade');
+      if(sign) sign.setAttribute('transform','translate(420 232) scale('+sx.toFixed(3)+' '+sy.toFixed(3)+') translate(-420 -232)');
+      if(sh) sh.setAttribute('opacity',(Math.max(0,-Math.sin(ang))*0.35).toFixed(3));
       if(Math.abs(ang)>0.004||t<1) live=true;
       if(live) ppTimer=requestAnimationFrame(step); else if(sign) sign.removeAttribute('transform'); }
     ppTimer=requestAnimationFrame(step);
