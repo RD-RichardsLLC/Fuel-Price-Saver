@@ -3067,6 +3067,17 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
   { date:'2026-11-05', items:[
+    'Version 1.3.122',
+    '**See where you are on the route map.** A black arrow shows your truck, points the way you are heading, and the map follows you as you drive. The first time, your phone asks to share your location',
+    '**Zoom in and out freely.** If your arrow goes off the screen, a Return to route button pops up. Tap it to jump back to your arrow',
+    '**The map only tracks you while it is open on your screen.** It is not turn-by-turn directions, so keep using your own navigation'
+  ]},
+  { date:'2026-11-05', items:[
+    'Version 1.3.121',
+    '**New route button on the pump.** Next to Back to map and List view, it takes you straight back to where you type in a new trip',
+    '**Satellite view now uses HERE**, the same map company as your truck route, with road names and highway numbers on top'
+  ]},
+  { date:'2026-11-05', items:[
     'Version 1.3.120',
     '**New Back to pump button.** After you go back to the map, the orange Back to pump button reopens the pump you were on',
     '**More room before the miles** in the black trip label at the top of the map'
@@ -8104,6 +8115,12 @@ body.tier-free #freelist{display:block}
 #hmbar .x{background:#f26a21;border-color:#f26a21}
 #hmbar .t{display:none}
 #hmbar button{flex:1}
+/* v1.3.122: your location arrow with a soft pulsing ring */
+@keyframes gpsPulse{0%{transform:scale(.5);opacity:.55}100%{transform:scale(1.6);opacity:0}}
+.gpsme{position:relative;width:44px;height:44px}
+.gpsme .ring{position:absolute;left:4px;top:4px;width:36px;height:36px;border-radius:50%;background:rgba(20,20,20,.35);animation:gpsPulse 1.8s ease-out infinite}
+.gpsme .arw{position:absolute;left:5px;top:5px;width:34px;height:34px;transition:transform .5s}
+#hmret{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:1600;display:none;border:2px solid #fff;border-radius:22px;background:#141414;color:#fff;font:700 15px Arial,sans-serif;padding:10px 18px;box-shadow:0 3px 10px rgba(0,0,0,.45);white-space:nowrap}
 #hmtlbl{position:absolute;top:10px;left:54px;z-index:800;background:#141414;color:#fff;font:700 13px Arial,sans-serif;padding:7px 11px;border-radius:9px;box-shadow:0 2px 6px rgba(0,0,0,.4);max-width:calc(100% - 70px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}
 #hmmap{flex:1;min-height:0}
 #hmfoot{display:flex;gap:8px;padding:10px;padding-bottom:calc(10px + env(safe-area-inset-bottom,0px));background:#10233f;border-top:1px solid #2b4a70}
@@ -8139,14 +8156,13 @@ body.tier-free #freelist{display:block}
     if(window.HM_LBL){ try{ M.removeLayer(HM_LBL); }catch(e){} window.HM_LBL=null; }
     var errs=0;
     if(sat){
-      /* v1.3.92: Satellite uses Google's satellite picture with roads, highway numbers and towns on it; your route and pumps stay on top */
-      M.setMaxZoom(21);
-      base=L.tileLayer('https://mt{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}&scale=2',{subdomains:'0123',maxZoom:21,attribution:'Imagery \u00a9 Google'}).addTo(M);
-      /* v1.3.93: Google's road names and highway numbers on their own layer, above your route line */
+      /* v1.3.121: Satellite is HERE's satellite picture again (no Google), with HERE road names and highway numbers above your route */
+      if(M.getZoom()>20) M.setZoom(20); M.setMaxZoom(20);
+      base=L.tileLayer('https://maps.hereapi.com/v3/base/mc/{z}/{x}/{y}/jpeg?style=satellite.day&size=512&apiKey='+HERE_KEY,{tileSize:512,zoomOffset:-1,maxZoom:20,attribution:'\u00a9 HERE'}).addTo(M);
       if(!M.getPane('hmlabels')){ var gp=M.createPane('hmlabels'); gp.style.zIndex=450; gp.style.pointerEvents='none'; }
-      window.HM_LBL=L.tileLayer('https://mt{s}.google.com/vt/lyrs=h&x={x}&y={y}&z={z}&scale=2',{subdomains:'0123',pane:'hmlabels',maxZoom:21}).addTo(M);
-      base.on('tileerror',function(){ if(++errs!==4) return; M.removeLayer(base);
-        base=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Esri'}).addTo(M); });
+      window.HM_LBL=L.tileLayer('https://maps.hereapi.com/v3/label/mc/{z}/{x}/{y}/png?style=explore.satellite.day&size=512&apiKey='+HERE_KEY,{tileSize:512,zoomOffset:-1,pane:'hmlabels',maxZoom:20}).addTo(M);
+      window.HM_LBL.on('tileerror',function(){ if(++errs!==4) return; try{ M.removeLayer(HM_LBL); }catch(e){}
+        window.HM_LBL=L.tileLayer('https://maps.hereapi.com/v3/label/mc/{z}/{x}/{y}/png?style=explore.day&size=512&apiKey='+HERE_KEY,{tileSize:512,zoomOffset:-1,pane:'hmlabels',maxZoom:20}).addTo(M); });
     } else {
       if(M.getZoom()>19) M.setZoom(19); M.setMaxZoom(19);
       base=L.tileLayer('https://maps.hereapi.com/v3/base/mc/{z}/{x}/{y}/png8?style=explore.day&size=256&apiKey='+HERE_KEY,{maxZoom:19,attribution:'\u00a9 HERE'}).addTo(M);
@@ -8459,7 +8475,8 @@ body.tier-free #freelist{display:block}
       /* v1.3.105: Back to map and List view side by side */
       '<div style="display:flex;gap:8px;margin:-6px 0 0 9%;width:87%">'+   /* v1.3.113: buttons up toward the pump */
       '<button type="button" id="hmppx" style="flex:1;padding:10px 6px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 clamp(12px,3.7vw,16px) Arial,sans-serif">Back to map</button>'+
-      '<button type="button" id="hmpplv" style="flex:1;padding:10px 6px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 clamp(12px,3.7vw,16px) Arial,sans-serif">List view</button></div>'+
+      '<button type="button" id="hmpplv" style="flex:1;padding:10px 6px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 clamp(12px,3.7vw,16px) Arial,sans-serif">List view</button>'+
+      '<button type="button" id="hmppnr" style="flex:1;padding:10px 6px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 clamp(12px,3.7vw,16px) Arial,sans-serif">New route</button></div>'+   /* v1.3.121 */
       /* v1.3.103: Previous, Details and Next under Back to map. Previous hides at your first stop, Next at your last */
       '<div style="display:flex;justify-content:space-between;gap:8px;margin:10px 0 0 9%;width:87%">'+
       (d.own?'<button type="button" id="hmppd" style="flex:1;padding:10px 6px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 clamp(12px,3.7vw,16px) Arial,sans-serif">Details</button>'+
@@ -8474,6 +8491,7 @@ body.tier-free #freelist{display:block}
     if(bn) bn.addEventListener('click',function(e){ e.stopPropagation(); go(d.nx); });
     if(bo) bo.addEventListener('click',function(e){ e.stopPropagation(); runOpt(); });
     document.getElementById('hmpplv').addEventListener('click',function(e){ e.stopPropagation(); listView(); });
+    document.getElementById('hmppnr').addEventListener('click',function(e){ e.stopPropagation(); newRoute(); });
     document.getElementById('hmppd').addEventListener('click',function(e){ e.stopPropagation(); ppDetails(h); });
     [].slice.call(o.querySelectorAll('.pplrow')).forEach(function(r){ r.addEventListener('click',function(e){ e.stopPropagation(); var x=(LASTHITS||[])[+r.getAttribute('data-k')]; if(x) go(x); }); });
     /* v1.3.108: the pump layer starts under the top bar so Trip details, Radar and Satellite work on the first tap; everything sits low so the trip label stays in view */
@@ -8493,10 +8511,43 @@ body.tier-free #freelist{display:block}
     setTimeout(function(){ try{ M.invalidateSize(); }catch(e){} },60);
   }
   /* v1.3.105: leave the map for the stop list, or switch to the Fuel Optimizer */
-  function mapAway(){ ppClose(); try{ tdClose(); }catch(e){} try{ ownHint(false); }catch(e){} var ob=document.getElementById('hmopt'); if(ob) ob.style.display='none';
+  /* v1.3.122: GPS arrow. Shows where you are, points the way you're heading, and the map follows you.
+     Zoom in and out all you want; if your arrow goes off the screen, a Return to route button brings it back */
+  var gpsW=null, gpsMk=null, gpsLL=null, gpsPrev=null, gpsHd=0;
+  function gpsBtn(){ var b=document.getElementById('hmret');
+    if(!b){ b=document.createElement('button'); b.type='button'; b.id='hmret'; b.textContent='Return to route';
+      b.addEventListener('click',function(e){ e.stopPropagation(); if(M&&gpsLL){ M.setView(gpsLL,Math.max(M.getZoom(),13)); } b.style.display='none'; });
+      document.getElementById('hmap').appendChild(b); }
+    return b; }
+  function gpsCheck(){ if(!M||!gpsLL||!window.HM_OPEN) return; var b=gpsBtn();
+    b.style.display=(window.HM_PP||window.HM_TD||M.getBounds().contains(gpsLL))?'none':'block'; }
+  function gpsBearing(a,b){ var r=Math.PI/180, y=Math.sin((b.lng-a.lng)*r)*Math.cos(b.lat*r),
+      x=Math.cos(a.lat*r)*Math.sin(b.lat*r)-Math.sin(a.lat*r)*Math.cos(b.lat*r)*Math.cos((b.lng-a.lng)*r);
+    return (Math.atan2(y,x)/r+360)%360; }
+  function gpsFix(pos){ if(!M) return; var c=pos.coords, ll=L.latLng(c.latitude,c.longitude);
+    if(c.heading!=null&&isFinite(c.heading)&&(c.speed||0)>1) gpsHd=c.heading;
+    else if(gpsPrev&&gpsPrev.distanceTo(ll)>15) gpsHd=gpsBearing(gpsPrev,ll);
+    if(!gpsPrev||gpsPrev.distanceTo(ll)>15) gpsPrev=ll;
+    var wasIn=gpsLL?M.getBounds().contains(gpsLL):true; gpsLL=ll;
+    if(!gpsMk){ gpsMk=L.marker(ll,{interactive:false,keyboard:false,zIndexOffset:4000,icon:L.divIcon({className:'',iconSize:[44,44],iconAnchor:[22,22],
+        html:'<div class="gpsme"><div class="ring"></div><svg class="arw" viewBox="0 0 34 34"><path d="M17 2 L30 31 L17 23.5 L4 31 Z" fill="#141414" stroke="#fff" stroke-width="2.2" stroke-linejoin="round"/></svg></div>'})}).addTo(M); }
+    else gpsMk.setLatLng(ll);
+    var el=gpsMk.getElement&&gpsMk.getElement(); if(el){ var a=el.querySelector('.arw'); if(a) a.style.transform='rotate('+gpsHd+'deg)'; }
+    if(!window.HM_PP&&!window.HM_TD&&wasIn) M.panTo(ll,{animate:true,duration:.8});
+    gpsCheck(); }
+  function gpsStart(){ if(gpsW!=null||!navigator.geolocation) return;
+    try{ gpsW=navigator.geolocation.watchPosition(gpsFix,function(){},{enableHighAccuracy:true,maximumAge:3000,timeout:20000}); }catch(e){} }
+  function gpsStop(){ if(gpsW!=null){ try{ navigator.geolocation.clearWatch(gpsW); }catch(e){} gpsW=null; }
+    var b=document.getElementById('hmret'); if(b) b.style.display='none'; }
+  function mapAway(){ gpsStop(); ppClose(); try{ tdClose(); }catch(e){} try{ ownHint(false); }catch(e){} var ob=document.getElementById('hmopt'); if(ob) ob.style.display='none';
     window.HM_OPEN=false; document.getElementById('hmap').classList.remove('show'); }
   function listView(){ var own=window.PP_OWN; mapAway(); window.PP_OWN=false;
     FP_VIEW=(!own&&window.FP_PLANK&&FP_PLANK.length)?'plan':'all'; fpApplyView(); window.scrollTo(0,0); }
+  /* v1.3.121: New route closes the map and goes back to where you type in a trip */
+  function newRoute(){ mapAway(); window.PP_OWN=false;
+    try{ var fp=document.getElementById('fppop'); if(fp&&fp.classList.contains('show')) fpClose(); }catch(e){}
+    document.body.classList.remove('on-results','on-detail','on-svc','on-news','on-plan','on-trip');
+    window.scrollTo(0,0); }
   function runOpt(){ mapAway(); window.PP_OWN=false; fpChoose('cheap'); }
   /* v1.3.111: shrink the pump and sign to fit the screen, so the pop-up never scrolls */
   function ppFit(o){ try{
@@ -8516,7 +8567,7 @@ body.tier-free #freelist{display:block}
     if(f) f.style.display=on?'block':'none';
     try{ tagsUpdate(); }catch(e){}
   }
-  function ppClose(){ setTimeout(function(){ ppDim(false); },0); if(ppCur){ try{ ppCur.setOpacity(1); }catch(e){} ppCur=null; } var o=document.getElementById('hmpp'); if(o) o.style.display='none'; window.HM_PP=false; if(window.HM_OPEN){ try{ optBtn(true); }catch(x){} } cancelAnimationFrame(ppTimer); }
+  function ppClose(){ setTimeout(function(){ ppDim(false); try{ gpsCheck(); }catch(e){} },0); if(ppCur){ try{ ppCur.setOpacity(1); }catch(e){} ppCur=null; } var o=document.getElementById('hmpp'); if(o) o.style.display='none'; window.HM_PP=false; if(window.HM_OPEN){ try{ optBtn(true); }catch(x){} } cancelAnimationFrame(ppTimer); }
   window.ppClose=ppClose;
   function stopPop(h){
     var pr=null; try{ pr=rankVal(h); }catch(e){}
@@ -8558,11 +8609,12 @@ body.tier-free #freelist{display:block}
     document.getElementById('hmap').classList.add('show'); window.HM_OPEN=true;
     try{ enterScreen(); }catch(e){} try{ optBtn(true); }catch(e){}
     return loadLeaflet().then(function(){
-      if(!M){ M=L.map('hmmap',{zoomControl:true,attributionControl:true}); tiles(); M.on('zoomend moveend',function(){ tagsUpdate(); }); }
+      if(!M){ M=L.map('hmmap',{zoomControl:true,attributionControl:true}); tiles(); M.on('zoomend moveend',function(){ tagsUpdate(); try{ gpsCheck(); }catch(e){} }); }
       setTimeout(function(){ M.invalidateSize(); draw(focus); },60);
+      gpsStart();   /* v1.3.122 */
     });
   }
-  window.hmClose=function(){ if(!window.HM_OPEN) return; if(window.HM_TD){ tdClose(); return; } if(window.HM_PP){ ppClose(); return; } window.PP_OWN=false; try{ ownHint(false); optBtn(false); }catch(e){} window.HM_OPEN=false; document.getElementById('hmap').classList.remove('show'); };
+  window.hmClose=function(){ if(!window.HM_OPEN) return; if(window.HM_TD){ tdClose(); return; } if(window.HM_PP){ ppClose(); return; } window.PP_OWN=false; try{ ownHint(false); optBtn(false); }catch(e){} try{ gpsStop(); }catch(e){} window.HM_OPEN=false; document.getElementById('hmap').classList.remove('show'); };
   document.getElementById('hmsat').addEventListener('click',function(){ sat=!sat; if(M) tiles(); });
   /* v1.3.90: live radar on the truck route. Loops the last couple of hours (same blue style as the radar page) so you see which way storms move; pulls new frames every 10 minutes */
   var radOn=false, RL=[], RF=0, RT=null, RR=null, RHOST='';
