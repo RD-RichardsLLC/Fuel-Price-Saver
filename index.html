@@ -3067,6 +3067,13 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
   { date:'2026-11-05', items:[
+    'Version 1.3.110',
+    '**A taller pump with bigger, easier-to-read writing,** including the town and the interstate and exit',
+    '**A shorter arrow** on the pump',
+    '**The sign moved a little to the right**',
+    '**The buttons now sit right under the pump,** all the same height, with a small even gap between the rows'
+  ]},
+  { date:'2026-11-05', items:[
     'Version 1.3.109',
     '**A wider pump** on the map',
     '**The buttons under the pump sit a little higher** off the bottom of the screen',
@@ -8219,20 +8226,20 @@ body.tier-free #freelist{display:block}
     else if(/\bta\b|ta express|travelcenters/.test(n)){ t='TA'; bg='#2f7fe0'; fg='#fff'; }
     else { t=String(h.b||'').toUpperCase(); bg='#f26a21'; fg='#fff'; }
     var w=t.length>6?96:70, fs=Math.min(t==='TA'?13:12,(w-10)/Math.max(1,t.length*0.75)).toFixed(1);
-    var town=String(h.c||'').toUpperCase()+(h.st?', '+String(h.st).toUpperCase():''), tfs=Math.min(10,128/Math.max(1,town.length*0.62)).toFixed(1);
-    var ex=ppExit(h), efs=Math.min(10,128/Math.max(1,ex.length*0.62)).toFixed(1);
-    return '<line x1="118" y1="410" x2="202" y2="410" stroke="#c9ced8" stroke-width="1.5"/>'+
-      '<rect x="'+(160-w/2)+'" y="416" width="'+w+'" height="24" rx="7" fill="'+bg+'" stroke="'+bd+'" stroke-width="1"/>'+
-      '<text x="160" y="433" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="'+fs+'" fill="'+fg+'" letter-spacing=".5">'+esc(t)+'</text>'+
-      '<text x="160" y="455" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="'+tfs+'" fill="#1A2B4C" letter-spacing="1">'+esc(town)+'</text>'+
-      (ex?'<text x="160" y="470" text-anchor="middle" font-family="Arial,sans-serif" font-weight="900" font-size="'+efs+'" fill="#141414" letter-spacing=".5">'+esc(ex)+'</text>':'');
+    var town=String(h.c||'').toUpperCase()+(h.st?', '+String(h.st).toUpperCase():''), tfs=Math.min(12.5,170/Math.max(1,town.length*0.66)).toFixed(1);
+    var ex=ppExit(h), efs=Math.min(12.5,170/Math.max(1,ex.length*0.66)).toFixed(1);
+    return '<line x1="110" y1="420" x2="210" y2="420" stroke="#c9ced8" stroke-width="1.5"/>'+
+      '<rect x="'+(160-w*0.56)+'" y="428" width="'+(w*1.12)+'" height="27" rx="7" fill="'+bg+'" stroke="'+bd+'" stroke-width="1"/>'+
+      '<text x="160" y="447" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="'+(fs*1.1).toFixed(1)+'" fill="'+fg+'" letter-spacing=".5">'+esc(t)+'</text>'+
+      '<text x="160" y="475" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="'+tfs+'" fill="#1A2B4C" letter-spacing=".5">'+esc(town)+'</text>'+
+      (ex?'<text x="160" y="494" text-anchor="middle" font-family="Arial,sans-serif" font-weight="900" font-size="'+efs+'" fill="#141414" letter-spacing=".5">'+esc(ex)+'</text>':'');
   }
   function ppSvg(d){
     var noPlan=d.off&&!d.hasPlan;
     var nb=d.nx?ppBrand(d.nx.b):d.only?{t:'ONE STOP',bg:'#1A2B4C',fg:'#fff'}:noPlan?{t:'NONE YET',bg:'#1A2B4C',fg:'#fff'}:{t:'END OF PLAN',bg:'#1A2B4C',fg:'#fff'};
     var town=d.nx?esc(String(d.nx.c||'').toUpperCase()+', '+String(d.nx.st||'').toUpperCase()):(d.only||noPlan)?'':'NO MORE FUEL STOPS';
     var tfs=Math.min(14,150/Math.max(1,town.length*0.62)).toFixed(1), bfs=Math.min(26,150/Math.max(1,nb.t.length*0.8)).toFixed(1);
-    return '<svg viewBox="0 0 560 560" style="width:100%;max-width:520px;display:block;margin:0 auto;filter:drop-shadow(0 3px 6px rgba(0,0,0,.45))">'+
+    return '<svg viewBox="0 0 560 620" style="width:100%;max-width:520px;display:block;margin:0 auto;filter:drop-shadow(0 3px 6px rgba(0,0,0,.45))">'+   /* v1.3.110: taller */
     '<defs><linearGradient id="ppFr" x1="0" x2="1"><stop offset="0" stop-color="#22355C"/><stop offset=".5" stop-color="#1A2B4C"/><stop offset="1" stop-color="#101C33"/></linearGradient>'+
     '<linearGradient id="ppPn" x1="0" x2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#E9EDF3"/></linearGradient>'+
     '<linearGradient id="ppCh" x1="0" x2="1"><stop offset="0" stop-color="#9AA3AE"/><stop offset=".45" stop-color="#F2F4F7"/><stop offset="1" stop-color="#7D8692"/></linearGradient>'+
@@ -8241,18 +8248,18 @@ body.tier-free #freelist{display:block}
     '<linearGradient id="ppIr" x1="0" x2="1"><stop offset="0" stop-color="#2a2f38"/><stop offset=".5" stop-color="#4a5260"/><stop offset="1" stop-color="#22262e"/></linearGradient>'+
     '<clipPath id="ppcT"><rect x="110" y="170" width="100" height="30" rx="4"/></clipPath><clipPath id="ppcG"><rect x="110" y="226" width="100" height="30" rx="4"/></clipPath></defs>'+
     /* v1.3.109: a wider pump body */
-    '<rect x="26" y="506" width="268" height="30" rx="6" fill="#0E1830"/><rect x="38" y="496" width="244" height="16" rx="4" fill="#24385F"/>'+
-    '<path d="M46 168 C 12 200, 8 300, 20 400 S 36 500, 50 498" fill="none" stroke="#1C1C1E" stroke-width="9" stroke-linecap="round"/>'+
-    '<rect x="46" y="36" width="228" height="466" rx="48" fill="url(#ppFr)"/><rect x="64" y="56" width="192" height="426" rx="34" fill="url(#ppPn)"/>'+
-    '<rect x="54" y="70" width="6" height="380" rx="3" fill="#fff" opacity=".25"/>'+
+    '<rect x="26" y="566" width="268" height="30" rx="6" fill="#0E1830"/><rect x="38" y="556" width="244" height="16" rx="4" fill="#24385F"/>'+
+    '<path d="M46 168 C 12 200, 8 330, 20 450 S 36 560, 50 558" fill="none" stroke="#1C1C1E" stroke-width="9" stroke-linecap="round"/>'+
+    '<rect x="46" y="36" width="228" height="526" rx="48" fill="url(#ppFr)"/><rect x="64" y="56" width="192" height="486" rx="34" fill="url(#ppPn)"/>'+
+    '<rect x="54" y="70" width="6" height="440" rx="3" fill="#fff" opacity=".25"/>'+
     '<rect x="106" y="80" width="108" height="46" rx="8" fill="url(#ppGn)" stroke="#1A2B4C" stroke-width="3"/>'+
     '<text x="160" y="112" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="24" fill="#fff" letter-spacing="2">DIESEL</text>'+
     '<rect x="102" y="144" width="116" height="164" rx="10" fill="#fff" stroke="#1A2B4C" stroke-width="4"/>'+
-    '<text x="160" y="164" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="10" fill="#1A2B4C" letter-spacing="1">'+(d.off?'DISCOUNT PRICE':'TOTAL COST')+'</text>'+
+    '<text x="160" y="164" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="11.5" fill="#1A2B4C" letter-spacing=".5">'+(d.off?'DISCOUNT PRICE':'TOTAL COST')+'</text>'+
     '<rect x="110" y="170" width="100" height="30" rx="4" fill="#101C33"/><g id="ppT" clip-path="url(#ppcT)"></g><rect x="110" y="170" width="100" height="30" rx="4" fill="url(#ppWh)"/>'+
-    '<text x="160" y="220" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="10" fill="#1A2B4C" letter-spacing="1">'+(d.off?'RETAIL PRICE':'GALLONS TO BUY')+'</text>'+
+    '<text x="160" y="220" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="11.5" fill="#1A2B4C" letter-spacing=".5">'+(d.off?'RETAIL PRICE':'GALLONS TO BUY')+'</text>'+
     '<rect x="110" y="226" width="100" height="30" rx="4" fill="#101C33"/><g id="ppG" clip-path="url(#ppcG)"></g><rect x="110" y="226" width="100" height="30" rx="4" fill="url(#ppWh)"/>'+
-    '<text x="160" y="275" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="10" fill="#1A2B4C" letter-spacing="1">'+(d.off?'DISCOUNT':'DISCOUNT PRICE')+'</text>'+
+    '<text x="160" y="275" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="11.5" fill="#1A2B4C" letter-spacing=".5">'+(d.off?'DISCOUNT':'DISCOUNT PRICE')+'</text>'+
     '<rect x="125" y="280" width="70" height="22" rx="4" fill="#1C9A44"/>'+
     '<text x="160" y="296" text-anchor="middle" font-family="Courier New,monospace" font-weight="700" font-size="15" fill="#fff">'+(d.off?(d.ret!=null?Math.max(0,Math.round((d.ret-d.pr)*100))+'\u00a2':'--'):'$'+fmt(d.pr))+'</text>'+
     '<rect x="64" y="326" width="192" height="8" fill="#141414"/>'+
@@ -8261,15 +8268,15 @@ body.tier-free #freelist{display:block}
       '<text x="160" y="388" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="'+Math.min(11,128/Math.max(1,(3+ppStName(d.h.st).length)*0.72)).toFixed(1)+'" fill="#1A2B4C" letter-spacing="1">IN '+esc(ppStName(d.h.st).toUpperCase())+'</text>'
     :d.off?'<text x="160" y="370" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="11" fill="#1A2B4C" letter-spacing="1">NOT PART OF</text>'+
       '<text x="160" y="386" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="11" fill="#1A2B4C" letter-spacing="1">YOUR FUEL PLAN</text>'
-    :'<path d="M160 343 L171 356 L164 356 L164 368 L156 368 L156 356 L149 356 Z" fill="url(#ppGn)" stroke="#141414" stroke-width="1.3" stroke-linejoin="round"/>'+
-    '<text x="160" y="386" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="11" fill="#1A2B4C" letter-spacing="1">AMOUNT TO BUY</text>'+
-    '<text x="160" y="400" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="10" fill="#1A2B4C" letter-spacing="1">AT THIS STOP</text>')+
-    ppTag(d.h)+(d.own&&d.miAhead!=null?'<text x="160" y="496" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="11" fill="#ffffff" letter-spacing="1">'+d.miAhead.toLocaleString('en-US')+' MI AHEAD</text>':'')+
+    :'<path d="M160 346 L170 357 L164 357 L164 365 L156 365 L156 357 L150 357 Z" fill="url(#ppGn)" stroke="#141414" stroke-width="1.3" stroke-linejoin="round"/>'+
+    '<text x="160" y="388" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="13" fill="#1A2B4C" letter-spacing="1">AMOUNT TO BUY</text>'+
+    '<text x="160" y="405" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="12" fill="#1A2B4C" letter-spacing="1">AT THIS STOP</text>')+
+    ppTag(d.h)+(d.own&&d.miAhead!=null?'<text x="160" y="518" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="12.5" fill="#d62828" letter-spacing="1">'+d.miAhead.toLocaleString('en-US')+' MI AHEAD</text>':'')+
     '<rect x="34" y="150" width="20" height="40" rx="4" fill="#138A36"/>'+
     '<path d="M22 156 h22 v34 h-8 v18 a6 6 0 0 1 -12 0 v-18 h-2 z" fill="url(#ppCh)" stroke="#5E6672" stroke-width="1.5"/>'+
     '<path d="M18 170 q-12 6 -10 30" fill="none" stroke="#138A36" stroke-width="4" stroke-linecap="round"/><rect x="26" y="146" width="16" height="12" rx="3" fill="url(#ppGn)"/>'+
-    (d.own?'':('<rect x="318" y="226" width="8" height="308" rx="2" fill="url(#ppIr)"/><rect x="514" y="226" width="8" height="308" rx="2" fill="url(#ppIr)"/>'+
-    '<rect x="304" y="528" width="36" height="8" rx="2" fill="#2a2f38"/><rect x="500" y="528" width="36" height="8" rx="2" fill="#2a2f38"/>'+
+    (d.own?'':('<g transform="translate(20 0)"><rect x="318" y="226" width="8" height="368" rx="2" fill="url(#ppIr)"/><rect x="514" y="226" width="8" height="368" rx="2" fill="url(#ppIr)"/>'+
+    '<rect x="304" y="588" width="36" height="8" rx="2" fill="#2a2f38"/><rect x="500" y="588" width="36" height="8" rx="2" fill="#2a2f38"/>'+
     '<rect x="312" y="220" width="216" height="10" rx="3" fill="url(#ppIr)"/><circle cx="322" cy="214" r="7" fill="#2a2f38"/><circle cx="518" cy="214" r="7" fill="#2a2f38"/>'+
     '<circle cx="370" cy="232" r="4" fill="none" stroke="#2a2f38" stroke-width="2.5"/><circle cx="470" cy="232" r="4" fill="none" stroke="#2a2f38" stroke-width="2.5"/>'+
     '<g id="ppS"><line x1="370" y1="236" x2="370" y2="262" stroke="#3a404b" stroke-width="2.5" stroke-dasharray="4 3"/><line x1="470" y1="236" x2="470" y2="262" stroke="#3a404b" stroke-width="2.5" stroke-dasharray="4 3"/>'+
@@ -8284,7 +8291,7 @@ body.tier-free #freelist{display:block}
       '<text x="420" y="436" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="11" fill="#1A2B4C" letter-spacing="1">TO GET THERE</text>'
      :'<text x="420" y="414" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="16" fill="#1A2B4C">'+(d.only?'YOUR ONLY':noPlan?'NO FUEL PLAN':'LAST FUEL STOP')+'</text>'+
       '<text x="420" y="436" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="11" fill="#1A2B4C" letter-spacing="1">'+(d.only?'FUEL STOP':noPlan?'RUN THE OPTIMIZER':'ON YOUR PLAN')+'</text>')+
-    '<circle cx="348" cy="276" r="2.5" fill="#8a8f99"/><circle cx="492" cy="276" r="2.5" fill="#8a8f99"/><circle cx="348" cy="448" r="2.5" fill="#8a8f99"/><circle cx="492" cy="448" r="2.5" fill="#8a8f99"/><rect id="ppShade" x="334" y="262" width="172" height="200" rx="10" fill="#000" opacity="0"/></g>'))+'</svg>';
+    '<circle cx="348" cy="276" r="2.5" fill="#8a8f99"/><circle cx="492" cy="276" r="2.5" fill="#8a8f99"/><circle cx="348" cy="448" r="2.5" fill="#8a8f99"/><circle cx="492" cy="448" r="2.5" fill="#8a8f99"/><rect id="ppShade" x="334" y="262" width="172" height="200" rx="10" fill="#000" opacity="0"/></g></g>'))+'</svg>';
   }
   var ppTimer=null;
   function ppRoll(d){
@@ -8381,7 +8388,7 @@ body.tier-free #freelist{display:block}
     var mk=ppMk[h.la+','+h.lo]; if(mk){ mk.setOpacity(0); ppCur=mk; }   /* v1.3.97: the little pump hides while the big one is up */
     var o=document.getElementById('hmpp');
     if(!o){ o=document.createElement('div'); o.id='hmpp';
-      o.style.cssText='position:absolute;left:0;right:0;bottom:0;top:0;z-index:2000;background:transparent;display:flex;flex-direction:column;align-items:center;padding:52px 14px calc(56px + env(safe-area-inset-bottom,0px));box-sizing:border-box;overflow-y:auto';   /* v1.3.109: bottom row up one button height */
+      o.style.cssText='position:absolute;left:0;right:0;bottom:0;top:0;z-index:2000;background:transparent;display:flex;flex-direction:column;align-items:center;padding:52px 14px calc(90px + env(safe-area-inset-bottom,0px));box-sizing:border-box;overflow-y:auto';   /* v1.3.109: bottom row up one button height */
       o.addEventListener('click',function(e){ if(e.target===o||e.target.id==='hmppx'||(e.target.parentNode===o)) ppClose(); });
       document.getElementById('hmap').appendChild(o); }
     var lbl='Back to map';
@@ -8395,16 +8402,16 @@ body.tier-free #freelist{display:block}
       (d.list.length<2?'<div style="font-size:12px;color:#777;padding:8px 0">No other stops in this state on your route</div>':'')+'</div></div>'; }
     o.innerHTML='<div style="width:100%;max-width:520px;margin-top:auto">'+card+'<div style="position:relative">'+ppSvg(d)+lst+'</div>'+
       /* v1.3.105: Back to map and List view side by side */
-      '<div style="display:flex;gap:8px;margin:12px 0 0 9%;width:87%">'+
+      '<div style="display:flex;gap:8px;margin:6px 0 0 9%;width:87%">'+
       '<button type="button" id="hmppx" style="flex:1;padding:10px 6px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 clamp(12px,3.7vw,16px) Arial,sans-serif">Back to map</button>'+
       '<button type="button" id="hmpplv" style="flex:1;padding:10px 6px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 clamp(12px,3.7vw,16px) Arial,sans-serif">List view</button></div>'+
       /* v1.3.103: Previous, Details and Next under Back to map. Previous hides at your first stop, Next at your last */
-      '<div style="display:flex;justify-content:space-between;gap:8px;margin:26px 0 0 9%;width:87%">'+
-      (d.own?'<button type="button" id="hmppd" style="flex:1;padding:10px 4px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 clamp(12px,3.7vw,16px) Arial,sans-serif">Details</button>'+
-        '<button type="button" id="hmppo" style="flex:1.6;padding:10px 4px;border-radius:10px;border:0;background:#1f8a43;color:#fff;font:700 clamp(12px,3.7vw,16px) Arial,sans-serif">Run Fuel Optimizer</button>':
-      '<button type="button" id="hmppv" style="display:'+(d.pv?'block':'none')+';flex:1;padding:10px 4px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 clamp(12px,3.7vw,16px) Arial,sans-serif">Previous</button>'+
-      '<button type="button" id="hmppd" style="flex:1;padding:10px 4px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 clamp(12px,3.7vw,16px) Arial,sans-serif">Details</button>'+
-      '<button type="button" id="hmppn" style="display:'+((d.nx&&!d.off)?'block':'none')+';flex:1;padding:10px 4px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 clamp(12px,3.7vw,16px) Arial,sans-serif">Next</button>')+
+      '<div style="display:flex;justify-content:space-between;gap:8px;margin:10px 0 0 9%;width:87%">'+
+      (d.own?'<button type="button" id="hmppd" style="flex:1;padding:10px 6px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 clamp(12px,3.7vw,16px) Arial,sans-serif">Details</button>'+
+        '<button type="button" id="hmppo" style="flex:1.6;padding:10px 6px;border-radius:10px;border:0;background:#1f8a43;color:#fff;font:700 clamp(12px,3.7vw,16px) Arial,sans-serif">Run Fuel Optimizer</button>':
+      '<button type="button" id="hmppv" style="display:'+(d.pv?'block':'none')+';flex:1;padding:10px 6px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 clamp(12px,3.7vw,16px) Arial,sans-serif">Previous</button>'+
+      '<button type="button" id="hmppd" style="flex:1;padding:10px 6px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 clamp(12px,3.7vw,16px) Arial,sans-serif">Details</button>'+
+      '<button type="button" id="hmppn" style="display:'+((d.nx&&!d.off)?'block':'none')+';flex:1;padding:10px 6px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 clamp(12px,3.7vw,16px) Arial,sans-serif">Next</button>')+
       '</div></div>';
     var go=function(n){ if(!n) return; try{ M.panTo([n.la,n.lo]); }catch(x){} ppOpen(n); };
     var bv=document.getElementById('hmppv'), bn=document.getElementById('hmppn'), bo=document.getElementById('hmppo');
