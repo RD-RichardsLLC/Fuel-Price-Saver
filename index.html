@@ -3067,6 +3067,11 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
   { date:'2026-11-05', items:[
+    'Version 1.3.108',
+    '**The pump, sign and buttons now sit at the bottom of the screen,** so your trip name stays in view at the top, even with the trip card up',
+    '**Trip details, Radar and Satellite now work on the first tap** while a pump is showing'
+  ]},
+  { date:'2026-11-05', items:[
     'Version 1.3.107',
     '**Your trip name now sits on the map,** in a black label beside the zoom buttons, so it\u2019s never cut off',
     '**Trip details, Radar and Satellite are now even buttons** across the top of the map',
@@ -8369,7 +8374,7 @@ body.tier-free #freelist{display:block}
     var mk=ppMk[h.la+','+h.lo]; if(mk){ mk.setOpacity(0); ppCur=mk; }   /* v1.3.97: the little pump hides while the big one is up */
     var o=document.getElementById('hmpp');
     if(!o){ o=document.createElement('div'); o.id='hmpp';
-      o.style.cssText='position:absolute;inset:0;z-index:2000;background:transparent;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:14px;box-sizing:border-box';
+      o.style.cssText='position:absolute;left:0;right:0;bottom:0;top:0;z-index:2000;background:transparent;display:flex;flex-direction:column;align-items:center;padding:52px 14px calc(14px + env(safe-area-inset-bottom,0px));box-sizing:border-box;overflow-y:auto';
       o.addEventListener('click',function(e){ if(e.target===o||e.target.id==='hmppx'||(e.target.parentNode===o)) ppClose(); });
       document.getElementById('hmap').appendChild(o); }
     var lbl='Back to map';
@@ -8381,7 +8386,7 @@ body.tier-free #freelist{display:block}
       d.list.filter(function(x){ return x!==d.h; }).map(function(x){ var k=(LASTHITS||[]).indexOf(x);
         return '<div class="pplrow" data-k="'+k+'" style="display:flex;justify-content:space-between;gap:6px;padding:7px 0;border-bottom:1px solid #eef0f4;font-size:13px;cursor:pointer;color:#141414"><div><b>'+esc(x.b)+'</b><div style="font-size:11px;color:#666">'+esc(x.c)+'</div></div><b style="color:#1f8a43">$'+fmt(rankVal(x))+'</b></div>'; }).join('')+
       (d.list.length<2?'<div style="font-size:12px;color:#777;padding:8px 0">No other stops in this state on your route</div>':'')+'</div></div>'; }
-    o.innerHTML='<div style="width:100%;max-width:520px">'+card+'<div style="position:relative">'+ppSvg(d)+lst+'</div>'+
+    o.innerHTML='<div style="width:100%;max-width:520px;margin-top:auto">'+card+'<div style="position:relative">'+ppSvg(d)+lst+'</div>'+
       /* v1.3.105: Back to map and List view side by side */
       '<div style="display:flex;gap:8px;margin:12px 0 0 9%;width:87%">'+
       '<button type="button" id="hmppx" style="flex:1;padding:10px 6px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 clamp(12px,3.7vw,16px) Arial,sans-serif">Back to map</button>'+
@@ -8402,7 +8407,9 @@ body.tier-free #freelist{display:block}
     document.getElementById('hmpplv').addEventListener('click',function(e){ e.stopPropagation(); listView(); });
     document.getElementById('hmppd').addEventListener('click',function(e){ e.stopPropagation(); ppDetails(h); });
     [].slice.call(o.querySelectorAll('.pplrow')).forEach(function(r){ r.addEventListener('click',function(e){ e.stopPropagation(); var x=(LASTHITS||[])[+r.getAttribute('data-k')]; if(x) go(x); }); });
-    o.style.display='flex'; window.HM_PP=true; try{ optBtn(false); }catch(x){} { var tl=document.getElementById('hmtlbl'); if(tl) tl.style.display='none'; } ppRoll(d); return true;
+    /* v1.3.108: the pump layer starts under the top bar so Trip details, Radar and Satellite work on the first tap; everything sits low so the trip label stays in view */
+    { var hb=document.getElementById('hmbar'); o.style.top=(hb?hb.offsetHeight:0)+'px'; }
+    o.style.display='flex'; window.HM_PP=true; try{ optBtn(false); }catch(x){} ppRoll(d); return true;
   }
   /* v1.3.103: Details opens the same stop details as the fuel cards (prices, DEF, IFTA, Show all services); back returns to the map */
   function ppDetails(h){
@@ -8422,7 +8429,7 @@ body.tier-free #freelist{display:block}
   function listView(){ var own=window.PP_OWN; mapAway(); window.PP_OWN=false;
     FP_VIEW=(!own&&window.FP_PLANK&&FP_PLANK.length)?'plan':'all'; fpApplyView(); window.scrollTo(0,0); }
   function runOpt(){ mapAway(); window.PP_OWN=false; fpChoose('cheap'); }
-  function ppClose(){ if(ppCur){ try{ ppCur.setOpacity(1); }catch(e){} ppCur=null; } var o=document.getElementById('hmpp'); if(o) o.style.display='none'; window.HM_PP=false; if(window.HM_OPEN){ try{ optBtn(true); }catch(x){} } { var tl=document.getElementById('hmtlbl'); if(tl) tl.style.display='block'; } cancelAnimationFrame(ppTimer); }
+  function ppClose(){ if(ppCur){ try{ ppCur.setOpacity(1); }catch(e){} ppCur=null; } var o=document.getElementById('hmpp'); if(o) o.style.display='none'; window.HM_PP=false; if(window.HM_OPEN){ try{ optBtn(true); }catch(x){} } cancelAnimationFrame(ppTimer); }
   window.ppClose=ppClose;
   function stopPop(h){
     var pr=null; try{ pr=rankVal(h); }catch(e){}
