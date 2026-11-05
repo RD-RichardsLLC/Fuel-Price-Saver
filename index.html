@@ -3067,6 +3067,13 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
   { date:'2026-11-05', items:[
+    'Version 1.3.106',
+    '**Interstate and exit on the pump and the sign.** Under the town you\u2019ll see the highway and exit, like I-80 \u00b7 Exit 332, for the stop you\u2019re at and your next stop',
+    '**Buttons under the pump fill the row.** Two buttons split it in half, three split it in thirds',
+    '**A shorter arrow on the pump,** with the wording moved up',
+    '**Close moved off the top of the map.** Use List view at the bottom of the map instead, so the trip name has room'
+  ]},
+  { date:'2026-11-05', items:[
     'Version 1.3.105',
     '**Run Fuel Optimizer from Pick my own stops.** A green button on the map, and on each pump, switches you to the Fuel Optimizer',
     '**List view next to Back to map.** Under the pump, List view takes you to the list of stops',
@@ -8032,7 +8039,7 @@ body.tier-free #freelist{display:block}
 .hmpop a{display:inline-block;margin-top:6px;background:#f26a21;color:#fff!important;padding:6px 10px;border-radius:7px;font-weight:700;text-decoration:none}
 </style>
 <div id="hmap">
-  <div id="hmbar"><div class="t" id="hmtitle">Truck route</div><button type="button" id="hmtd">Trip details</button><button type="button" id="hmrad">Radar</button><button type="button" id="hmsat">Satellite</button><button type="button" class="x" onclick="hmClose()">Close</button></div>
+  <div id="hmbar"><div class="t" id="hmtitle">Truck route</div><button type="button" id="hmtd">Trip details</button><button type="button" id="hmrad">Radar</button><button type="button" id="hmsat">Satellite</button></div>
   <div id="hmmap"></div>
   <div id="hmnote">Map shows the truck route the app planned. Always check signs and restrictions for yourself.</div>
 </div>
@@ -8181,6 +8188,10 @@ body.tier-free #freelist{display:block}
     if(/\bta\b|ta express|travelcenters/.test(n)) return {t:'TA',bg:'#2f7fe0',fg:'#fff'};
     return {t:String(b||'').toUpperCase(),bg:'#f26a21',fg:'#fff'}; }
   /* v1.3.96: the stop you're at shows as a brand tag on the pump: TA blue, Love's yellow with red, Petro green; town under it */
+  /* v1.3.106: interstate and exit, like "I-80 \u00b7 Exit 332" */
+  function ppExit(h){ try{ var inf=stopInfo(h); if(!inf) return ''; var p=parseRoads(inf.exit);
+      var r=p.roads.map(function(x){ return (x.k==='I'?'I-':'US-')+x.n; }).join(' / ');
+      return (r+(p.exit?(r?' \u00b7 ':'')+'EXIT '+p.exit:'')).toUpperCase(); }catch(e){ return ''; } }
   function ppTag(h){
     var n=String(h.b||'').toLowerCase(), t, bg, bd='#141414', fg;
     if(/love/.test(n)){ t="LOVE\u2019S"; bg='#f5c518'; fg='#141414'; }   /* v1.3.97: black letters to match the sign, black border */
@@ -8189,10 +8200,12 @@ body.tier-free #freelist{display:block}
     else { t=String(h.b||'').toUpperCase(); bg='#f26a21'; fg='#fff'; }
     var w=t.length>6?96:70, fs=Math.min(t==='TA'?13:12,(w-10)/Math.max(1,t.length*0.75)).toFixed(1);
     var town=String(h.c||'').toUpperCase()+(h.st?', '+String(h.st).toUpperCase():''), tfs=Math.min(10,128/Math.max(1,town.length*0.62)).toFixed(1);
-    return '<line x1="118" y1="428" x2="202" y2="428" stroke="#c9ced8" stroke-width="1.5"/>'+
-      '<rect x="'+(160-w/2)+'" y="436" width="'+w+'" height="24" rx="7" fill="'+bg+'" stroke="'+bd+'" stroke-width="1"/>'+
-      '<text x="160" y="453" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="'+fs+'" fill="'+fg+'" letter-spacing=".5">'+esc(t)+'</text>'+
-      '<text x="160" y="474" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="'+tfs+'" fill="#1A2B4C" letter-spacing="1">'+esc(town)+'</text>';
+    var ex=ppExit(h), efs=Math.min(10,128/Math.max(1,ex.length*0.62)).toFixed(1);
+    return '<line x1="118" y1="410" x2="202" y2="410" stroke="#c9ced8" stroke-width="1.5"/>'+
+      '<rect x="'+(160-w/2)+'" y="416" width="'+w+'" height="24" rx="7" fill="'+bg+'" stroke="'+bd+'" stroke-width="1"/>'+
+      '<text x="160" y="433" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="'+fs+'" fill="'+fg+'" letter-spacing=".5">'+esc(t)+'</text>'+
+      '<text x="160" y="455" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="'+tfs+'" fill="#1A2B4C" letter-spacing="1">'+esc(town)+'</text>'+
+      (ex?'<text x="160" y="470" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="'+efs+'" fill="#E86A10" letter-spacing=".5">'+esc(ex)+'</text>':'');
   }
   function ppSvg(d){
     var noPlan=d.off&&!d.hasPlan;
@@ -8222,14 +8235,14 @@ body.tier-free #freelist{display:block}
     '<rect x="125" y="280" width="70" height="22" rx="4" fill="#1C9A44"/>'+
     '<text x="160" y="296" text-anchor="middle" font-family="Courier New,monospace" font-weight="700" font-size="15" fill="#fff">'+(d.off?(d.ret!=null?Math.max(0,Math.round((d.ret-d.pr)*100))+'\u00a2':'--'):'$'+fmt(d.pr))+'</text>'+
     '<rect x="88" y="326" width="144" height="8" fill="#141414"/>'+
-    (d.own?'<text x="160" y="366" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="11" fill="#1A2B4C" letter-spacing="1">'+(d.rank===0?'CHEAPEST':'#'+(d.rank+1)+' OF '+d.list.length)+'</text>'+
-      '<text x="160" y="381" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="10" fill="#1A2B4C" letter-spacing=".5">ON YOUR ROUTE</text>'+
-      '<text x="160" y="396" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="'+Math.min(11,128/Math.max(1,(3+ppStName(d.h.st).length)*0.72)).toFixed(1)+'" fill="#1A2B4C" letter-spacing="1">IN '+esc(ppStName(d.h.st).toUpperCase())+'</text>'
-    :d.off?'<text x="160" y="384" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="11" fill="#1A2B4C" letter-spacing="1">NOT PART OF</text>'+
-      '<text x="160" y="400" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="11" fill="#1A2B4C" letter-spacing="1">YOUR FUEL PLAN</text>'
-    :'<path d="M160 346 L173 363 L164 363 L164 384 L156 384 L156 363 L147 363 Z" fill="url(#ppGn)" stroke="#141414" stroke-width="1.3" stroke-linejoin="round"/>'+
-    '<text x="160" y="404" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="11" fill="#1A2B4C" letter-spacing="1">AMOUNT TO BUY</text>'+
-    '<text x="160" y="418" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="10" fill="#1A2B4C" letter-spacing="1">AT THIS STOP</text>')+
+    (d.own?'<text x="160" y="358" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="11" fill="#1A2B4C" letter-spacing="1">'+(d.rank===0?'CHEAPEST':'#'+(d.rank+1)+' OF '+d.list.length)+'</text>'+
+      '<text x="160" y="373" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="10" fill="#1A2B4C" letter-spacing=".5">ON YOUR ROUTE</text>'+
+      '<text x="160" y="388" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="'+Math.min(11,128/Math.max(1,(3+ppStName(d.h.st).length)*0.72)).toFixed(1)+'" fill="#1A2B4C" letter-spacing="1">IN '+esc(ppStName(d.h.st).toUpperCase())+'</text>'
+    :d.off?'<text x="160" y="370" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="11" fill="#1A2B4C" letter-spacing="1">NOT PART OF</text>'+
+      '<text x="160" y="386" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="11" fill="#1A2B4C" letter-spacing="1">YOUR FUEL PLAN</text>'
+    :'<path d="M160 343 L171 356 L164 356 L164 368 L156 368 L156 356 L149 356 Z" fill="url(#ppGn)" stroke="#141414" stroke-width="1.3" stroke-linejoin="round"/>'+
+    '<text x="160" y="386" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="11" fill="#1A2B4C" letter-spacing="1">AMOUNT TO BUY</text>'+
+    '<text x="160" y="400" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="10" fill="#1A2B4C" letter-spacing="1">AT THIS STOP</text>')+
     ppTag(d.h)+(d.own&&d.miAhead!=null?'<text x="160" y="496" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="11" fill="#ffffff" letter-spacing="1">'+d.miAhead.toLocaleString('en-US')+' MI AHEAD</text>':'')+
     '<rect x="58" y="150" width="20" height="40" rx="4" fill="#138A36"/>'+
     '<path d="M46 156 h22 v34 h-8 v18 a6 6 0 0 1 -12 0 v-18 h-2 z" fill="url(#ppCh)" stroke="#5E6672" stroke-width="1.5"/>'+
@@ -8243,8 +8256,9 @@ body.tier-free #freelist{display:block}
     '<rect x="341" y="269" width="158" height="72" rx="7" fill="'+nb.bg+'"/><rect x="341" y="326" width="158" height="15" fill="'+nb.bg+'"/>'+
     '<text x="420" y="294" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="13" fill="'+nb.fg+'" letter-spacing="2">'+(d.only?'YOUR PLAN':noPlan?'FUEL PLAN':'NEXT STOP')+'</text>'+
     '<text x="420" y="326" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="'+bfs+'" fill="'+nb.fg+'" letter-spacing="1">'+esc(nb.t)+'</text>'+
-    '<text x="420" y="364" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="'+tfs+'" fill="#1A2B4C">'+town+'</text>'+
-    '<line x1="356" y1="378" x2="484" y2="378" stroke="#E86A10" stroke-width="2"/>'+
+    '<text x="420" y="360" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="'+tfs+'" fill="#1A2B4C">'+town+'</text>'+
+    (d.nx&&ppExit(d.nx)?'<text x="420" y="375" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="'+Math.min(11,150/Math.max(1,ppExit(d.nx).length*0.66)).toFixed(1)+'" fill="#E86A10">'+esc(ppExit(d.nx))+'</text>':'')+
+    '<line x1="356" y1="384" x2="484" y2="384" stroke="#E86A10" stroke-width="2"/>'+
     (d.nx?'<text x="420" y="414" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="30" fill="#d62828">'+d.mi.toLocaleString('en-US')+' MI</text>'+
       '<text x="420" y="436" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="11" fill="#1A2B4C" letter-spacing="1">TO GET THERE</text>'
      :'<text x="420" y="414" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="16" fill="#1A2B4C">'+(d.only?'YOUR ONLY':noPlan?'NO FUEL PLAN':'LAST FUEL STOP')+'</text>'+
@@ -8367,9 +8381,9 @@ body.tier-free #freelist{display:block}
       '<div style="display:flex;justify-content:space-between;gap:8px;margin:26px 0 0 9%;width:87%">'+
       (d.own?'<button type="button" id="hmppd" style="flex:1;padding:10px 4px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 clamp(12px,3.7vw,16px) Arial,sans-serif">Details</button>'+
         '<button type="button" id="hmppo" style="flex:1.6;padding:10px 4px;border-radius:10px;border:0;background:#1f8a43;color:#fff;font:700 clamp(12px,3.7vw,16px) Arial,sans-serif">Run Fuel Optimizer</button>':
-      '<button type="button" id="hmppv" style="visibility:'+(d.pv?'visible':'hidden')+';flex:1;padding:10px 4px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 clamp(12px,3.7vw,16px) Arial,sans-serif">Previous</button>'+
+      '<button type="button" id="hmppv" style="display:'+(d.pv?'block':'none')+';flex:1;padding:10px 4px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 clamp(12px,3.7vw,16px) Arial,sans-serif">Previous</button>'+
       '<button type="button" id="hmppd" style="flex:1;padding:10px 4px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 clamp(12px,3.7vw,16px) Arial,sans-serif">Details</button>'+
-      '<button type="button" id="hmppn" style="visibility:'+((d.nx&&!d.off)?'visible':'hidden')+';flex:1;padding:10px 4px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 clamp(12px,3.7vw,16px) Arial,sans-serif">Next</button>')+
+      '<button type="button" id="hmppn" style="display:'+((d.nx&&!d.off)?'block':'none')+';flex:1;padding:10px 4px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 clamp(12px,3.7vw,16px) Arial,sans-serif">Next</button>')+
       '</div></div>';
     var go=function(n){ if(!n) return; try{ M.panTo([n.la,n.lo]); }catch(x){} ppOpen(n); };
     var bv=document.getElementById('hmppv'), bn=document.getElementById('hmppn'), bo=document.getElementById('hmppo');
@@ -8399,7 +8413,7 @@ body.tier-free #freelist{display:block}
   function listView(){ var own=window.PP_OWN; mapAway(); window.PP_OWN=false;
     FP_VIEW=(!own&&window.FP_PLANK&&FP_PLANK.length)?'plan':'all'; fpApplyView(); window.scrollTo(0,0); }
   function runOpt(){ mapAway(); window.PP_OWN=false; fpChoose('cheap'); }
-  function ppClose(){ if(ppCur){ try{ ppCur.setOpacity(1); }catch(e){} ppCur=null; } var o=document.getElementById('hmpp'); if(o) o.style.display='none'; window.HM_PP=false; if(window.PP_OWN&&window.HM_OPEN){ try{ optBtn(true); }catch(x){} } cancelAnimationFrame(ppTimer); }
+  function ppClose(){ if(ppCur){ try{ ppCur.setOpacity(1); }catch(e){} ppCur=null; } var o=document.getElementById('hmpp'); if(o) o.style.display='none'; window.HM_PP=false; if(window.HM_OPEN){ try{ optBtn(true); }catch(x){} } cancelAnimationFrame(ppTimer); }
   window.ppClose=ppClose;
   function stopPop(h){
     var pr=null; try{ pr=rankVal(h); }catch(e){}
@@ -8435,7 +8449,7 @@ body.tier-free #freelist{display:block}
     navHref=href||''; navLegs=!!legs;
     document.getElementById('hmtitle').textContent=title;
     document.getElementById('hmap').classList.add('show'); window.HM_OPEN=true;
-    try{ enterScreen(); }catch(e){}
+    try{ enterScreen(); }catch(e){} try{ optBtn(true); }catch(e){}
     return loadLeaflet().then(function(){
       if(!M){ M=L.map('hmmap',{zoomControl:true,attributionControl:true}); tiles(); M.on('zoomend moveend',function(){ tagsUpdate(); }); }
       setTimeout(function(){ M.invalidateSize(); draw(focus); },60);
@@ -8529,11 +8543,17 @@ body.tier-free #freelist{display:block}
       return; }
     window.PP_OWN=false; window.FP_MODE=(m==='each')?'each':'cheap'; openFuelPlan();
   };
+  /* v1.3.106: List view at the bottom of the map (Close left the top bar), plus Run Fuel Optimizer in Pick my own stops */
   function optBtn(on){ var b=document.getElementById('hmopt');
-    if(!b){ b=document.createElement('button'); b.type='button'; b.id='hmopt'; b.textContent='Run Fuel Optimizer';
-      b.style.cssText='position:absolute;left:50%;transform:translateX(-50%);bottom:calc(22px + env(safe-area-inset-bottom,0px));z-index:1500;border:0;border-radius:12px;background:#1f8a43;color:#fff;font:700 16px Arial,sans-serif;padding:12px 20px;box-shadow:0 3px 8px rgba(0,0,0,.4)';
-      b.addEventListener('click',function(){ runOpt(); }); document.getElementById('hmap').appendChild(b); }
-    b.style.display=on?'block':'none'; }
+    if(!b){ b=document.createElement('div'); b.id='hmopt';
+      b.style.cssText='position:absolute;left:12px;right:12px;bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:1500;display:flex;gap:10px;justify-content:center';
+      b.innerHTML='<button type="button" id="hmblv" style="flex:1;max-width:220px;border:0;border-radius:12px;background:#f26a21;color:#fff;font:700 16px Arial,sans-serif;padding:12px 10px;box-shadow:0 3px 8px rgba(0,0,0,.4)">List view</button>'+
+        '<button type="button" id="hmbro" style="flex:1;max-width:220px;border:0;border-radius:12px;background:#1f8a43;color:#fff;font:700 16px Arial,sans-serif;padding:12px 10px;box-shadow:0 3px 8px rgba(0,0,0,.4)">Run Fuel Optimizer</button>';
+      document.getElementById('hmap').appendChild(b);
+      document.getElementById('hmblv').addEventListener('click',function(){ listView(); });
+      document.getElementById('hmbro').addEventListener('click',function(){ runOpt(); }); }
+    document.getElementById('hmbro').style.display=window.PP_OWN?'block':'none';
+    b.style.display=on?'flex':'none'; }
   function ownHint(on){ var h=document.getElementById('hmown');
     if(!h){ h=document.createElement('div'); h.id='hmown';
       h.style.cssText='position:absolute;left:50%;transform:translateX(-50%);top:70px;z-index:1500;background:#fff;color:#141414;border:1.5px solid #1f8a43;border-radius:10px;padding:7px 12px;font:13px Arial;box-shadow:0 2px 6px rgba(0,0,0,.35);max-width:86%;text-align:center';
