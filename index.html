@@ -3067,6 +3067,12 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
   { date:'2026-11-05', items:[
+    'Version 1.3.109',
+    '**A wider pump** on the map',
+    '**The buttons under the pump sit a little higher** off the bottom of the screen',
+    '**The trip card sits higher,** with more room between it and the pump'
+  ]},
+  { date:'2026-11-05', items:[
     'Version 1.3.108',
     '**The pump, sign and buttons now sit at the bottom of the screen,** so your trip name stays in view at the top, even with the trip card up',
     '**Trip details, Radar and Satellite now work on the first tap** while a pump is showing'
@@ -8234,10 +8240,11 @@ body.tier-free #freelist{display:block}
     '<linearGradient id="ppWh" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#000" stop-opacity=".55"/><stop offset=".3" stop-color="#000" stop-opacity="0"/><stop offset=".7" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".55"/></linearGradient>'+
     '<linearGradient id="ppIr" x1="0" x2="1"><stop offset="0" stop-color="#2a2f38"/><stop offset=".5" stop-color="#4a5260"/><stop offset="1" stop-color="#22262e"/></linearGradient>'+
     '<clipPath id="ppcT"><rect x="110" y="170" width="100" height="30" rx="4"/></clipPath><clipPath id="ppcG"><rect x="110" y="226" width="100" height="30" rx="4"/></clipPath></defs>'+
-    '<rect x="50" y="506" width="220" height="30" rx="6" fill="#0E1830"/><rect x="62" y="496" width="196" height="16" rx="4" fill="#24385F"/>'+
-    '<path d="M70 168 C 30 200, 24 300, 40 400 S 60 500, 74 498" fill="none" stroke="#1C1C1E" stroke-width="9" stroke-linecap="round"/>'+
-    '<rect x="70" y="36" width="180" height="466" rx="44" fill="url(#ppFr)"/><rect x="88" y="56" width="144" height="426" rx="30" fill="url(#ppPn)"/>'+
-    '<rect x="78" y="70" width="6" height="380" rx="3" fill="#fff" opacity=".25"/>'+
+    /* v1.3.109: a wider pump body */
+    '<rect x="26" y="506" width="268" height="30" rx="6" fill="#0E1830"/><rect x="38" y="496" width="244" height="16" rx="4" fill="#24385F"/>'+
+    '<path d="M46 168 C 12 200, 8 300, 20 400 S 36 500, 50 498" fill="none" stroke="#1C1C1E" stroke-width="9" stroke-linecap="round"/>'+
+    '<rect x="46" y="36" width="228" height="466" rx="48" fill="url(#ppFr)"/><rect x="64" y="56" width="192" height="426" rx="34" fill="url(#ppPn)"/>'+
+    '<rect x="54" y="70" width="6" height="380" rx="3" fill="#fff" opacity=".25"/>'+
     '<rect x="106" y="80" width="108" height="46" rx="8" fill="url(#ppGn)" stroke="#1A2B4C" stroke-width="3"/>'+
     '<text x="160" y="112" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="24" fill="#fff" letter-spacing="2">DIESEL</text>'+
     '<rect x="102" y="144" width="116" height="164" rx="10" fill="#fff" stroke="#1A2B4C" stroke-width="4"/>'+
@@ -8248,7 +8255,7 @@ body.tier-free #freelist{display:block}
     '<text x="160" y="275" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="10" fill="#1A2B4C" letter-spacing="1">'+(d.off?'DISCOUNT':'DISCOUNT PRICE')+'</text>'+
     '<rect x="125" y="280" width="70" height="22" rx="4" fill="#1C9A44"/>'+
     '<text x="160" y="296" text-anchor="middle" font-family="Courier New,monospace" font-weight="700" font-size="15" fill="#fff">'+(d.off?(d.ret!=null?Math.max(0,Math.round((d.ret-d.pr)*100))+'\u00a2':'--'):'$'+fmt(d.pr))+'</text>'+
-    '<rect x="88" y="326" width="144" height="8" fill="#141414"/>'+
+    '<rect x="64" y="326" width="192" height="8" fill="#141414"/>'+
     (d.own?'<text x="160" y="358" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="11" fill="#1A2B4C" letter-spacing="1">'+(d.rank===0?'CHEAPEST':'#'+(d.rank+1)+' OF '+d.list.length)+'</text>'+
       '<text x="160" y="373" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="10" fill="#1A2B4C" letter-spacing=".5">ON YOUR ROUTE</text>'+
       '<text x="160" y="388" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="'+Math.min(11,128/Math.max(1,(3+ppStName(d.h.st).length)*0.72)).toFixed(1)+'" fill="#1A2B4C" letter-spacing="1">IN '+esc(ppStName(d.h.st).toUpperCase())+'</text>'
@@ -8258,9 +8265,9 @@ body.tier-free #freelist{display:block}
     '<text x="160" y="386" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="11" fill="#1A2B4C" letter-spacing="1">AMOUNT TO BUY</text>'+
     '<text x="160" y="400" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="10" fill="#1A2B4C" letter-spacing="1">AT THIS STOP</text>')+
     ppTag(d.h)+(d.own&&d.miAhead!=null?'<text x="160" y="496" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="11" fill="#ffffff" letter-spacing="1">'+d.miAhead.toLocaleString('en-US')+' MI AHEAD</text>':'')+
-    '<rect x="58" y="150" width="20" height="40" rx="4" fill="#138A36"/>'+
-    '<path d="M46 156 h22 v34 h-8 v18 a6 6 0 0 1 -12 0 v-18 h-2 z" fill="url(#ppCh)" stroke="#5E6672" stroke-width="1.5"/>'+
-    '<path d="M42 170 q-12 6 -10 30" fill="none" stroke="#138A36" stroke-width="4" stroke-linecap="round"/><rect x="50" y="146" width="16" height="12" rx="3" fill="url(#ppGn)"/>'+
+    '<rect x="34" y="150" width="20" height="40" rx="4" fill="#138A36"/>'+
+    '<path d="M22 156 h22 v34 h-8 v18 a6 6 0 0 1 -12 0 v-18 h-2 z" fill="url(#ppCh)" stroke="#5E6672" stroke-width="1.5"/>'+
+    '<path d="M18 170 q-12 6 -10 30" fill="none" stroke="#138A36" stroke-width="4" stroke-linecap="round"/><rect x="26" y="146" width="16" height="12" rx="3" fill="url(#ppGn)"/>'+
     (d.own?'':('<rect x="318" y="226" width="8" height="308" rx="2" fill="url(#ppIr)"/><rect x="514" y="226" width="8" height="308" rx="2" fill="url(#ppIr)"/>'+
     '<rect x="304" y="528" width="36" height="8" rx="2" fill="#2a2f38"/><rect x="500" y="528" width="36" height="8" rx="2" fill="#2a2f38"/>'+
     '<rect x="312" y="220" width="216" height="10" rx="3" fill="url(#ppIr)"/><circle cx="322" cy="214" r="7" fill="#2a2f38"/><circle cx="518" cy="214" r="7" fill="#2a2f38"/>'+
@@ -8324,7 +8331,7 @@ body.tier-free #freelist{display:block}
     return (x?x+' stop'+(x===1?'':'s')+' plus ':'')+n+' fuel stop'+(n===1?'':'s'); }
   function ppCard(t){
     var c='font:700 11px Arial,sans-serif;color:#6b7686;letter-spacing:.5px', v='font:700 17px Arial,sans-serif;color:#141414';
-    return '<div style="margin:0 0 8px 9%;width:87%;box-sizing:border-box;background:#fff;border:1px solid #c9cfd8;border-radius:12px;padding:10px 14px;box-shadow:0 3px 8px rgba(0,0,0,.35);font-family:Arial,sans-serif">'+
+    return '<div style="margin:0 0 50px 9%;width:87%;box-sizing:border-box;background:#fff;border:1px solid #c9cfd8;border-radius:12px;padding:10px 14px;box-shadow:0 3px 8px rgba(0,0,0,.35);font-family:Arial,sans-serif">'+
       '<div style="display:flex;justify-content:space-between;align-items:baseline"><b style="font-size:15px;color:#10233f">Your trip</b><b style="font-size:12px;color:#f26a21">Stop 1 of '+t.rows.length+'</b></div>'+
       '<div style="font-size:13px;color:#3d4a5c;margin-top:3px;line-height:1.35">'+ppCities(t)+'</div>'+
       '<div style="font-size:12px;color:#6b7686;margin-top:2px">'+ppStopsLine(t)+'</div>'+
@@ -8374,7 +8381,7 @@ body.tier-free #freelist{display:block}
     var mk=ppMk[h.la+','+h.lo]; if(mk){ mk.setOpacity(0); ppCur=mk; }   /* v1.3.97: the little pump hides while the big one is up */
     var o=document.getElementById('hmpp');
     if(!o){ o=document.createElement('div'); o.id='hmpp';
-      o.style.cssText='position:absolute;left:0;right:0;bottom:0;top:0;z-index:2000;background:transparent;display:flex;flex-direction:column;align-items:center;padding:52px 14px calc(14px + env(safe-area-inset-bottom,0px));box-sizing:border-box;overflow-y:auto';
+      o.style.cssText='position:absolute;left:0;right:0;bottom:0;top:0;z-index:2000;background:transparent;display:flex;flex-direction:column;align-items:center;padding:52px 14px calc(56px + env(safe-area-inset-bottom,0px));box-sizing:border-box;overflow-y:auto';   /* v1.3.109: bottom row up one button height */
       o.addEventListener('click',function(e){ if(e.target===o||e.target.id==='hmppx'||(e.target.parentNode===o)) ppClose(); });
       document.getElementById('hmap').appendChild(o); }
     var lbl='Back to map';
