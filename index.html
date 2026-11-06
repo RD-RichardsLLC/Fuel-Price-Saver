@@ -2154,6 +2154,19 @@ function inCanada(la,lo){
   }
   return inside;
 }
+/* v1.3.144: road miles from one spot to each stop, truck-legal, staying in the US (HERE, exclude Canada and Mexico) */
+async function nearRoadMiles(la0,lo0,list,tick){
+  const o=truckOpt(), ll=(a,b)=>(+a).toFixed(5)+','+(+b).toFixed(5);
+  const q='&transportMode=truck&routingMode='+(o.rt==='shortest'?'short':'fast')+
+    '&vehicle[height]='+Math.round(o.h*100)+'&vehicle[grossWeight]='+Math.round(o.w)+'&vehicle[width]=259'+
+    (o.len?'&vehicle[length]='+Math.round(o.len*100):'')+(o.ax?'&vehicle[axleCount]='+o.ax:'')+'&vehicle[trailerCount]=1&return=summary&apikey='+HERE_KEY;
+  const one=async(h,ex)=>{ const r=await fetch('https://router.hereapi.com/v8/routes?origin='+ll(la0,lo0)+'&destination='+ll(h.la,h.lo)+q+(ex?'&exclude[countries]=CAN,MEX':''));
+    if(!r.ok) throw new Error('HERE '+r.status); const d=await r.json(); const R=d&&d.routes&&d.routes[0]; if(!R) return null;
+    let m=0; (R.sections||[]).forEach(S=>{ m+=((S.summary||{}).length)||0; }); return m>0?m/1609.344:null; };
+  let k=0; const work=async()=>{ while(k<list.length){ const h=list[k++]; h.road=null;
+      try{ h.road=await one(h,true); }catch(e){ try{ h.road=await one(h,false); }catch(e2){} }   /* if the border rule is refused, measure without it */
+      try{ tick&&tick(); }catch(e){} } };
+  const W=[]; for(let i=0;i<Math.min(6,list.length);i++) W.push(work()); await Promise.all(W); }
 function miBetween(a1,o1,a2,o2){
   const R=3958.8,r=Math.PI/180,dA=(a2-a1)*r,dO=(o2-o1)*r;
   const h=Math.sin(dA/2)**2+Math.cos(a1*r)*Math.cos(a2*r)*Math.sin(dO/2)**2;
@@ -2243,10 +2256,21 @@ async function fuelNear(radius){
     const here=typed? await geocode(typed) : await getHere();   // [lon, lat, name]
     NEAR_AT= typed? shortPlace(here[2]||typed) : 'you';
     setBar(70);
-    const la0=here[1], lo0=here[0], hits=[];
+    const la0=here[1], lo0=here[0], cand=[];
     for(const s of STATIONS){
       const d=miBetween(la0,lo0,s[3],s[4]);
-      if(d<=radius) hits.push({b:s[0],c:s[1],st:s[2],la:s[3],lo:s[4],ret:s[5],disc:s[6],ifta:s[7],pre:s[8],prod:s[9],def:s[10],off:0,away:Math.round(d*10)/10});
+      if(d<=radius) cand.push({b:s[0],c:s[1],st:s[2],la:s[3],lo:s[4],ret:s[5],disc:s[6],ifta:s[7],pre:s[8],prod:s[9],def:s[10],off:0,away:Math.round(d*10)/10});
+    }
+    /* v1.3.144: road miles, not as the crow flies, and never through Canada or Mexico.
+       Road miles are never shorter than the straight line, so only stops inside the straight circle get checked */
+    const hits=[];
+    if(cand.length){
+      const msg=(k)=>'Measuring road miles\u2026 '+k+' of '+cand.length;
+      ns(msg(0)); res.innerHTML='<p class="hint">'+msg(0)+'</p>';
+      let done=0, ok=0;
+      await nearRoadMiles(la0,lo0,cand,function(){ done++; if(done%3===0||done===cand.length){ ns(msg(done)); setBar(70+Math.round(25*done/cand.length)); } });
+      cand.forEach(h=>{ if(h.road!=null){ ok++; if(h.road<=radius){ h.away=Math.round(h.road*10)/10; hits.push(h); } } });
+      if(!ok) cand.forEach(h=>hits.push(h));   /* no road miles came back at all: fall back to the straight line */
     }
     hits.sort((a,b)=>rankVal(a)-rankVal(b));
     LASTHITS=hits; NEAR_R=radius; ROUTE_LEGS=null; ROUTE_MI=null;
@@ -3218,6 +3242,12 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    To ship an update: add a new block at the TOP of CHANGELOG with the date and the lines.
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
+  { date:'2026-11-06', items:[
+    'Version 1.3.144',
+    '**Fuel near me measures road miles.** The miles away are the real driving miles for your truck, not a straight line, so a stop across a lake or a border no longer shows up as close. You see Measuring road miles while it works, which can take a few seconds',
+    '**Fuel near me stays in the U.S.** The road miles never route through Canada or Mexico',
+    '**The GPS arrow on the map is off.** The map stays where you put it'
+  ]},
   { date:'2026-11-06', items:[
     'Version 1.3.143',
     '**Fuel near me shows the whole circle.** The map zooms out so you see every stop within the miles you picked, and it no longer pulls back to where you are',
@@ -9125,7 +9155,8 @@ body.tier-free #freelist{display:block}
     var el=gpsMk.getElement&&gpsMk.getElement(); if(el){ var a=el.querySelector('.arw'); if(a) a.style.transform='rotate('+gpsHd+'deg)'; }
     if(!window.HM_PP&&!window.HM_TD&&!window.NEAR_MAP&&wasIn) M.panTo(ll,{animate:true,duration:.8});   /* v1.3.143: not on Fuel near me */
     gpsCheck(); }
-  function gpsStart(){ if(gpsW!=null||!navigator.geolocation) return;
+  function gpsStart(){ return;   /* v1.3.144: the GPS arrow on the map is off for now */
+    if(gpsW!=null||!navigator.geolocation) return;
     try{ gpsW=navigator.geolocation.watchPosition(gpsFix,function(){},{enableHighAccuracy:true,maximumAge:3000,timeout:20000}); }catch(e){} }
   function gpsStop(){ if(gpsW!=null){ try{ navigator.geolocation.clearWatch(gpsW); }catch(e){} gpsW=null; }
     var b=document.getElementById('hmret'); if(b) b.style.display='none'; }
