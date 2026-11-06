@@ -3100,6 +3100,13 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
   { date:'2026-11-06', items:[
+    'Version 1.3.127',
+    '**Your plan stops now fly numbered checkered flags** on the route map: 1, 2, 3 in the order you buy fuel, so you can tell them apart from the cheapest stops at a glance',
+    '**The stops in your state show on plan stops too.** A short list of the other stops in that state sits above the swinging sign and scrolls. Tap one to go to its pump',
+    '**The sign stand is shorter**, with its feet still level with the bottom of the pump',
+    '**The pump nozzle got a makeover:** a silver spout arches into the side of the pump, and the green handle tucks in against the pump'
+  ]},
+  { date:'2026-11-06', items:[
     'Version 1.3.126',
     '**The Menu buttons are all blue lettering** with orange borders again',
     '**The price ticker moves 25% slower**, so it is easier to read',
@@ -8272,7 +8279,7 @@ body.tier-free #freelist{display:block}
   /* v1.3.81: your buy stops get a flag in the brand's color: TA blue, Love's yellow, Petro green */
   /* v1.3.87: your buy stops get a pit-stop sign on a pole in the brand's color: TA blue, Love's yellow, Petro green */
   /* v1.3.88: a little pit crew guy holds up a pit sign in the brand's color: TA blue, Love's yellow, Petro green */
-  function flag(b){
+  function flag(b,num){
     var n=String(b||'').toLowerCase(), isL=/love/.test(n), isP=/petro/.test(n), isT=/\bta\b|ta express|travelcenters/.test(n);
     var c=isL?'#f5c518':isP?'#2fa85a':isT?'#2f7fe0':'#f26a21', tx=isL?'L':isP?'P':isT?'TA':'\u26fd', tc=isL?'#10233f':'#fff';
     /* v1.3.92: the old-style diesel pump marks each buy stop, with a brand badge: TA blue, L yellow, P green, each with a thin red ring */
@@ -8291,6 +8298,15 @@ body.tier-free #freelist{display:block}
       '<circle cx="30" cy="72" r="9" fill="none" stroke="#d62828" stroke-width="1.6"/>'+
       '<text x="30" y="'+by+'" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="'+(isT?11:bf)+'" fill="'+tc+'">'+tx+'</text>'+
       '</svg>';
+    /* v1.3.127: plan stops fly a numbered checkered flag on a pole above the pump: 1, 2, 3 in plan order */
+    if(num){ var ck=''; for(var r=0;r<3;r++) for(var q=0;q<4;q++) if((r+q)%2===0) ck+='<rect x="'+(44+q*8)+'" y="'+(2+r*7.34).toFixed(2)+'" width="8" height="7.34" fill="#111"/>';
+      svg='<svg width="48" height="91" viewBox="0 0 80 152">'+
+        '<line x1="44" y1="2" x2="44" y2="46" stroke="#333" stroke-width="2.5"/>'+
+        '<rect x="44" y="2" width="32" height="22" fill="#fff"/>'+ck+'<rect x="44" y="2" width="32" height="22" fill="none" stroke="#333" stroke-width="1"/>'+
+        '<circle cx="60" cy="13" r="8.5" fill="#fff" stroke="#333" stroke-width="1"/>'+
+        '<text x="60" y="17.5" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="'+(num>9?10:13)+'" fill="#111">'+num+'</text>'+
+        '<g transform="translate(0 40)">'+svg.replace(/^<svg[^>]*>/,'').replace(/<\/svg>$/,'')+'</g></svg>';
+      return L.divIcon({className:'',html:svg,iconSize:[48,91],iconAnchor:[18,90],popupAnchor:[0,-84]}); }
     return L.divIcon({className:'',html:svg,iconSize:[36,66],iconAnchor:[18,65],popupAnchor:[0,-60]});
   }
   function gnav(la,lo){ return 'https://www.google.com/maps/dir/?api=1&destination='+la+','+lo+'&travelmode=driving'; }
@@ -8381,6 +8397,9 @@ body.tier-free #freelist{display:block}
     '<clipPath id="ppcT"><rect x="105" y="188" width="160" height="46" rx="5"/></clipPath><clipPath id="ppcG"><rect x="105" y="264" width="160" height="46" rx="5"/></clipPath></defs>'+
     '<rect x="26" y="702" width="318" height="30" rx="6" fill="#0E1830"/><rect x="38" y="692" width="294" height="16" rx="4" fill="#24385F"/>'+
     '<path d="M46 168 C 12 200, 8 400, 20 560 S 36 696, 50 694" fill="none" stroke="#1C1C1E" stroke-width="9" stroke-linecap="round"/>'+
+    /* v1.3.127: a silver spout rises out of the nozzle and arches into the side of the pump */
+    '<path d="M34 148 C 34 126, 40 112, 58 104" fill="none" stroke="#5E6672" stroke-width="10"/><path d="M34 148 C 34 126, 40 112, 58 104" fill="none" stroke="#DDE1E7" stroke-width="7"/>'+
+    '<path d="M32.4 146 C 32.4 125, 38.5 110.5, 57 102.5" fill="none" stroke="#fff" stroke-width="1.5" opacity=".8"/>'+
     '<rect x="46" y="36" width="278" height="662" rx="50" fill="url(#ppFr)"/><rect x="64" y="56" width="242" height="622" rx="36" fill="url(#ppPn)"/>'+
     '<rect x="54" y="70" width="6" height="576" rx="3" fill="#fff" opacity=".25"/>'+
     /* v1.3.117: more room up top (taken from the bottom section): Diesel centered above the price face, all three windows the same height, bigger numbers */
@@ -8406,10 +8425,11 @@ body.tier-free #freelist{display:block}
     ppTag(d.h)+(d.own&&d.miAhead!=null?'<text x="185" y="660" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="16" fill="#d62828" letter-spacing="1">'+d.miAhead.toLocaleString('en-US')+' MI AHEAD</text>':'')+
     '<rect x="34" y="150" width="20" height="40" rx="4" fill="#138A36"/>'+
     '<path d="M22 156 h22 v34 h-8 v18 a6 6 0 0 1 -12 0 v-18 h-2 z" fill="url(#ppCh)" stroke="#5E6672" stroke-width="1.5"/>'+
-    '<path d="M18 170 q-12 6 -10 30" fill="none" stroke="#138A36" stroke-width="4" stroke-linecap="round"/><rect x="26" y="146" width="16" height="12" rx="3" fill="url(#ppGn)"/>'+
+    '<path d="M46 190 q-16 12 -2 32" fill="none" stroke="#138A36" stroke-width="4" stroke-linecap="round"/><rect x="26" y="146" width="16" height="12" rx="3" fill="url(#ppGn)"/>'+
     (d.own?'':(
-    '<rect x="372" y="430" width="8" height="296" rx="2" fill="url(#ppIr)"/><rect x="528" y="430" width="8" height="296" rx="2" fill="url(#ppIr)"/>'+
+    '<rect x="372" y="460" width="8" height="266" rx="2" fill="url(#ppIr)"/><rect x="528" y="460" width="8" height="266" rx="2" fill="url(#ppIr)"/>'+   /* v1.3.127: legs under the sign half as long; feet stay level with the pump */
     '<rect x="358" y="724" width="36" height="8" rx="2" fill="#2a2f38"/><rect x="514" y="724" width="36" height="8" rx="2" fill="#2a2f38"/>'+
+    '<g transform="translate(0 30)">'+
     '<rect x="366" y="424" width="176" height="10" rx="3" fill="url(#ppIr)"/><circle cx="376" cy="418" r="7" fill="#2a2f38"/><circle cx="532" cy="418" r="7" fill="#2a2f38"/>'+
     '<circle cx="419" cy="436" r="4" fill="none" stroke="#2a2f38" stroke-width="2.5"/><circle cx="489" cy="436" r="4" fill="none" stroke="#2a2f38" stroke-width="2.5"/>'+
     '<g id="ppS"><line x1="419" y1="440" x2="419" y2="466" stroke="#3a404b" stroke-width="2.5" stroke-dasharray="4 3"/><line x1="489" y1="440" x2="489" y2="466" stroke="#3a404b" stroke-width="2.5" stroke-dasharray="4 3"/>'+
@@ -8425,7 +8445,7 @@ body.tier-free #freelist{display:block}
         :'<text x="454" y="642" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="10.5" fill="#1A2B4C" letter-spacing="1">TO GET THERE</text>')
      :'<text x="454" y="618" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="13" fill="#1A2B4C">'+(d.only?'YOUR ONLY':noPlan?'NO FUEL PLAN':'LAST FUEL STOP')+'</text>'+
       '<text x="454" y="640" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="10" fill="#1A2B4C" letter-spacing=".5">'+(d.only?'FUEL STOP':noPlan?'RUN THE OPTIMIZER':'ON YOUR PLAN')+'</text>')+
-    '<circle cx="404" cy="480" r="2.5" fill="#8a8f99"/><circle cx="504" cy="480" r="2.5" fill="#8a8f99"/><circle cx="404" cy="652" r="2.5" fill="#8a8f99"/><circle cx="504" cy="652" r="2.5" fill="#8a8f99"/><rect id="ppShade" x="390" y="466" width="128" height="200" rx="10" fill="#000" opacity="0"/></g>'))+'</svg>';
+    '<circle cx="404" cy="480" r="2.5" fill="#8a8f99"/><circle cx="504" cy="480" r="2.5" fill="#8a8f99"/><circle cx="404" cy="652" r="2.5" fill="#8a8f99"/><circle cx="504" cy="652" r="2.5" fill="#8a8f99"/><rect id="ppShade" x="390" y="466" width="128" height="200" rx="10" fill="#000" opacity="0"/></g></g>'))+'</svg>';
   }
   var ppTimer=null;
   function ppRoll(d){
@@ -8529,7 +8549,9 @@ body.tier-free #freelist{display:block}
     var lbl='Back to map'; ppDetClose();
     var card=''; window.PP_CARD=false;   /* v1.3.116: no trip banner (it pushed everything down); the trip's details are under Trip details */
     var lst='';
-    if(d.own){ lst='<div style="position:absolute;left:60%;top:5%;width:38%;height:91%;display:flex;flex-direction:column;background:#fff;border:2px solid #1A2B4C;border-radius:12px;overflow:hidden;box-shadow:0 3px 8px rgba(0,0,0,.35);font-family:Arial,sans-serif">'+
+    /* v1.3.127: a plan stop (or any stop with the sign) gets the same state list, as a shorter window above the sign */
+    if(!d.own){ d.list=ppStateList(d.h.st); }
+    { var ht=d.own?'91%':'50%'; lst='<div style="position:absolute;left:60%;top:'+(d.own?'5%':'4%')+';width:38%;height:'+ht+';display:flex;flex-direction:column;background:#fff;border:2px solid #1A2B4C;border-radius:12px;overflow:hidden;box-shadow:0 3px 8px rgba(0,0,0,.35);font-family:Arial,sans-serif">'+
       '<div style="background:#f26a21;color:#fff;padding:7px 6px;font:900 clamp(10px,2.8vw,12px) Arial;letter-spacing:.5px;text-align:center">OTHER STOPS IN '+esc(ppStName(d.h.st).toUpperCase())+'</div>'+
       '<div style="font-size:11px;color:#6b7686;padding:4px 8px 2px">Cheapest first \u00b7 tap one</div><div style="flex:1;overflow-y:auto;padding:0 8px 6px">'+
       d.list.filter(function(x){ return x!==d.h; }).map(function(x){ var k=(LASTHITS||[]).indexOf(x);
@@ -8552,7 +8574,7 @@ body.tier-free #freelist{display:block}
       if(d.own) L.push({t:'Run Fuel Optimizer',wide:1,go:function(){ runOpt(); }});
       hmenuOpen(L); });
     /* v1.3.126: tap a stop in the list: the pump changes to it and its details open on top of the list */
-    [].slice.call(o.querySelectorAll('.pplrow')).forEach(function(r){ r.addEventListener('click',function(e){ e.stopPropagation(); var x=(LASTHITS||[])[+r.getAttribute('data-k')]; if(x){ go(x); ppDet(x); } }); });
+    [].slice.call(o.querySelectorAll('.pplrow')).forEach(function(r){ r.addEventListener('click',function(e){ e.stopPropagation(); var x=(LASTHITS||[])[+r.getAttribute('data-k')]; if(x){ go(x); if(d.own) ppDet(x); } }); });
     /* v1.3.108: the pump layer starts under the top bar so Trip details, Radar and Satellite work on the first tap; everything sits low so the trip label stays in view */
     { var hb=document.getElementById('hmbar'); o.style.top=(hb?hb.offsetHeight:0)+'px'; }
     o.style.display='flex'; window.HM_PP=true; try{ optBtn(false); }catch(x){} ppDim(true); ppFit(o); ppWx(h); ppRoll(d); return true;
@@ -8692,11 +8714,12 @@ body.tier-free #freelist{display:block}
     }
     var best=null; try{ best=(LASTHITS||[])[0]; }catch(e){}
     var ownCheap=window.PP_OWN?ppCheapSet():{}; window.PP_BIG=ownCheap;
+    var pnum={}; (window.LASTHITS||LASTHITS||[]).filter(function(x){ return plan[x.la+','+x.lo] && isFinite(x.rmi); }).sort(function(a,b){ return a.rmi-b.rmi; }).forEach(function(x,i){ pnum[x.la+','+x.lo]=i+1; });
     (window.LASTHITS||LASTHITS||[]).forEach(function(h){
       if(!isFinite(h.la)||!isFinite(h.lo)) return;
       var inPlan=plan[h.la+','+h.lo];
       var big=inPlan||(window.PP_OWN&&ownCheap[h.la+','+h.lo]);
-      var mk=L.marker([h.la,h.lo],big?{icon:flag(h.b),zIndexOffset:1000}:{icon:miniPump()}).addTo(M);
+      var mk=L.marker([h.la,h.lo],big?{icon:flag(h.b,inPlan?pnum[h.la+','+h.lo]:0),zIndexOffset:1000}:{icon:miniPump()}).addTo(M);
       if((window.PP_OWN&&ppDataOwn(h))||(inPlan&&ppData(h))||(!inPlan&&ppDataOff(h))){ ppMk[h.la+','+h.lo]=mk; mk.on('click',function(){ ppOpen(h); }); } else mk.bindPopup(stopPop(h));
       mk.on('popupopen',function(){ mk.setOpacity(0); }); mk.on('popupclose',function(){ mk.setOpacity(1); });   /* v1.3.85: the tapped flag or dot hides while its card shows */
       layers.push(mk);
