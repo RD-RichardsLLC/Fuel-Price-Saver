@@ -3100,6 +3100,16 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
   { date:'2026-11-06', items:[
+    'Version 1.3.132',
+    '**Touching the scrolling list just stops it.** Swiping it up and down never opens a stop. Only a tap, once the list is sitting still, opens one. Three seconds after you let go it starts moving again',
+    '**On a plan stop you stay on your plan stop.** Tapping a stop in the short list opens its details in a small box over the list, and the sign stays in view. The X takes you right back to your plan stop',
+    '**See all services goes back the same way.** Its X takes you back to the details, and the next X back to your pump',
+    '**Menu has Back to my pump** at the top, and on a stop that is not on your plan it says Back to my plan stop',
+    '**The details and services headers are in the brand\'s color.** Love\'s is yellow, Petro is green and TA is light blue',
+    '**Highway shields in the stop lists.** Each stop shows the interstate or US highway shield, with the exit number beside it',
+    '**Prices in the lists and the details round to the cent,** so $4.798 shows as $4.80. The pump still shows three digits'
+  ]},
+  { date:'2026-11-06', items:[
     'Version 1.3.131',
     '**Check fuel anywhere.** Tap Menu on the pump, then Check fuel anywhere. Pick a state and an interstate, like Florida and I-95, and you see every stop on it, cheapest first. Tap a stop for its prices and all its services. Your route stays just like it was, and closing it puts you right back where you were',
     '**The first touch on the scrolling list just stops it.** It will not open a stop by mistake. Swipe it up and down by hand, then tap the stop you want. Three seconds after you let go it starts moving again',
@@ -8388,6 +8398,15 @@ body.tier-free #freelist{display:block}
   function ppExit(h){ try{ var inf=stopInfo(h); if(!inf) return ''; var p=parseRoads(inf.exit);
       var r=p.roads.map(function(x){ return (x.k==='I'?'I-':'US-')+x.n; }).join(' / ');
       return (r+(p.exit?(r?' \u00b7 ':'')+'EXIT '+p.exit:'')).toUpperCase(); }catch(e){ return ''; } }
+  /* v1.3.132: prices in the lists and the details box round to the cent ($4.798 shows $4.80). The pump keeps three digits */
+  function ppC(v){ return (Math.round(v*100+1e-6)/100).toFixed(2); }
+  /* v1.3.132: the highway shield, two lines tall, with the exit number beside it on the bottom line */
+  function ppShEx(h,sz){ try{ var inf=stopInfo(h); if(!inf) return ''; var p=parseRoads(inf.exit); if(!p.roads.length&&!p.exit) return '';
+      return '<div style="display:flex;align-items:flex-end;gap:5px;margin-top:3px">'+p.roads.slice(0,2).map(function(r){ return shieldSVG(r,sz||30).replace('class="shield"','style="flex:none;display:block"'); }).join('')+
+        (p.exit?'<span style="font-size:12px;font-weight:700;color:#0070e4;line-height:1.1;white-space:nowrap">Exit '+esc(p.exit)+'</span>':'')+'</div>'; }catch(e){ return ''; } }
+  /* v1.3.132: the details and services headers wear the brand's color: Love's yellow, Petro green, TA light blue */
+  function ppBrandCol(h){ var c=''; try{ c=brandClass(h.b); }catch(e){}
+    if(c==='loves') return ['#FFD400','#141414']; if(c==='petro') return ['#3ab54a','#fff']; if(c==='ta') return ['#2f9be8','#141414']; return ['#fff','#0070e4']; }
   /* v1.3.126: just the highways, like "I-57 / I-70" */
   function ppRoads(h){ try{ var inf=stopInfo(h); if(!inf) return ''; return parseRoads(inf.exit).roads.map(function(x){ return (x.k==='I'?'I-':'US-')+x.n; }).join(' / '); }catch(e){ return ''; } }
   /* v1.3.126: which way one stop is from another: north, northeast, east ... */
@@ -8592,11 +8611,12 @@ body.tier-free #freelist{display:block}
     /* v1.3.127: a plan stop (or any stop with the sign) gets the same state list, as a shorter window above the sign */
     if(!d.own){ d.list=ppStateList(d.h.st); }
     var fullL=d.own||d.off;   /* v1.3.129: a stop that isn't on your plan gets the full-height list, no sign */
+    window.PP_FULL=!!fullL; if(!fullL) window.PP_PLANH=h;   /* v1.3.132 */
     { var ht=fullL?'95.2%':'52.4%';   /* v1.3.131: full list runs the pump's full height and sits clear of its base */ lst='<div style="position:absolute;left:'+(fullL?'63%':'64.6%')+';top:1.6%;width:'+(fullL?'36%':'35%')+';height:'+ht+';display:flex;flex-direction:column;background:#fff;border:2px solid #1A2B4C;border-radius:12px;overflow:hidden;box-shadow:0 3px 8px rgba(0,0,0,.35);font-family:Arial,sans-serif">'+
       '<div style="background:#141414;color:#fff;padding:7px 6px;border-bottom:1.5px solid #141414;font:900 clamp(10px,2.8vw,12px) Arial;letter-spacing:.5px;text-align:center">OTHER STOPS IN '+esc(ppStName(d.h.st).toUpperCase())+'</div>'+
       '<div style="font-size:11px;color:#6b7686;padding:4px 8px 2px">Cheapest first \u00b7 tap one</div><div class="pplscr" style="flex:1;overflow-y:auto;padding:0 8px 6px"><div class="pplin">'+
       d.list.filter(function(x){ return x!==d.h; }).map(function(x){ var k=(LASTHITS||[]).indexOf(x);
-        return '<div class="pplrow" data-k="'+k+'" style="display:flex;justify-content:space-between;gap:6px;padding:7px 0;border-bottom:1px solid #eef0f4;font-size:13px;cursor:pointer;color:#141414"><div style="min-width:0"><b>'+esc(x.b)+'</b><div style="font-size:11px;color:#666">'+esc(x.c)+'</div>'+(ppExit(x)?'<div style="font-size:11px;font-weight:700;color:#0070e4">'+esc(ppExit(x))+'</div>':'')+'</div><b style="color:#1f8a43">$'+fmt(rankVal(x))+'</b></div>'; }).join('')+
+        return '<div class="pplrow" data-k="'+k+'" style="display:flex;justify-content:space-between;gap:6px;padding:7px 0;border-bottom:1px solid #eef0f4;font-size:13px;cursor:pointer;color:#141414"><div style="min-width:0"><b>'+esc(x.b)+'</b><div style="font-size:11px;color:#666">'+esc(x.c)+'</div>'+ppShEx(x,28)+'</div><b style="color:#1f8a43">$'+ppC(rankVal(x))+'</b></div>'; }).join('')+
       (d.list.length<2?'<div style="font-size:12px;color:#777;padding:8px 0">No other stops in this state on your route</div>':'')+'</div></div></div>'; }
     o.innerHTML='<div style="width:100%;max-width:520px;flex:1;display:flex;flex-direction:column">'+card+'<div id="ppbox" style="position:relative;margin:auto">'+ppSvg(d)+lst+'</div>'+
       /* v1.3.126: one row: Previous, Menu, Next. Back to map, List view, New route, Details and Run Fuel Optimizer are in Menu */
@@ -8614,27 +8634,37 @@ body.tier-free #freelist{display:block}
         {t:'New route',go:function(){ newRoute(); }},{t:'Details',go:function(){ if(d.own) ppDet(h); else ppDetails(h); }}];
       if(d.own) L.push({t:'Run Fuel Optimizer',wide:1,go:function(){ runOpt(); }});
       L.push({t:'Check fuel anywhere',wide:1,go:function(){ fcaOpen(); }});   /* v1.3.131 */
+      /* v1.3.132: always a way back to the pump */
+      if((d.own||d.off)&&window.PP_PLANH&&window.PP_PLANH!==h) L.unshift({t:'Back to my plan stop',wide:1,go:function(){ ppOpen(window.PP_PLANH); }});
+      else L.unshift({t:'Back to my pump',wide:1,go:function(){}});
       hmenuOpen(L); });
     /* v1.3.130: the stop list drifts slowly upward in a constant loop, so the driver can see there's more in it */
     /* v1.3.131: the first touch only stops it (it doesn't open a stop). Swipe it by hand all you want; 3 seconds after you let go it starts drifting again */
     (function(){ var sc=o.querySelector('.pplscr'), inr=sc&&sc.querySelector('.pplin'); if(!inr) return;
       setTimeout(function(){ if(!sc.isConnected||sc.scrollHeight<=sc.clientHeight+4) return;
         var half=inr.offsetHeight; inr.innerHTML+=inr.innerHTML;
-        [].slice.call(inr.querySelectorAll('.pplrow')).forEach(function(r){ r.addEventListener('click',function(e){ e.stopPropagation(); var x=(LASTHITS||[])[+r.getAttribute('data-k')]; if(x){ go(x); if(d.own||d.off) ppDet(x); } }); });
-        var pos=sc.scrollTop, last=performance.now(), moving=true, eat=false, held=false, tm=null;
+        [].slice.call(inr.querySelectorAll('.pplrow')).forEach(function(r){ r.addEventListener('click',function(e){ e.stopPropagation(); var x=(LASTHITS||[])[+r.getAttribute('data-k')]; if(x){ if(d.own||d.off) go(x); ppDet(x); } }); });
+        /* v1.3.132: the first touch only stops it. Swiping never opens a stop. Only a clean tap, on a list that was already still, opens one.
+           (Phones send a fake mouse press right after a touch; those are ignored so they can't sneak a tap through) */
+        var pos=sc.scrollTop, last=performance.now(), moving=true, held=false, tm=null, was=false, moved=false, ok=false, sx=0, sy=0, lt=0;
         function later(){ clearTimeout(tm); tm=setTimeout(function(){ if(!held){ moving=true; pos=sc.scrollTop; } },3000); }
-        function down(){ held=true; clearTimeout(tm); if(moving){ eat=true; moving=false; } else eat=false; }
-        function up(){ held=false; later(); }
+        function pt(e){ var t=e.touches&&e.touches[0]||e.changedTouches&&e.changedTouches[0]||e; return [t.clientX,t.clientY]; }
+        function down(e){ var tch=e.type.indexOf('touch')===0; if(!tch&&Date.now()-lt<1200) return; if(tch) lt=Date.now();
+          held=true; clearTimeout(tm); was=moving; moving=false; moved=false; ok=false; var q=pt(e); sx=q[0]; sy=q[1]; }
+        function mv(e){ if(!held) return; var q=pt(e); if(Math.abs(q[0]-sx)>10||Math.abs(q[1]-sy)>10) moved=true; }
+        function up(e){ var tch=e.type.indexOf('touch')===0; if(!tch&&Date.now()-lt<1200) return; if(tch) lt=Date.now();
+          if(!held) return; held=false; ok=!was&&!moved&&e.type!=='touchcancel'; later(); }
         sc.addEventListener('touchstart',down,{passive:true}); sc.addEventListener('mousedown',down);
+        sc.addEventListener('touchmove',mv,{passive:true}); sc.addEventListener('mousemove',mv);
         sc.addEventListener('touchend',up); sc.addEventListener('touchcancel',up); sc.addEventListener('mouseup',up);
-        sc.addEventListener('click',function(e){ if(eat){ eat=false; e.stopPropagation(); e.preventDefault(); } },true);
-        sc.addEventListener('scroll',function(){ if(moving) return; if(sc.scrollTop>=half) sc.scrollTop-=half; if(!held) later(); },{passive:true});
+        sc.addEventListener('click',function(e){ if(!ok){ e.stopPropagation(); e.preventDefault(); } ok=false; },true);
+        sc.addEventListener('scroll',function(){ if(moving) return; if(held) moved=true; if(sc.scrollTop>=half) sc.scrollTop-=half; if(!held) later(); },{passive:true});
         function step(now){ if(!sc.isConnected||o.style.display==='none') return; var dt=Math.min(100,now-last); last=now;
           if(moving){ pos+=dt*0.012; if(pos>=half) pos-=half; sc.scrollTop=pos; }
           requestAnimationFrame(step); }
         requestAnimationFrame(step); },400); })();
     /* v1.3.126: tap a stop in the list: the pump changes to it and its details open on top of the list */
-    [].slice.call(o.querySelectorAll('.pplrow')).forEach(function(r){ r.addEventListener('click',function(e){ e.stopPropagation(); var x=(LASTHITS||[])[+r.getAttribute('data-k')]; if(x){ go(x); if(d.own||d.off) ppDet(x); } }); });
+    [].slice.call(o.querySelectorAll('.pplrow')).forEach(function(r){ r.addEventListener('click',function(e){ e.stopPropagation(); var x=(LASTHITS||[])[+r.getAttribute('data-k')]; if(x){ if(d.own||d.off) go(x); ppDet(x); } }); });
     /* v1.3.108: the pump layer starts under the top bar so Trip details, Radar and Satellite work on the first tap; everything sits low so the trip label stays in view */
     { var hb=document.getElementById('hmbar'); o.style.top=(hb?hb.offsetHeight:0)+'px'; }
     o.style.display='flex'; window.HM_PP=true; try{ optBtn(false); }catch(x){} ppDim(true); ppFit(o); ppWx(h); ppRoll(d); return true;
@@ -8686,7 +8716,7 @@ body.tier-free #freelist{display:block}
     hd.textContent=(ir+' IN '+ppStName(st)).toUpperCase(); hd.style.display='block';
     box.innerHTML='<div style="font-size:11px;color:#6b7686;padding:6px 0 2px">Cheapest first \u00b7 tap one for prices and services</div>'+
       L2.map(function(x){ var ex=ppExit(x);
-        return '<div class="fcarow" data-i="'+all.indexOf(x)+'" style="display:flex;justify-content:space-between;gap:6px;padding:9px 0;border-bottom:1px solid #eef0f4;font-size:14px;cursor:pointer;color:#141414"><div style="min-width:0"><b>'+esc(x.b)+'</b><div style="font-size:12px;color:#666">'+esc(x.c)+'</div>'+(ex?'<div style="font-size:12px;font-weight:700;color:#0070e4">'+esc(ex)+'</div>':'')+'</div><b style="color:#1f8a43">$'+fmt(rankVal(x))+'</b></div>'; }).join('')+
+        return '<div class="fcarow" data-i="'+all.indexOf(x)+'" style="display:flex;justify-content:space-between;gap:6px;padding:9px 0;border-bottom:1px solid #eef0f4;font-size:14px;cursor:pointer;color:#141414"><div style="min-width:0"><b>'+esc(x.b)+'</b><div style="font-size:12px;color:#666">'+esc(x.c)+'</div>'+ppShEx(x,30)+'</div><b style="color:#1f8a43">$'+ppC(rankVal(x))+'</b></div>'; }).join('')+
       (L2.length?'':'<div style="font-size:13px;color:#777;padding:10px 0">No stops found on '+esc(ir)+' in '+esc(ppStName(st))+'.</div>'); }
   function fcaClose(){ var o=document.getElementById('fcapop'); if(o) o.style.display='none'; window.FCA_ON=false; }
   window.fcaClose=fcaClose; window.fcaOpen=fcaOpen;
@@ -8695,20 +8725,24 @@ body.tier-free #freelist{display:block}
     if(!o){ o=document.createElement('div'); o.id='ppdet';
       o.style.cssText='position:absolute;left:63%;top:1.6%;width:36%;height:95.2%;z-index:3;display:flex;flex-direction:column;background:#fff;border:2px solid #f26a21;border-radius:12px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.4);font-family:Arial,sans-serif';
       o.addEventListener('click',function(e){ e.stopPropagation(); }); }
-    if(o.parentNode!==bx) bx.appendChild(o); o.style.display='flex'; return o; }
-  function ppDetHead(h,sub){ return '<div style="display:flex;align-items:flex-start;gap:6px;padding:7px 7px 6px;border-bottom:1.5px solid #f26a21">'+
-      '<div style="flex:1;min-width:0"><b style="display:block;font-size:clamp(12px,3.4vw,15px);color:#0070e4">'+esc(h.b)+(sub?' '+sub:'')+'</b>'+
-      '<div style="font-size:clamp(10px,2.9vw,12px);color:#3d4a5c">'+esc(h.c)+', '+esc(h.st)+'</div></div>'+
+    if(o.parentNode!==bx) bx.appendChild(o);
+    /* v1.3.132: on a plan stop the details stay the size of the short list, so the sign never gets covered */
+    if(window.PP_FULL){ o.style.left='63%'; o.style.top='1.6%'; o.style.width='36%'; o.style.height='95.2%'; }
+    else { o.style.left='64.6%'; o.style.top='1.6%'; o.style.width='35%'; o.style.height='52.4%'; }
+    o.style.display='flex'; return o; }
+  function ppDetHead(h,sub){ var bc=ppBrandCol(h); return '<div style="display:flex;align-items:flex-start;gap:6px;padding:7px 7px 6px;border-bottom:1.5px solid #f26a21;background:'+bc[0]+'">'+
+      '<div style="flex:1;min-width:0"><b style="display:block;font-size:clamp(12px,3.4vw,15px);color:'+bc[1]+'">'+esc(h.b)+(sub?' '+sub:'')+'</b>'+
+      '<div style="font-size:clamp(10px,2.9vw,12px);color:'+bc[1]+'">'+esc(h.c)+', '+esc(h.st)+'</div></div>'+
       '<button type="button" class="ppdx" aria-label="Close" style="flex:none;width:30px;height:30px;border-radius:8px;border:0;background:#f26a21;color:#fff;font:700 18px Arial,sans-serif;line-height:30px;padding:0;cursor:pointer">&times;</button></div>'; }
   function ppRow(k,v,c){ return '<div style="display:flex;justify-content:space-between;gap:4px;padding:6px 0;border-bottom:1px solid #eef0f4;font-size:clamp(10.5px,3vw,13px)"><span style="color:#3d4a5c">'+k+'</span><b style="white-space:nowrap;color:'+(c||'#141414')+'">'+v+'</b></div>'; }
   function ppDet(h){
     var o=ppDetBox(); if(!o) return; var save=(h.ret!=null&&h.disc!=null)?h.ret-h.disc:null, ex=ppExit(h), ph='';
     try{ ph=stopPhone(h); }catch(e){}
     o.innerHTML=ppDetHead(h,'')+'<div style="flex:1;overflow-y:auto;padding:4px 8px 8px">'+
-      (ex?'<div style="font:900 clamp(10.5px,3vw,13px) Arial,sans-serif;color:#141414;padding:4px 0 2px">'+esc(ex)+'</div>':'')+
-      (h.ret!=null?ppRow('Pump price','$'+fmt(h.ret)):'')+(h.disc!=null?ppRow('Your discount','$'+fmt(h.disc),'#0070e4'):'')+
-      (save!=null?ppRow('You save','$'+fmt(save)+'/gal','#1f8a43'):'')+(h.ifta!=null?ppRow(esc(h.st)+' IFTA tax','$'+fmt(h.ifta)):'')+
-      (h.pre!=null?ppRow('Pre-tax cost','$'+fmt(h.pre),'#f26a21'):'')+((typeof h.def==='number'&&h.def>0)?ppRow('DEF','$'+fmt(h.def)):'')+
+      (ex?'<div style="padding:2px 0 4px">'+ppShEx(h,30)+'</div>':'')+
+      (h.ret!=null?ppRow('Pump price','$'+ppC(h.ret)):'')+(h.disc!=null?ppRow('Your discount','$'+ppC(h.disc),'#0070e4'):'')+
+      (save!=null?ppRow('You save','$'+ppC(save)+'/gal','#1f8a43'):'')+(h.ifta!=null?ppRow(esc(h.st)+' IFTA tax','$'+ppC(h.ifta)):'')+
+      (h.pre!=null?ppRow('Pre-tax cost','$'+ppC(h.pre),'#f26a21'):'')+((typeof h.def==='number'&&h.def>0)?ppRow('DEF','$'+ppC(h.def)):'')+
       (ph?'<a href="tel:'+String(ph).replace(/\D/g,'')+'" style="display:block;margin-top:8px;text-align:center;font:700 clamp(11px,3.1vw,14px) Arial,sans-serif;color:#0070e4;text-decoration:none">Call '+esc(ph)+'</a>':'')+
       '<button type="button" class="ppsvc" style="display:block;width:100%;margin-top:8px;padding:9px 4px;border-radius:10px;border:1.5px solid #f26a21;background:#fff;color:#0070e4;font:700 clamp(11px,3.2vw,14px) Arial,sans-serif;cursor:pointer">See all services</button></div>';
     o.querySelector('.ppdx').addEventListener('click',function(e){ e.stopPropagation(); ppDetClose(); });
