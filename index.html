@@ -774,6 +774,30 @@ body.on-results #results > *:not(p.hint){display:none!important}
 body.on-results #results > p.hint{color:#0070e4!important;text-align:center;font:700 17px Arial,sans-serif;margin-top:40px}
 body.on-results #backbar{display:none!important}
 </style>
+
+<style>
+/* v1.3.138: How did we do this? in the new colors, on top of See your fuel plan */
+#fpwhy{z-index:9800!important;background:rgba(0,0,0,.45)!important}
+#fpwhy .popbox{background:#fff!important;color:#10233f!important;border:2px solid #f26a21;max-height:88vh;overflow-y:auto}
+#fpwhy .poptitle{color:#0070e4!important}
+#fpwhy .wbig{color:#1f7a36!important}
+#fpwhy .wrow{background:#eaf7ee!important;border:1.5px solid #1f9a44!important;color:#10233f!important}
+#fpwhy .wrow.neg{background:#fff3ea!important;border-color:#f26a21!important}
+#fpwhy p{color:#10233f!important}
+#fpwhy p b{color:#0070e4!important}
+#fpwhy p.sm{color:#555!important}
+/* v1.3.138: Route detail pop-up */
+#fprtpop .rtw{color:#10233f;font-size:15px}
+#fprtpop .rtw .rtop{color:#555;font-size:14px;margin:0 0 8px;line-height:1.45}
+#fprtpop .rtw .rst{border-top:1.5px solid #f26a21;padding:9px 0}
+#fprtpop .rtw .rst b{font-size:17px;color:#0070e4}
+#fprtpop .rtw .rd{color:#10233f;margin-top:4px;line-height:1.45}
+#fprtpop .rtw .rd span{color:#555!important}
+#fprtpop .rtw .tl{color:#c0501a;font-size:13.5px;margin-top:3px}
+#fprtpop .rtw .fpfine{color:#555;font-size:12px;line-height:1.45;margin-top:12px}
+#fprtpop .rtw [style*="color:#fff"],#fprtpop .rtw [style*="color:#e8eef6"],#fprtpop .rtw [style*="color:#cfdbe9"]{color:#10233f!important}
+#fprtpop .rtw [style*="color:#9fb4ce"]{color:#555!important}
+</style>
 </head>
 <body>
 <script>
@@ -3180,6 +3204,12 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    To ship an update: add a new block at the TOP of CHANGELOG with the date and the lines.
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
+  { date:'2026-11-06', items:[
+    'Version 1.3.138',
+    '**Nothing shows behind How do you want to buy fuel.** The screen behind the three choices is solid white',
+    '**How did we do this?** A green button under your savings in See your fuel plan explains where the savings come from',
+    '**Route detail.** An orange button under Finish in See your fuel plan shows the highways and miles in each state, and where you buy fuel. The X takes you back to your plan'
+  ]},
   { date:'2026-11-06', items:[
     'Version 1.3.137',
     '**The old stop cards are gone for good.** After Find fuel you go straight to How do you want to buy fuel, with no cards showing behind it',
@@ -8357,11 +8387,11 @@ body.tier-free #freelist{display:block}
   document.addEventListener('visibilitychange',function(){ if(!document.hidden) apply(); });   // new day: Basic counter resets
 })();
 </script>
-<div id="fpwhy" class="popwrap" style="display:none" onclick="if(event.target===this)history.back()">
+<div id="fpwhy" class="popwrap" style="display:none" onclick="if(event.target===this)fpWhyClose()">
   <div class="popbox">
-    <div class="poptitle">Where’d the savings come from?</div>
+    <button type="button" class="popx" aria-label="Close" onclick="fpWhyClose()">&times;</button>
+    <div class="poptitle" style="padding-right:42px">How did we do this?</div>
     <div id="fpwhytext"></div>
-    <button type="button" class="tierclose" onclick="history.back()">Close</button>
   </div>
 </div>
 <script>
@@ -9045,7 +9075,8 @@ body.tier-free #freelist{display:block}
     var st=(LASTHITS||[]).filter(function(x){ return plan[x.la+','+x.lo] && isFinite(x.rmi); }).sort(function(a,b){ return a.rmi-b.rmi; });
     var nm=ppRouteNames(), o=ppPop('fpplanpop','Your fuel plan'), bd=o.querySelector('.ppopb');
     var gal=0; st.forEach(function(x){ gal+=(window.FP_PLANG||{})[x.la+','+x.lo]||0; });
-    var sv=(window.FP_SAVE!=null&&FP_SAVE>=1)?'<div style="background:#eaf7ee;border:1.5px solid #1f9a44;border-radius:10px;padding:8px 10px;margin-bottom:8px;color:#10233f;font-size:15px"><b style="color:#1f7a36">This plan saves you about $'+Math.round(FP_SAVE).toLocaleString('en-US')+'</b><br><span style="font-size:13px;color:#555">'+st.length+' stop'+(st.length===1?'':'s')+', '+Math.round(gal).toLocaleString('en-US')+' gallons. Good for today\u2019s prices.</span></div>':'';
+    var sv=(window.FP_SAVE!=null&&FP_SAVE>=1)?'<div style="background:#eaf7ee;border:1.5px solid #1f9a44;border-radius:10px;padding:8px 10px;margin-bottom:8px;color:#10233f;font-size:15px"><b style="color:#1f7a36">This plan saves you about $'+Math.round(FP_SAVE).toLocaleString('en-US')+'</b><br><span style="font-size:13px;color:#555">'+st.length+' stop'+(st.length===1?'':'s')+', '+Math.round(gal).toLocaleString('en-US')+' gallons. Good for today\u2019s prices.</span>'+
+      (window.FP_WHY?'<button type="button" id="fpphow" style="display:block;width:100%;margin-top:8px;padding:9px 10px;border:0;border-radius:10px;background:#1f9a44;color:#fff;font:700 15px Arial,sans-serif;cursor:pointer">How did we do this?</button>':'')+'</div>':'';
     var row=function(lbl,txt){ if(!txt) return ''; return '<div style="display:flex;align-items:center;gap:10px;padding:8px 4px;color:#555;font-size:14px"><b style="min-width:52px;color:#10233f">'+lbl+'</b><span>'+esc(txt||'')+'</span></div>'; };
     var h=sv+'<div style="color:#555;font-size:14px;margin:0 0 6px">Tap a stop to go to it.</div>'+row('Start',nm[0]);
     st.forEach(function(x,i){ var g=(window.FP_PLANG||{})[x.la+','+x.lo], pr=null; try{ pr=rankVal(x); }catch(e){} var on=x===cur;
@@ -9054,7 +9085,16 @@ body.tier-free #freelist{display:block}
         '<span style="flex:1;min-width:0"><b style="display:block;color:#0070e4;font-size:16px">'+esc(x.b)+' \u00b7 '+esc(x.c)+', '+esc(x.st)+'</b>'+
         '<span style="color:#10233f;font-size:14px">'+(g>0?'Buy '+Math.round(g)+' gallons':'')+(pr!=null?' \u00b7 $'+ppC(pr):'')+(on?' \u00b7 <i>you\u2019re here</i>':'')+'</span></span></button>'; });
     h+=row('Finish',nm[nm.length-1]);
+    if(window.ROUTE_LINE) h+='<button type="button" id="fpprt" style="display:block;width:100%;margin-top:6px;padding:10px;border:0;border-radius:10px;background:#f26a21;color:#fff;font:700 16px Arial,sans-serif;cursor:pointer">Route detail</button>';
     bd.innerHTML=h;
+    /* v1.3.138: How did we do this? opens the savings explanation */
+    var hw=bd.querySelector('#fpphow'); if(hw) hw.addEventListener('click',function(){ try{ fpWhyOpen(); }catch(e){} });
+    /* v1.3.138: Route detail: the highways and miles in each state, and where you buy fuel. The X brings you back to your plan */
+    var rb=bd.querySelector('#fpprt'); if(rb) rb.addEventListener('click',function(){
+      var ht=''; try{ fpRoute(); ht=document.getElementById('fprtbody').innerHTML; document.getElementById('fprt').classList.remove('show'); }catch(e){}
+      var r=ppPop('fprtpop','Route detail'), rbd=r.querySelector('.ppopb');
+      rbd.innerHTML='<div class="rtw">'+(ht||'<p>Route detail isn\u2019t ready for this trip.</p>')+'</div>';
+      r.querySelector('.ppopx').addEventListener('click',function(){ r.remove(); }); });
     o.querySelector('.ppopx').addEventListener('click',function(){ o.remove(); });
     [].slice.call(bd.querySelectorAll('.fppst')).forEach(function(b){ b.addEventListener('click',function(){ var x=st[+b.getAttribute('data-i')]; o.remove(); if(!x) return;
       window.PP_RETURN=null; try{ ppDetClose(); }catch(e){} try{ M.panTo([x.la,x.lo]); }catch(e){} ppOpen(x); }); });
@@ -9258,7 +9298,7 @@ body.tier-free #freelist{display:block}
     if(!window.FP_CH_WANT) return false; window.FP_CH_WANT=false;   /* v1.3.104: every time Find fuel is tapped */
     var o=document.getElementById('fpch');
     if(!o){ o=document.createElement('div'); o.id='fpch';
-      o.style.cssText='position:fixed;inset:0;z-index:9400;background:rgba(5,12,24,.72);display:none;align-items:center;justify-content:center;padding:18px;box-sizing:border-box';
+      o.style.cssText='position:fixed;inset:0;z-index:9400;background:#fff;display:none;align-items:center;justify-content:center;padding:18px;box-sizing:border-box';   /* v1.3.138: solid white, nothing shows through */
       document.body.appendChild(o); }
     var sv=(window.FP_SAVE>=1)?'<div style="font-size:14px;color:#1f8a43;font-weight:700;margin-top:4px">The Fuel Optimizer saves about $'+Math.round(FP_SAVE).toLocaleString('en-US')+' on this trip</div>':'';
     var b=function(m,t,sub){ return '<button type="button" onclick="fpChoose(\''+m+'\')" style="display:block;width:100%;margin-top:12px;padding:12px 14px;border:0;border-radius:12px;background:#f26a21;color:#fff;text-align:left;font-family:Arial,sans-serif"><b style="font-size:18px">'+t+'</b><div style="font-size:13px;opacity:.92;margin-top:2px">'+sub+'</div></button>'; };
