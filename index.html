@@ -343,6 +343,32 @@
   #wxhr .wxhh .hrn{width:auto;white-space:nowrap}
   #wxhr .wxgot{display:block;margin:12px 0 0 auto;background:var(--orange);border:none;color:#fff;font-weight:bold;font-size:14px;padding:9px 20px;border-radius:9px;cursor:pointer}
   #wxpop .wxmsg{color:#9fb4ce;font-size:14px;text-align:center;padding:24px 0}
+  /* v1.3.126: the weather from the map pump is white with orange, blue lettering and an orange X */
+  .wxx{display:none}
+  #wxpop.lite .wxx,#wxhr.lite .wxx{display:block;flex:none;width:36px;height:36px;margin-left:8px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 20px Arial,sans-serif;line-height:36px;padding:0;cursor:pointer}
+  #wxpop.lite .wxgot,#wxhr.lite .wxgot{display:none}
+  #wxpop.lite .wxbox,#wxhr.lite .wxbox{background:#fff;color:#1b2a3d;border-color:#f26a21;box-shadow:0 10px 30px rgba(0,0,0,.35);font-family:Arial,sans-serif}
+  #wxpop.lite .wxt b,#wxhr.lite .wxt b{color:#0070e4}
+  #wxpop.lite .wxt small,#wxhr.lite .wxt small{color:#6b7686}
+  #wxpop.lite .wxnow{border-bottom-color:#e3e7ee}
+  #wxpop.lite .wxnt{color:#141414}
+  #wxpop.lite .wxc{color:#1b2a3d;font-weight:700}
+  #wxpop.lite .wxm,#wxpop.lite .wxwind,#wxpop.lite .wxmsg{color:#5b6777}
+  #wxpop.lite .wxcolh,#wxpop.lite .wxhph,#wxhr.lite .wxhph,#wxhr.lite .wxhh,#wxhr.lite .wxhh span{color:#7a8696}
+  #wxpop.lite .wxr{border-bottom-color:#eef0f4}
+  #wxpop.lite .wxd{color:#0070e4}
+  #wxpop.lite .wxs{color:#3d4a5c}
+  #wxpop.lite .wxp,#wxpop.lite .wxhr .hrn,#wxhr.lite .wxhr .hrn{color:#0070e4}
+  #wxpop.lite .wxh,#wxpop.lite .wxhr .htp,#wxhr.lite .wxhr .htp{color:#141414}
+  #wxpop.lite .wxl{color:#6b7686}
+  #wxpop.lite .wxchev{color:#f26a21}
+  #wxpop.lite .wxhp{background:#f4f7fb;border-bottom-color:#e3e7ee}
+  #wxpop.lite .wxhr,#wxhr.lite .wxhr{color:#3d4a5c}
+  #wxpop.lite .wxhr .ht,#wxhr.lite .wxhr .ht{color:#1b2a3d}
+  #wxhr.lite .wxhr{border-bottom-color:#eef0f4}
+  #wxhr.lite .wxhh{border-bottom-color:#e3e7ee}
+  #wxpop.lite .wxhbar{background:#fff;border-color:#f26a21;color:#0070e4}
+
   #wxpop .wxgot{display:block;margin:12px 0 0 auto;background:var(--orange);border:none;color:#fff;font-weight:bold;font-size:14px;padding:9px 20px;border-radius:9px;cursor:pointer}
   .cardhead .headroads{display:inline-flex;align-items:center;gap:10px;flex:none;margin-left:auto;flex-wrap:nowrap}
   .cardhead .headroads .maplink{padding:5px 12px;font-size:13px;flex:none}
@@ -453,10 +479,15 @@
     background:#10233f;border:1.5px solid #4f7bb0;border-radius:8px;padding:4px 9px;box-shadow:0 4px 10px rgba(0,0,0,.45)}
   #mvpop{position:fixed;inset:0;z-index:9600;background:rgba(5,12,24,.35);display:none}
   #mvpop.show{display:block}
-  #mvpop .mvbox{position:absolute;right:10px;width:160px;background:#1d3a5e;border:1.5px solid #4f7bb0;border-radius:12px;padding:12px;box-shadow:0 8px 22px rgba(0,0,0,.55)}
-  #mvtitle{font-size:16px;font-weight:800;color:#fff;margin:0 0 10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  #mvpop .mvchoice{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:50px;margin:0 0 8px;border:0;border-radius:10px;background:var(--orange);color:#fff;font-size:17px;font-weight:700}
-  #mvpop .mvcancel{display:block;width:100%;height:42px;border-radius:10px;background:transparent;border:1.5px solid #4f7bb0;color:#9fc0e8;font-size:15px;font-weight:700}
+  /* v1.3.126: white with an orange border and blue lettering; it grows to fit a long city name; the orange X replaces Cancel */
+  #mvpop .mvbox{position:absolute;right:10px;min-width:170px;max-width:calc(100vw - 20px);box-sizing:border-box;background:#fff;border:2px solid #f26a21;border-radius:14px;padding:12px;box-shadow:0 8px 22px rgba(0,0,0,.45);font-family:Arial,sans-serif}
+  #mvpop .mvhead{display:flex;align-items:flex-start;gap:12px;margin:0 0 10px}
+  #mvtitle{flex:1;font-size:16px;font-weight:800;color:#0070e4;line-height:1.25;padding-top:7px}
+  #mvpop .mvx{flex:none;width:36px;height:36px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 20px Arial,sans-serif;line-height:36px;padding:0;cursor:pointer}
+  #mvpop .mvchoice{display:flex;align-items:center;justify-content:center;gap:8px;width:136px;height:50px;margin:0 0 8px;border:1.5px solid #f26a21;border-radius:12px;background:#fff;color:#0070e4;font:700 17px Arial,sans-serif;cursor:pointer}
+  #mvpop .mvchoice:last-child{margin-bottom:0}
+  #mvpop .mvchoice:active{background:#eaf3ff}
+  #mvpop .mvchoice path{stroke:#0070e4}
   .stop.dragging{position:relative;z-index:50;box-shadow:0 10px 24px rgba(0,0,0,.6);border-radius:12px;background:#10233f}
   .stop.dragging .fieldwrap input{outline:2px solid var(--orange)}
   body.rowdrag,body.rowdrag *{user-select:none;-webkit-user-select:none}
@@ -1590,7 +1621,7 @@ function tkClose(){ document.getElementById('tkpop').classList.remove('show'); }
     function put(){ var h=half(); pos=((pos%h)+h)%h; mv.style.transform='translateX('+(-pos)+'px)'; }
     function tick(ts){
       mv=document.getElementById('tkmove');
-      if(mv&&last&&!drag&&ts>wait&&!t.classList.contains('hold-m')){ pos+=(ts-last)*half()/60000; put(); }
+      if(mv&&last&&!drag&&ts>wait&&!t.classList.contains('hold-m')){ pos+=(ts-last)*half()/80000; /* v1.3.126: 25% slower */ put(); }
       last=ts; requestAnimationFrame(tick);
     }
     requestAnimationFrame(tick);
@@ -2723,7 +2754,8 @@ function openWx(i){
   const s=LASTHITS[i]; if(!s) return;
   let pop=document.getElementById('wxpop');
   if(!pop){ pop=document.createElement('div'); pop.id='wxpop'; pop.addEventListener('click',function(e){ if(e.target===pop) closeWx(); }); document.body.appendChild(pop); }
-  const head='<div class="wxt"><b>'+s.c+', '+s.st+'</b><small>7-day forecast</small></div>';
+  pop.classList.toggle('lite',!!window.WX_LITE);   /* v1.3.126: white with orange from the map */
+  const head='<div class="wxt"><b>'+s.c+', '+s.st+'</b><small>7-day forecast</small><button type="button" class="wxx" onclick="closeWx()" aria-label="Close">&times;</button></div>';
   const got='<button class="wxgot" onclick="closeWx()">Got it</button>';
   pop.innerHTML='<div class="wxbox">'+head+'<div class="wxmsg">Getting the weather\u2026</div>'+got+'</div>';
   pop.classList.add('on'); pop.scrollTop=0;
@@ -2771,10 +2803,11 @@ function wxHourly(k){
   let el=document.getElementById('wxhr');
   if(!el){ el=document.createElement('div'); el.id='wxhr'; el.addEventListener('click',function(e){ if(e.target===el) closeWxHr(); }); document.body.appendChild(el); }
   const full=(k===0?'Today':wxFullDay(d.date));
-  el.innerHTML='<div class="wxbox"><div class="wxt"><b>'+full+' &middot; '+s.c+', '+s.st+'</b><small>Hour-by-hour</small></div>'
+  el.innerHTML='<div class="wxbox"><div class="wxt"><b>'+full+' &middot; '+s.c+', '+s.st+'</b><small>Hour-by-hour</small><button type="button" class="wxx" onclick="closeWxHr()" aria-label="Close">&times;</button></div>'
     +'<div class="wxhr wxhh"><span class="ht">Time</span><span class="htp">Temp</span><span class="hw">Wind</span><span class="hrn">Chance of rain</span></div>'
     +d.hrs.map(wxHrRow).join('')
     +'<button class="wxgot" onclick="closeWxHr()">Got it</button></div>';
+  el.classList.toggle('lite',document.getElementById('wxpop').classList.contains('lite'));
   el.classList.add('on'); el.scrollTop=0;
 }
 function closeWxHr(){ const el=document.getElementById('wxhr'); if(el) el.classList.remove('on'); }
@@ -3066,6 +3099,17 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    To ship an update: add a new block at the TOP of CHANGELOG with the date and the lines.
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
+  { date:'2026-11-06', items:[
+    'Version 1.3.126',
+    '**The Menu buttons are all blue lettering** with orange borders again',
+    '**The price ticker moves 25% slower**, so it is easier to read',
+    '**The Move pop-up for a stop has the new look:** white with an orange border and blue lettering. It grows to fit a long city name like Truth or Consequences, and the orange X replaces Cancel. Tap Up or Down and it moves the stop and closes',
+    '**One Menu button on the pump.** Under the pump you now see Previous, Menu and Next. Menu holds Back to map, List view, New route, Details and Run Fuel Optimizer',
+    '**Weather on the pump page.** Under the black trip label at the top, a white box shows the weather where the pump is, and it changes when you go to another pump. Tap it for the 7-day forecast, now white with orange. The first three days still open up for every 2 hours, wind and chance of rain',
+    '**A pump that is not on your fuel plan shows which way your next plan stop is.** The sign gives the miles and the direction, like 730 MI TO THE NORTHEAST',
+    '**Pick my own stops: the list of other stops in the state shows the interstate** under each town, like Effingham, I-57 / I-70. Long lists scroll, cheapest first',
+    '**Tap a stop in that list** and the pump changes to it, and its details open on top of the list: pump price, your discount, savings, IFTA tax, pre-tax cost, exit and interstate. Tap See all services for everything the stop has. The orange X closes each one'
+  ]},
   { date:'2026-11-06', items:[
     'Version 1.3.125',
     '**Color test on the Menu.** Buttons on the left have blue lettering and buttons on the right have black lettering, so the two can be compared side by side. Clear stays red'
@@ -4202,10 +4246,9 @@ async function optimizeStops(){
 </div>
 <div id="fltoast"></div>
 <div id="mvpop" onclick="if(event.target===this)closeMove()"><div class="mvbox" role="dialog" aria-modal="true" aria-labelledby="mvtitle">
-  <div id="mvtitle">Move this stop</div>
+  <div class="mvhead"><div id="mvtitle">Move this stop</div><button type="button" class="mvx" onclick="closeMove()" aria-label="Close">&times;</button></div>
   <button class="mvchoice" id="mvup" type="button" onclick="doMove(-1)"><svg width="16" height="18" viewBox="0 0 16 18" aria-hidden="true"><path d="M8 16V3" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/><path d="M3 8l5-5 5 5" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Up</button>
   <button class="mvchoice" id="mvdn" type="button" onclick="doMove(1)"><svg width="16" height="18" viewBox="0 0 16 18" aria-hidden="true"><path d="M8 2v13" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/><path d="M3 10l5 5 5-5" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>Down</button>
-  <button class="mvcancel" type="button" onclick="closeMove()">Cancel</button>
 </div></div>
 <script>
 // ---------- Tools page + Vehicle specifications (phase one: specs and weight) ----------
@@ -8298,6 +8341,12 @@ body.tier-free #freelist{display:block}
   function ppExit(h){ try{ var inf=stopInfo(h); if(!inf) return ''; var p=parseRoads(inf.exit);
       var r=p.roads.map(function(x){ return (x.k==='I'?'I-':'US-')+x.n; }).join(' / ');
       return (r+(p.exit?(r?' \u00b7 ':'')+'EXIT '+p.exit:'')).toUpperCase(); }catch(e){ return ''; } }
+  /* v1.3.126: just the highways, like "I-57 / I-70" */
+  function ppRoads(h){ try{ var inf=stopInfo(h); if(!inf) return ''; return parseRoads(inf.exit).roads.map(function(x){ return (x.k==='I'?'I-':'US-')+x.n; }).join(' / '); }catch(e){ return ''; } }
+  /* v1.3.126: which way one stop is from another: north, northeast, east ... */
+  function ppDir(a,b){ var r=Math.PI/180, y=Math.sin((b.lo-a.lo)*r)*Math.cos(b.la*r),
+      x=Math.cos(a.la*r)*Math.sin(b.la*r)-Math.sin(a.la*r)*Math.cos(b.la*r)*Math.cos((b.lo-a.lo)*r);
+    var deg=(Math.atan2(y,x)/r+360)%360; return ['NORTH','NORTHEAST','EAST','SOUTHEAST','SOUTH','SOUTHWEST','WEST','NORTHWEST'][Math.round(deg/45)%8]; }
   function ppTag(h){
     var n=String(h.b||'').toLowerCase(), t, bg, bd='#141414', fg;
     if(/love/.test(n)){ t="LOVE\u2019S"; bg='#f5c518'; fg='#141414'; }
@@ -8372,7 +8421,8 @@ body.tier-free #freelist{display:block}
     (nxEx?'<text x="454" y="579" text-anchor="middle" font-family="Arial,sans-serif" font-weight="900" font-size="'+nfs+'" fill="#141414">'+esc(nxEx)+'</text>':'')+
     '<line x1="406" y1="588" x2="502" y2="588" stroke="#E86A10" stroke-width="2"/>'+
     (d.nx?'<text x="454" y="620" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="'+mfs+'" fill="#d62828">'+miT+'</text>'+
-      '<text x="454" y="642" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="10.5" fill="#1A2B4C" letter-spacing="1">TO GET THERE</text>'
+      (d.off?(function(){ var w='TO THE '+ppDir(d.h,d.nx); return '<text x="454" y="642" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="'+Math.min(10.5,106/Math.max(1,w.length*0.68)).toFixed(1)+'" fill="#1A2B4C" letter-spacing=".5">'+w+'</text>'; })()
+        :'<text x="454" y="642" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="10.5" fill="#1A2B4C" letter-spacing="1">TO GET THERE</text>')
      :'<text x="454" y="618" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="13" fill="#1A2B4C">'+(d.only?'YOUR ONLY':noPlan?'NO FUEL PLAN':'LAST FUEL STOP')+'</text>'+
       '<text x="454" y="640" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="10" fill="#1A2B4C" letter-spacing=".5">'+(d.only?'FUEL STOP':noPlan?'RUN THE OPTIMIZER':'ON YOUR PLAN')+'</text>')+
     '<circle cx="404" cy="480" r="2.5" fill="#8a8f99"/><circle cx="504" cy="480" r="2.5" fill="#8a8f99"/><circle cx="404" cy="652" r="2.5" fill="#8a8f99"/><circle cx="504" cy="652" r="2.5" fill="#8a8f99"/><rect id="ppShade" x="390" y="466" width="128" height="200" rx="10" fill="#000" opacity="0"/></g>'))+'</svg>';
@@ -8476,41 +8526,85 @@ body.tier-free #freelist{display:block}
       o.style.cssText='position:absolute;left:0;right:0;bottom:0;top:0;z-index:2000;background:transparent;display:flex;flex-direction:column;align-items:center;padding:52px 14px calc(52px + env(safe-area-inset-bottom,0px));box-sizing:border-box;overflow-y:auto';   /* v1.3.109: bottom row up one button height */
       o.addEventListener('click',function(e){ if(e.target===o||e.target.id==='hmppx'||(e.target.parentNode===o)) ppClose(); });
       document.getElementById('hmap').appendChild(o); }
-    var lbl='Back to map';
+    var lbl='Back to map'; ppDetClose();
     var card=''; window.PP_CARD=false;   /* v1.3.116: no trip banner (it pushed everything down); the trip's details are under Trip details */
     var lst='';
     if(d.own){ lst='<div style="position:absolute;left:60%;top:5%;width:38%;height:91%;display:flex;flex-direction:column;background:#fff;border:2px solid #1A2B4C;border-radius:12px;overflow:hidden;box-shadow:0 3px 8px rgba(0,0,0,.35);font-family:Arial,sans-serif">'+
       '<div style="background:#f26a21;color:#fff;padding:7px 6px;font:900 clamp(10px,2.8vw,12px) Arial;letter-spacing:.5px;text-align:center">OTHER STOPS IN '+esc(ppStName(d.h.st).toUpperCase())+'</div>'+
       '<div style="font-size:11px;color:#6b7686;padding:4px 8px 2px">Cheapest first \u00b7 tap one</div><div style="flex:1;overflow-y:auto;padding:0 8px 6px">'+
       d.list.filter(function(x){ return x!==d.h; }).map(function(x){ var k=(LASTHITS||[]).indexOf(x);
-        return '<div class="pplrow" data-k="'+k+'" style="display:flex;justify-content:space-between;gap:6px;padding:7px 0;border-bottom:1px solid #eef0f4;font-size:13px;cursor:pointer;color:#141414"><div><b>'+esc(x.b)+'</b><div style="font-size:11px;color:#666">'+esc(x.c)+'</div></div><b style="color:#1f8a43">$'+fmt(rankVal(x))+'</b></div>'; }).join('')+
+        return '<div class="pplrow" data-k="'+k+'" style="display:flex;justify-content:space-between;gap:6px;padding:7px 0;border-bottom:1px solid #eef0f4;font-size:13px;cursor:pointer;color:#141414"><div style="min-width:0"><b>'+esc(x.b)+'</b><div style="font-size:11px;color:#666">'+esc(x.c)+'</div>'+(ppRoads(x)?'<div style="font-size:11px;font-weight:700;color:#0070e4;white-space:nowrap">'+ppRoads(x)+'</div>':'')+'</div><b style="color:#1f8a43">$'+fmt(rankVal(x))+'</b></div>'; }).join('')+
       (d.list.length<2?'<div style="font-size:12px;color:#777;padding:8px 0">No other stops in this state on your route</div>':'')+'</div></div>'; }
     o.innerHTML='<div style="width:100%;max-width:520px;flex:1;display:flex;flex-direction:column">'+card+'<div id="ppbox" style="position:relative;margin:auto">'+ppSvg(d)+lst+'</div>'+
-      /* v1.3.105: Back to map and List view side by side */
-      '<div style="display:flex;gap:8px;margin:-6px 0 0 9%;width:87%">'+   /* v1.3.113: buttons up toward the pump */
-      '<button type="button" id="hmppx" style="flex:1;padding:10px 6px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 clamp(12px,3.7vw,16px) Arial,sans-serif">Back to map</button>'+
-      '<button type="button" id="hmpplv" style="flex:1;padding:10px 6px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 clamp(12px,3.7vw,16px) Arial,sans-serif">List view</button>'+
-      '<button type="button" id="hmppnr" style="flex:1;padding:10px 6px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 clamp(12px,3.7vw,16px) Arial,sans-serif">New route</button></div>'+   /* v1.3.121 */
-      /* v1.3.103: Previous, Details and Next under Back to map. Previous hides at your first stop, Next at your last */
-      '<div style="display:flex;justify-content:space-between;gap:8px;margin:10px 0 0 9%;width:87%">'+
-      (d.own?'<button type="button" id="hmppd" style="flex:1;padding:10px 6px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 clamp(12px,3.7vw,16px) Arial,sans-serif">Details</button>'+
-        '<button type="button" id="hmppo" style="flex:1.6;padding:10px 6px;border-radius:10px;border:0;background:#1f8a43;color:#fff;font:700 clamp(12px,3.7vw,16px) Arial,sans-serif">Run Fuel Optimizer</button>':
-      '<button type="button" id="hmppv" style="display:'+(d.pv?'block':'none')+';flex:1;padding:10px 6px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 clamp(12px,3.7vw,16px) Arial,sans-serif">Previous</button>'+
-      '<button type="button" id="hmppd" style="flex:1;padding:10px 6px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 clamp(12px,3.7vw,16px) Arial,sans-serif">Details</button>'+
-      '<button type="button" id="hmppn" style="display:'+((d.nx&&!d.off)?'block':'none')+';flex:1;padding:10px 6px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 clamp(12px,3.7vw,16px) Arial,sans-serif">Next</button>')+
+      /* v1.3.126: one row: Previous, Menu, Next. Back to map, List view, New route, Details and Run Fuel Optimizer are in Menu */
+      '<div style="display:flex;justify-content:space-between;gap:8px;margin:-6px 0 0 9%;width:87%">'+
+      '<button type="button" id="hmppv" style="display:'+(d.pv?'block':'none')+';flex:1;padding:11px 6px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 clamp(13px,3.9vw,17px) Arial,sans-serif">Previous</button>'+
+      '<button type="button" id="hmppm" style="flex:1.2;padding:11px 6px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 clamp(13px,3.9vw,17px) Arial,sans-serif">Menu</button>'+
+      '<button type="button" id="hmppn" style="display:'+((d.nx&&!d.off)?'block':'none')+';flex:1;padding:11px 6px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 clamp(13px,3.9vw,17px) Arial,sans-serif">Next</button>'+
       '</div></div>';
     var go=function(n){ if(!n) return; try{ M.panTo([n.la,n.lo]); }catch(x){} ppOpen(n); };
-    var bv=document.getElementById('hmppv'), bn=document.getElementById('hmppn'), bo=document.getElementById('hmppo');
+    var bv=document.getElementById('hmppv'), bn=document.getElementById('hmppn');
     if(bv) bv.addEventListener('click',function(e){ e.stopPropagation(); go(d.pv); });
     if(bn) bn.addEventListener('click',function(e){ e.stopPropagation(); go(d.nx); });
-    if(bo) bo.addEventListener('click',function(e){ e.stopPropagation(); runOpt(); });
-    document.getElementById('hmpplv').addEventListener('click',function(e){ e.stopPropagation(); listView(); });
-    document.getElementById('hmppnr').addEventListener('click',function(e){ e.stopPropagation(); newRoute(); });
-    document.getElementById('hmppd').addEventListener('click',function(e){ e.stopPropagation(); ppDetails(h); });
-    [].slice.call(o.querySelectorAll('.pplrow')).forEach(function(r){ r.addEventListener('click',function(e){ e.stopPropagation(); var x=(LASTHITS||[])[+r.getAttribute('data-k')]; if(x) go(x); }); });
+    document.getElementById('hmppm').addEventListener('click',function(e){ e.stopPropagation();
+      var L=[{t:'Back to map',go:function(){ ppClose(); }},{t:'List view',go:function(){ listView(); }},
+        {t:'New route',go:function(){ newRoute(); }},{t:'Details',go:function(){ if(d.own) ppDet(h); else ppDetails(h); }}];
+      if(d.own) L.push({t:'Run Fuel Optimizer',wide:1,go:function(){ runOpt(); }});
+      hmenuOpen(L); });
+    /* v1.3.126: tap a stop in the list: the pump changes to it and its details open on top of the list */
+    [].slice.call(o.querySelectorAll('.pplrow')).forEach(function(r){ r.addEventListener('click',function(e){ e.stopPropagation(); var x=(LASTHITS||[])[+r.getAttribute('data-k')]; if(x){ go(x); ppDet(x); } }); });
     /* v1.3.108: the pump layer starts under the top bar so Trip details, Radar and Satellite work on the first tap; everything sits low so the trip label stays in view */
     { var hb=document.getElementById('hmbar'); o.style.top=(hb?hb.offsetHeight:0)+'px'; }
-    o.style.display='flex'; window.HM_PP=true; try{ optBtn(false); }catch(x){} ppDim(true); ppFit(o); ppRoll(d); return true;
+    o.style.display='flex'; window.HM_PP=true; try{ optBtn(false); }catch(x){} ppDim(true); ppFit(o); ppWx(h); ppRoll(d); return true;
+  }
+  /* v1.3.126: stop details in a white box over the stop list: prices, exit and interstate, then See all services */
+  function ppDetBox(){ var bx=document.getElementById('ppbox'); if(!bx) return null; var o=document.getElementById('ppdet');
+    if(!o){ o=document.createElement('div'); o.id='ppdet';
+      o.style.cssText='position:absolute;left:60%;top:5%;width:38%;height:91%;z-index:3;display:flex;flex-direction:column;background:#fff;border:2px solid #f26a21;border-radius:12px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.4);font-family:Arial,sans-serif';
+      o.addEventListener('click',function(e){ e.stopPropagation(); }); }
+    if(o.parentNode!==bx) bx.appendChild(o); o.style.display='flex'; return o; }
+  function ppDetHead(h,sub){ return '<div style="display:flex;align-items:flex-start;gap:6px;padding:7px 7px 6px;border-bottom:1.5px solid #f26a21">'+
+      '<div style="flex:1;min-width:0"><b style="display:block;font-size:clamp(12px,3.4vw,15px);color:#0070e4">'+esc(h.b)+(sub?' '+sub:'')+'</b>'+
+      '<div style="font-size:clamp(10px,2.9vw,12px);color:#3d4a5c">'+esc(h.c)+', '+esc(h.st)+'</div></div>'+
+      '<button type="button" class="ppdx" aria-label="Close" style="flex:none;width:30px;height:30px;border-radius:8px;border:0;background:#f26a21;color:#fff;font:700 18px Arial,sans-serif;line-height:30px;padding:0;cursor:pointer">&times;</button></div>'; }
+  function ppRow(k,v,c){ return '<div style="display:flex;justify-content:space-between;gap:4px;padding:6px 0;border-bottom:1px solid #eef0f4;font-size:clamp(10.5px,3vw,13px)"><span style="color:#3d4a5c">'+k+'</span><b style="white-space:nowrap;color:'+(c||'#141414')+'">'+v+'</b></div>'; }
+  function ppDet(h){
+    var o=ppDetBox(); if(!o) return; var save=(h.ret!=null&&h.disc!=null)?h.ret-h.disc:null, ex=ppExit(h), ph='';
+    try{ ph=stopPhone(h); }catch(e){}
+    o.innerHTML=ppDetHead(h,'')+'<div style="flex:1;overflow-y:auto;padding:4px 8px 8px">'+
+      (ex?'<div style="font:900 clamp(10.5px,3vw,13px) Arial,sans-serif;color:#141414;padding:4px 0 2px">'+esc(ex)+'</div>':'')+
+      (h.ret!=null?ppRow('Pump price','$'+fmt(h.ret)):'')+(h.disc!=null?ppRow('Your discount','$'+fmt(h.disc),'#0070e4'):'')+
+      (save!=null?ppRow('You save','$'+fmt(save)+'/gal','#1f8a43'):'')+(h.ifta!=null?ppRow(esc(h.st)+' IFTA tax','$'+fmt(h.ifta)):'')+
+      (h.pre!=null?ppRow('Pre-tax cost','$'+fmt(h.pre),'#f26a21'):'')+((typeof h.def==='number'&&h.def>0)?ppRow('DEF','$'+fmt(h.def)):'')+
+      (ph?'<a href="tel:'+String(ph).replace(/\D/g,'')+'" style="display:block;margin-top:8px;text-align:center;font:700 clamp(11px,3.1vw,14px) Arial,sans-serif;color:#0070e4;text-decoration:none">Call '+esc(ph)+'</a>':'')+
+      '<button type="button" class="ppsvc" style="display:block;width:100%;margin-top:8px;padding:9px 4px;border-radius:10px;border:1.5px solid #f26a21;background:#fff;color:#0070e4;font:700 clamp(11px,3.2vw,14px) Arial,sans-serif;cursor:pointer">See all services</button></div>';
+    o.querySelector('.ppdx').addEventListener('click',function(e){ e.stopPropagation(); ppDetClose(); });
+    o.querySelector('.ppsvc').addEventListener('click',function(e){ e.stopPropagation(); ppSvc(h); });
+  }
+  function ppSvc(h){
+    var o=ppDetBox(); if(!o) return; var rows=null;
+    try{ if(brandClass(h.b)==='loves'){ var lr=lovesFind(h); if(lr) rows=lovesRows(lr); } else { var r=SVC[svcKey(brandClass(h.b)==='petro'?'petro':'ta',h.c,h.st)]; if(r) rows=svcRows(r); } }catch(e){}
+    o.innerHTML=ppDetHead(h,'services')+'<div style="flex:1;overflow-y:auto;padding:2px 8px 8px">'+
+      (rows&&rows.length?rows.map(function(kv){ return '<div style="padding:6px 0;border-bottom:1px solid #eef0f4;font-size:clamp(10.5px,3vw,13px)"><div style="color:#0070e4;font-weight:700">'+esc(kv[0])+'</div><div style="color:#3d4a5c">'+(kv[0]==='Phone'?kv[1]:esc(kv[1]))+'</div></div>'; }).join('')
+        :'<div style="font-size:12px;color:#6b7686;padding:10px 0">No services listed for this stop yet.</div>')+'</div>';
+    o.querySelector('.ppdx').addEventListener('click',function(e){ e.stopPropagation(); ppDet(h); });   /* X here goes back to the details */
+  }
+  function ppDetClose(){ var o=document.getElementById('ppdet'); if(o) o.style.display='none'; }
+  window.ppDetOpenNow=function(){ var o=document.getElementById('ppdet'); return !!(o&&o.style.display!=='none'&&o.parentNode&&window.HM_PP); };
+  window.ppDetClose=ppDetClose;
+  /* v1.3.126: weather where the pump is, under the trip label. Tap it for the 7-day forecast */
+  function ppWx(h){
+    var o=document.getElementById('hmpp'); if(!o) return; var b=document.getElementById('ppwx');
+    if(!b){ b=document.createElement('button'); b.type='button'; b.id='ppwx';
+      b.style.cssText='position:absolute;left:54px;z-index:5;display:flex;align-items:center;gap:6px;max-width:calc(100% - 70px);background:#fff;border:2px solid #f26a21;border-radius:9px;padding:4px 10px;font:700 13px Arial,sans-serif;color:#0070e4;box-shadow:0 2px 6px rgba(0,0,0,.35);cursor:pointer;white-space:nowrap;overflow:hidden';
+      b.addEventListener('click',function(e){ e.stopPropagation(); var x=window.PP_LAST, i=(LASTHITS||[]).indexOf(x); if(i<0) return; window.WX_LITE=true; try{ openWx(i); }finally{ window.WX_LITE=false; } }); }
+    if(b.parentNode!==o) o.appendChild(b);
+    var lb=document.getElementById('hmtlbl'), top=46; try{ var r1=lb.getBoundingClientRect(), r0=o.getBoundingClientRect(); if(r1.height) top=Math.max(4,r1.bottom-r0.top+6); }catch(e){}
+    b.style.top=top+'px';
+    var town=esc(h.c)+', '+esc(h.st);
+    b.innerHTML='<span style="color:#6b7686;font-weight:400">Weather</span> \u00b7 '+town;
+    try{ wxGetNow(h).then(function(w){ if(window.PP_LAST!==h) return;
+      b.innerHTML='<span style="display:inline-block;width:20px;height:20px">'+wxIcon(w.txt,w.day)+'</span><b style="color:#141414;font-size:15px">'+w.t+'&deg;</b><span style="overflow:hidden;text-overflow:ellipsis">'+esc(w.txt)+' \u00b7 '+town+'</span>'; }).catch(function(){}); }catch(e){}
   }
   /* v1.3.103: Details opens the same stop details as the fuel cards (prices, DEF, IFTA, Show all services); back returns to the map */
   function ppDetails(h){
@@ -8749,6 +8843,7 @@ body.tier-free #freelist{display:block}
   window.stepBack=stepBack=function(){
     var ch=document.getElementById('fpch'); if(ch&&ch.style.display==='flex'){ fpChoose('own'); return true; }
     if(window.PP_RET&&document.body.classList.contains('on-detail')){ ppBackToMap(); return true; }
+    if(window.ppDetOpenNow&&ppDetOpenNow()){ ppDetClose(); return true; }   /* v1.3.126 */
     if(window.HM_OPEN){ hmClose(); return true; } return origBack.apply(this,arguments); };
 })();
 </script>
@@ -8774,7 +8869,6 @@ body.tier-free #freelist{display:block}
   #hmenu .hmi:active{background:#eaf3ff}
   #hmenu .hmi small{display:block;font-size:11.5px;font-weight:400;color:#7a8696;margin-top:3px}
   #hmenu .hmi.wide{grid-column:span 2}
-  #hmenu .hmi.colR{color:#111}   /* v1.3.125: right-hand column in black, left stays blue (side-by-side test) */
   #hmenu .hmi.red{border-color:#d11f1f;color:#d11f1f}
   #hmenu .hmi.dim{opacity:.45}
 </style>
@@ -8808,8 +8902,8 @@ body.tier-free #freelist{display:block}
     L.push({t:'Clear',red:1,clr:1,go:function(){ askClear(); }});
     return L;
   }
-  window.hmenuOpen=function(){
-    var g=el('hmgrid'), L=items();
+  window.hmenuOpen=function(custom){
+    var g=el('hmgrid'), L=(custom&&custom.length)?custom:items();   /* v1.3.126: the pump page passes its own list */
     /* an odd item out gets the full width on the last row, so the grid stays even */
     var narrow=L.filter(function(x){return !x.wide && !x.clr;}).length;
     /* Clear sits alone on the bottom row unless it can fill an empty spot beside the last button */
@@ -8822,8 +8916,6 @@ body.tier-free #freelist{display:block}
       b.onclick=function(){ hmenuClose(); setTimeout(x.go,60); };
       g.appendChild(b);
     });
-    /* v1.3.125: mark which buttons sit in the right-hand column */
-    var col=0; [].slice.call(g.children).forEach(function(b){ if(b.classList.contains('wide')){ col=0; return; } if(col===1) b.classList.add('colR'); col=1-col; });
     el('hmenuback').classList.add('show');
     requestAnimationFrame(function(){ el('hmenu').classList.add('show'); });
   };
