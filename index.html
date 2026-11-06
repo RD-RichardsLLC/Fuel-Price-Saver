@@ -3210,6 +3210,12 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
   { date:'2026-11-06', items:[
+    'Version 1.3.141',
+    '**Fuel near me from the pump Menu now works.** Tap a mile amount and the pump closes so you see the stops near you on the map',
+    '**The route note stays up long enough to read.** After you tap Find fuel, the note about truck routes shows at the top for about 6 seconds, then fades away',
+    '**How do you want to buy fuel sits lower** so it doesn\u2019t cover the route note'
+  ]},
+  { date:'2026-11-06', items:[
     'Version 1.3.140',
     '**Fuel near me is back in the Menu on your pump.** It takes the place of Home. The X on the Menu already takes you back to your pump'
   ]},
@@ -9326,7 +9332,8 @@ body.tier-free #freelist{display:block}
     if(!h && (LASTHITS||[]).length) h=LASTHITS.slice().sort(function(a,b){ return rankVal(a)-rankVal(b); })[0];
     if(h){ try{ M.panTo([h.la,h.lo]); }catch(e){} ppOpen(h); } }
   /* v1.3.136: Fuel near me shows its stops on the map and pump, same as Pick my own stops */
-  window.hmOpenNear=function(t,la,lo){ window.PP_OWN=true; window.PP_CARD=false;
+  window.hmOpenNear=function(t,la,lo){ try{ if(window.HM_PP) ppClose(); }catch(e){} window.PP_LAST=null; window.PP_PLANH=null;   /* v1.3.141: from the pump Menu, the old pump closes so the stops near you show */
+    window.PP_OWN=true; window.PP_CARD=false;
     return open(t,[la,lo],'',false).then(function(){ try{ ownHint(true); optBtn(true); document.getElementById('hmbro').style.display='none'; }catch(e){}
       setTimeout(function(){ try{ M.fitBounds(L.latLngBounds((LASTHITS||[]).map(function(h){ return [h.la,h.lo]; }).concat([[la,lo]])).pad(0.15)); }catch(e){} },300); }).catch(function(){ hmClose(); }); };
   window.hmOpenPlan=function(){
@@ -9356,6 +9363,13 @@ body.tier-free #freelist{display:block}
       b('cheap','Fuel Optimizer','The cheapest plan, with the fewest stops')+
       b('each','State by state','Buy what each state burns, at its cheapest stop')+
       b('own','Pick my own stops','See every stop on your route, cheapest first')+'</div>';
+    /* v1.3.141: the route note shows at the top for about 6 seconds, and the chooser sits lower so it doesn't cover it */
+    o.style.alignItems='flex-start'; o.style.paddingTop='calc(175px + env(safe-area-inset-top,0px))'; o.style.overflowY='auto';
+    if(!window.ROUTE_CAR){ var dn=document.createElement('div'); dn.id='fpdisc';
+      dn.style.cssText='position:absolute;top:calc(14px + env(safe-area-inset-top,0px));left:14px;right:14px;max-width:420px;margin:0 auto;background:#fff;color:#0070e4;border:2px solid #f26a21;border-radius:12px;padding:10px 12px;font:600 15px/1.4 Arial,sans-serif;box-shadow:0 3px 10px rgba(0,0,0,.18);transition:opacity .8s';
+      dn.textContent='Routes are planned for trucks: low bridges, weight limits and restricted roads. The app doesn\u2019t give spoken turn-by-turn directions, so use your own navigation, and always check signs for yourself.';
+      o.insertBefore(dn,o.firstChild); clearTimeout(window.FP_DISCT);
+      window.FP_DISCT=setTimeout(function(){ dn.style.opacity='0'; setTimeout(function(){ if(dn.parentNode) dn.remove(); },900); },6000); }
     o.style.display='flex'; try{ enterScreen(); }catch(e){}
     return true;
   };
