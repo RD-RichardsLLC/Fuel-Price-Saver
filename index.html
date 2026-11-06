@@ -3100,6 +3100,15 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
   { date:'2026-11-06', items:[
+    'Version 1.3.131',
+    '**Check fuel anywhere.** Tap Menu on the pump, then Check fuel anywhere. Pick a state and an interstate, like Florida and I-95, and you see every stop on it, cheapest first. Tap a stop for its prices and all its services. Your route stays just like it was, and closing it puts you right back where you were',
+    '**The first touch on the scrolling list just stops it.** It will not open a stop by mistake. Swipe it up and down by hand, then tap the stop you want. Three seconds after you let go it starts moving again',
+    '**The list header is black with white letters**',
+    '**The full list is the same height as the pump** and moved a little to the right, clear of the base of the pump',
+    '**Each stop in the list shows its exit number** along with the interstate',
+    '**The flagpoles are half as tall** as last time'
+  ]},
+  { date:'2026-11-06', items:[
     'Version 1.3.130',
     '**The list of other stops in your state now scrolls by itself**, slowly and in a constant loop, so you can see there are more stops in it. You can still tap any stop while it moves',
     '**The header on the list of stops is blue with white lettering** instead of orange'
@@ -8321,13 +8330,14 @@ body.tier-free #freelist{display:block}
     /* v1.3.127: plan stops fly a numbered checkered flag on a pole above the pump: 1, 2, 3 in plan order */
     if(num){ var ck=''; for(var r=0;r<3;r++) for(var q=0;q<4;q++) if((r+q)%2===0) ck+='<rect x="'+(46+q*16)+'" y="'+(2+r*14.67).toFixed(2)+'" width="16" height="14.67" fill="#111"/>';
       /* v1.3.129: the flag is twice its first size and the pole four times taller, so flags stand up above crowded spots */
-      svg='<svg width="67" height="167" viewBox="0 0 112 278">'+
-        '<line x1="44" y1="2" x2="44" y2="172" stroke="#333" stroke-width="3.5"/>'+
+      /* v1.3.131: poles cut in half */
+      svg='<svg width="67" height="117" viewBox="0 0 112 194">'+
+        '<line x1="44" y1="2" x2="44" y2="88" stroke="#333" stroke-width="3.5"/>'+
         '<rect x="46" y="2" width="64" height="44" fill="#fff"/>'+ck+'<rect x="46" y="2" width="64" height="44" fill="none" stroke="#333" stroke-width="1.3"/>'+
         '<circle cx="78" cy="24" r="15" fill="#fff" stroke="#333" stroke-width="1.3"/>'+
         '<text x="78" y="'+(num>9?30.5:32)+'" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="'+(num>9?17:23)+'" fill="#111">'+num+'</text>'+
-        '<g transform="translate(0 166)">'+svg.replace(/^<svg[^>]*>/,'').replace(/<\/svg>$/,'')+'</g></svg>';
-      return L.divIcon({className:'',html:svg,iconSize:[67,167],iconAnchor:[18,166],popupAnchor:[0,-160]}); }
+        '<g transform="translate(0 82)">'+svg.replace(/^<svg[^>]*>/,'').replace(/<\/svg>$/,'')+'</g></svg>';
+      return L.divIcon({className:'',html:svg,iconSize:[67,117],iconAnchor:[18,116],popupAnchor:[0,-110]}); }
     return L.divIcon({className:'',html:svg,iconSize:[36,66],iconAnchor:[18,65],popupAnchor:[0,-60]});
   }
   function gnav(la,lo){ return 'https://www.google.com/maps/dir/?api=1&destination='+la+','+lo+'&travelmode=driving'; }
@@ -8582,11 +8592,11 @@ body.tier-free #freelist{display:block}
     /* v1.3.127: a plan stop (or any stop with the sign) gets the same state list, as a shorter window above the sign */
     if(!d.own){ d.list=ppStateList(d.h.st); }
     var fullL=d.own||d.off;   /* v1.3.129: a stop that isn't on your plan gets the full-height list, no sign */
-    { var ht=fullL?'91%':'52.4%'; lst='<div style="position:absolute;left:'+(fullL?'60%':'64.6%')+';top:'+(fullL?'5%':'1.6%')+';width:'+(fullL?'38%':'35%')+';height:'+ht+';display:flex;flex-direction:column;background:#fff;border:2px solid #1A2B4C;border-radius:12px;overflow:hidden;box-shadow:0 3px 8px rgba(0,0,0,.35);font-family:Arial,sans-serif">'+
-      '<div style="background:#0070e4;color:#fff;padding:7px 6px;border-bottom:1.5px solid #141414;font:900 clamp(10px,2.8vw,12px) Arial;letter-spacing:.5px;text-align:center">OTHER STOPS IN '+esc(ppStName(d.h.st).toUpperCase())+'</div>'+
+    { var ht=fullL?'95.2%':'52.4%';   /* v1.3.131: full list runs the pump's full height and sits clear of its base */ lst='<div style="position:absolute;left:'+(fullL?'63%':'64.6%')+';top:1.6%;width:'+(fullL?'36%':'35%')+';height:'+ht+';display:flex;flex-direction:column;background:#fff;border:2px solid #1A2B4C;border-radius:12px;overflow:hidden;box-shadow:0 3px 8px rgba(0,0,0,.35);font-family:Arial,sans-serif">'+
+      '<div style="background:#141414;color:#fff;padding:7px 6px;border-bottom:1.5px solid #141414;font:900 clamp(10px,2.8vw,12px) Arial;letter-spacing:.5px;text-align:center">OTHER STOPS IN '+esc(ppStName(d.h.st).toUpperCase())+'</div>'+
       '<div style="font-size:11px;color:#6b7686;padding:4px 8px 2px">Cheapest first \u00b7 tap one</div><div class="pplscr" style="flex:1;overflow-y:auto;padding:0 8px 6px"><div class="pplin">'+
       d.list.filter(function(x){ return x!==d.h; }).map(function(x){ var k=(LASTHITS||[]).indexOf(x);
-        return '<div class="pplrow" data-k="'+k+'" style="display:flex;justify-content:space-between;gap:6px;padding:7px 0;border-bottom:1px solid #eef0f4;font-size:13px;cursor:pointer;color:#141414"><div style="min-width:0"><b>'+esc(x.b)+'</b><div style="font-size:11px;color:#666">'+esc(x.c)+'</div>'+(ppRoads(x)?'<div style="font-size:11px;font-weight:700;color:#0070e4;white-space:nowrap">'+ppRoads(x)+'</div>':'')+'</div><b style="color:#1f8a43">$'+fmt(rankVal(x))+'</b></div>'; }).join('')+
+        return '<div class="pplrow" data-k="'+k+'" style="display:flex;justify-content:space-between;gap:6px;padding:7px 0;border-bottom:1px solid #eef0f4;font-size:13px;cursor:pointer;color:#141414"><div style="min-width:0"><b>'+esc(x.b)+'</b><div style="font-size:11px;color:#666">'+esc(x.c)+'</div>'+(ppExit(x)?'<div style="font-size:11px;font-weight:700;color:#0070e4">'+esc(ppExit(x))+'</div>':'')+'</div><b style="color:#1f8a43">$'+fmt(rankVal(x))+'</b></div>'; }).join('')+
       (d.list.length<2?'<div style="font-size:12px;color:#777;padding:8px 0">No other stops in this state on your route</div>':'')+'</div></div></div>'; }
     o.innerHTML='<div style="width:100%;max-width:520px;flex:1;display:flex;flex-direction:column">'+card+'<div id="ppbox" style="position:relative;margin:auto">'+ppSvg(d)+lst+'</div>'+
       /* v1.3.126: one row: Previous, Menu, Next. Back to map, List view, New route, Details and Run Fuel Optimizer are in Menu */
@@ -8603,16 +8613,25 @@ body.tier-free #freelist{display:block}
       var L=[{t:'Back to map',go:function(){ ppClose(); }},{t:'List view',go:function(){ listView(); }},
         {t:'New route',go:function(){ newRoute(); }},{t:'Details',go:function(){ if(d.own) ppDet(h); else ppDetails(h); }}];
       if(d.own) L.push({t:'Run Fuel Optimizer',wide:1,go:function(){ runOpt(); }});
+      L.push({t:'Check fuel anywhere',wide:1,go:function(){ fcaOpen(); }});   /* v1.3.131 */
       hmenuOpen(L); });
     /* v1.3.130: the stop list drifts slowly upward in a constant loop, so the driver can see there's more in it */
+    /* v1.3.131: the first touch only stops it (it doesn't open a stop). Swipe it by hand all you want; 3 seconds after you let go it starts drifting again */
     (function(){ var sc=o.querySelector('.pplscr'), inr=sc&&sc.querySelector('.pplin'); if(!inr) return;
-      setTimeout(function(){ if(sc.scrollHeight<=sc.clientHeight+4) return;
+      setTimeout(function(){ if(!sc.isConnected||sc.scrollHeight<=sc.clientHeight+4) return;
         var half=inr.offsetHeight; inr.innerHTML+=inr.innerHTML;
         [].slice.call(inr.querySelectorAll('.pplrow')).forEach(function(r){ r.addEventListener('click',function(e){ e.stopPropagation(); var x=(LASTHITS||[])[+r.getAttribute('data-k')]; if(x){ go(x); if(d.own||d.off) ppDet(x); } }); });
-        var pos=sc.scrollTop, last=performance.now();
+        var pos=sc.scrollTop, last=performance.now(), moving=true, eat=false, held=false, tm=null;
+        function later(){ clearTimeout(tm); tm=setTimeout(function(){ if(!held){ moving=true; pos=sc.scrollTop; } },3000); }
+        function down(){ held=true; clearTimeout(tm); if(moving){ eat=true; moving=false; } else eat=false; }
+        function up(){ held=false; later(); }
+        sc.addEventListener('touchstart',down,{passive:true}); sc.addEventListener('mousedown',down);
+        sc.addEventListener('touchend',up); sc.addEventListener('touchcancel',up); sc.addEventListener('mouseup',up);
+        sc.addEventListener('click',function(e){ if(eat){ eat=false; e.stopPropagation(); e.preventDefault(); } },true);
+        sc.addEventListener('scroll',function(){ if(moving) return; if(sc.scrollTop>=half) sc.scrollTop-=half; if(!held) later(); },{passive:true});
         function step(now){ if(!sc.isConnected||o.style.display==='none') return; var dt=Math.min(100,now-last); last=now;
-          if(Math.abs(sc.scrollTop-pos)>2) pos=sc.scrollTop;
-          pos+=dt*0.012; if(pos>=half) pos-=half; sc.scrollTop=pos; requestAnimationFrame(step); }
+          if(moving){ pos+=dt*0.012; if(pos>=half) pos-=half; sc.scrollTop=pos; }
+          requestAnimationFrame(step); }
         requestAnimationFrame(step); },400); })();
     /* v1.3.126: tap a stop in the list: the pump changes to it and its details open on top of the list */
     [].slice.call(o.querySelectorAll('.pplrow')).forEach(function(r){ r.addEventListener('click',function(e){ e.stopPropagation(); var x=(LASTHITS||[])[+r.getAttribute('data-k')]; if(x){ go(x); if(d.own||d.off) ppDet(x); } }); });
@@ -8621,9 +8640,60 @@ body.tier-free #freelist{display:block}
     o.style.display='flex'; window.HM_PP=true; try{ optBtn(false); }catch(x){} ppDim(true); ppFit(o); ppWx(h); ppRoll(d); return true;
   }
   /* v1.3.126: stop details in a white box over the stop list: prices, exit and interstate, then See all services */
-  function ppDetBox(){ var bx=document.getElementById('ppbox'); if(!bx) return null; var o=document.getElementById('ppdet');
+  /* v1.3.131: Check fuel anywhere. Pick a state and an interstate and see every stop on it, cheapest first.
+     Tap a stop for its prices and services. It all happens in the pop-up; close it and you're right back where you were */
+  var FCA_ALL=null;
+  function fcaStops(){ if(FCA_ALL) return FCA_ALL; FCA_ALL=[];
+    try{ (STATIONS||[]).forEach(function(s){ var h={b:s[0],c:s[1],st:s[2],la:s[3],lo:s[4],ret:s[5],disc:s[6],ifta:s[7],pre:s[8],prod:s[9]};
+      var v=null; try{ v=rankVal(h); }catch(e){} if(v==null||!isFinite(v)) return;
+      var ir=[]; try{ var inf=stopInfo(h); if(inf) ir=parseRoads(inf.exit).roads.filter(function(r){ return r.k==='I'; }).map(function(r){ return 'I-'+r.n; }); }catch(e){}
+      h.ir=ir; FCA_ALL.push(h); }); }catch(e){}
+    return FCA_ALL; }
+  function fcaOpen(){
+    var o=document.getElementById('fcapop');
+    if(!o){ o=document.createElement('div'); o.id='fcapop';
+      o.style.cssText='position:fixed;left:0;top:0;right:0;bottom:0;z-index:9700;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:14px;font-family:Arial,sans-serif';
+      o.innerHTML='<div id="fcabox" style="position:relative;width:100%;max-width:440px;height:min(86vh,640px);display:flex;flex-direction:column;background:#fff;border:2px solid #f26a21;border-radius:14px;overflow:hidden;box-shadow:0 6px 18px rgba(0,0,0,.45)">'+
+        '<div style="display:flex;align-items:center;gap:8px;padding:10px 10px 8px;border-bottom:1.5px solid #f26a21"><b style="flex:1;font-size:18px;color:#0070e4">Check fuel anywhere</b>'+
+        '<button type="button" id="fcax" aria-label="Close" style="width:34px;height:34px;border-radius:8px;border:0;background:#f26a21;color:#fff;font:700 20px Arial,sans-serif;line-height:34px;padding:0;cursor:pointer">&times;</button></div>'+
+        '<div style="display:flex;gap:8px;padding:10px">'+
+        '<select id="fcast" style="flex:1;min-width:0;padding:9px 6px;border:1.5px solid #f26a21;border-radius:9px;background:#fff;color:#0070e4;font:700 15px Arial,sans-serif"></select>'+
+        '<select id="fcai" style="flex:1;min-width:0;padding:9px 6px;border:1.5px solid #f26a21;border-radius:9px;background:#fff;color:#0070e4;font:700 15px Arial,sans-serif"></select></div>'+
+        '<div id="fcahd" style="background:#141414;color:#fff;padding:7px 6px;font:900 12px Arial;letter-spacing:.5px;text-align:center;display:none"></div>'+
+        '<div id="fcalist" style="flex:1;overflow-y:auto;padding:0 10px 8px"></div>'+
+        '<div style="padding:8px 10px 10px"><button type="button" id="fcaback" style="width:100%;padding:11px 6px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 16px Arial,sans-serif;cursor:pointer">Back to my route</button></div>'+
+        '<div id="fcadet" style="position:absolute;left:0;top:0;right:0;bottom:0;z-index:2;display:none;flex-direction:column;background:#fff;font-family:Arial,sans-serif"></div></div>';
+      document.body.appendChild(o);
+      o.addEventListener('click',function(e){ e.stopPropagation(); });
+      document.getElementById('fcax').addEventListener('click',fcaClose); document.getElementById('fcaback').addEventListener('click',fcaClose);
+      document.getElementById('fcast').addEventListener('change',function(){ fcaFillI(); fcaList(); });
+      document.getElementById('fcai').addEventListener('change',fcaList);
+      document.getElementById('fcalist').addEventListener('click',function(e){ var r=e.target.closest('.fcarow'); if(!r) return; var x=fcaStops()[+r.getAttribute('data-i')]; if(x) ppDet(x); }); }
+    var all=fcaStops(), sts={}; all.forEach(function(h){ if(h.ir.length) sts[h.st]=1; });
+    var sel=document.getElementById('fcast'), keep=sel.value;
+    sel.innerHTML='<option value="">Pick a state</option>'+Object.keys(sts).map(function(k){ return {k:k,n:ppStName(k)}; }).sort(function(a,b){ return a.n<b.n?-1:1; })
+      .map(function(x){ return '<option value="'+esc(x.k)+'">'+esc(x.n)+'</option>'; }).join('');
+    sel.value=keep||''; fcaFillI(); fcaList();
+    document.getElementById('fcadet').style.display='none'; window.FCA_ON=true; o.style.display='flex'; }
+  function fcaFillI(){ var st=document.getElementById('fcast').value, sel=document.getElementById('fcai'), keep=sel.value, m={};
+    fcaStops().forEach(function(h){ if(h.st===st) h.ir.forEach(function(r){ m[r]=1; }); });
+    var ks=Object.keys(m).sort(function(a,b){ return (+a.slice(2))-(+b.slice(2)); });
+    sel.innerHTML='<option value="">'+(st?'Pick an interstate':'Interstate')+'</option>'+ks.map(function(k){ return '<option value="'+k+'">'+k+'</option>'; }).join('');
+    sel.value=(ks.indexOf(keep)>=0)?keep:''; sel.disabled=!st; }
+  function fcaList(){ var st=document.getElementById('fcast').value, ir=document.getElementById('fcai').value, box=document.getElementById('fcalist'), hd=document.getElementById('fcahd'), all=fcaStops();
+    if(!st||!ir){ hd.style.display='none'; box.innerHTML='<div style="font-size:14px;color:#6b7686;padding:14px 2px">'+(st?'Now pick an interstate.':'Pick a state, then an interstate, to see every stop on it.')+'</div>'; return; }
+    var L2=all.filter(function(h){ return h.st===st && h.ir.indexOf(ir)>=0; }).sort(function(a,b){ return rankVal(a)-rankVal(b); });
+    hd.textContent=(ir+' IN '+ppStName(st)).toUpperCase(); hd.style.display='block';
+    box.innerHTML='<div style="font-size:11px;color:#6b7686;padding:6px 0 2px">Cheapest first \u00b7 tap one for prices and services</div>'+
+      L2.map(function(x){ var ex=ppExit(x);
+        return '<div class="fcarow" data-i="'+all.indexOf(x)+'" style="display:flex;justify-content:space-between;gap:6px;padding:9px 0;border-bottom:1px solid #eef0f4;font-size:14px;cursor:pointer;color:#141414"><div style="min-width:0"><b>'+esc(x.b)+'</b><div style="font-size:12px;color:#666">'+esc(x.c)+'</div>'+(ex?'<div style="font-size:12px;font-weight:700;color:#0070e4">'+esc(ex)+'</div>':'')+'</div><b style="color:#1f8a43">$'+fmt(rankVal(x))+'</b></div>'; }).join('')+
+      (L2.length?'':'<div style="font-size:13px;color:#777;padding:10px 0">No stops found on '+esc(ir)+' in '+esc(ppStName(st))+'.</div>'); }
+  function fcaClose(){ var o=document.getElementById('fcapop'); if(o) o.style.display='none'; window.FCA_ON=false; }
+  window.fcaClose=fcaClose; window.fcaOpen=fcaOpen;
+  function ppDetBox(){ if(window.FCA_ON){ var f=document.getElementById('fcadet'); if(f){ f.style.display='flex'; return f; } }
+    var bx=document.getElementById('ppbox'); if(!bx) return null; var o=document.getElementById('ppdet');
     if(!o){ o=document.createElement('div'); o.id='ppdet';
-      o.style.cssText='position:absolute;left:60%;top:5%;width:38%;height:91%;z-index:3;display:flex;flex-direction:column;background:#fff;border:2px solid #f26a21;border-radius:12px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.4);font-family:Arial,sans-serif';
+      o.style.cssText='position:absolute;left:63%;top:1.6%;width:36%;height:95.2%;z-index:3;display:flex;flex-direction:column;background:#fff;border:2px solid #f26a21;border-radius:12px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,.4);font-family:Arial,sans-serif';
       o.addEventListener('click',function(e){ e.stopPropagation(); }); }
     if(o.parentNode!==bx) bx.appendChild(o); o.style.display='flex'; return o; }
   function ppDetHead(h,sub){ return '<div style="display:flex;align-items:flex-start;gap:6px;padding:7px 7px 6px;border-bottom:1.5px solid #f26a21">'+
@@ -8652,7 +8722,7 @@ body.tier-free #freelist{display:block}
         :'<div style="font-size:12px;color:#6b7686;padding:10px 0">No services listed for this stop yet.</div>')+'</div>';
     o.querySelector('.ppdx').addEventListener('click',function(e){ e.stopPropagation(); ppDet(h); });   /* X here goes back to the details */
   }
-  function ppDetClose(){ var o=document.getElementById('ppdet'); if(o) o.style.display='none'; }
+  function ppDetClose(){ if(window.FCA_ON){ var f=document.getElementById('fcadet'); if(f&&f.style.display!=='none'){ f.style.display='none'; return; } } var o=document.getElementById('ppdet'); if(o) o.style.display='none'; }
   window.ppDetOpenNow=function(){ var o=document.getElementById('ppdet'); return !!(o&&o.style.display!=='none'&&o.parentNode&&window.HM_PP); };
   window.ppDetClose=ppDetClose;
   /* v1.3.126: weather where the pump is, under the trip label. Tap it for the 7-day forecast */
