@@ -3100,6 +3100,15 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
   { date:'2026-11-06', items:[
+    'Version 1.3.133',
+    '**Tap a stop in the list and the pump switches to it.** You see that stop\'s prices and weather, and its details open full height so See all services is right there. Close out with the X and you\'re back on your plan stop',
+    '**Take me there.** A new button on the pump page, on the left, opens the stop in Google Maps for directions. The details box has one too, under See all services',
+    '**New button row on the pump page.** Take me there, then Menu, then one spot on the right: Next at the start of your trip, two arrows in the middle, and Previous at the end',
+    '**The cheapest stop on your route flies a big green Cheapest flag.** If it\'s also one of your plan stops, its pole flies both flags',
+    '**The weather button is the same width as your trip label** above it',
+    '**List view is out of the Menu.** Everything it showed is on the pump page now'
+  ]},
+  { date:'2026-11-06', items:[
     'Version 1.3.132',
     '**Touching the scrolling list just stops it.** Swiping it up and down never opens a stop. Only a tap, once the list is sitting still, opens one. Three seconds after you let go it starts moving again',
     '**On a plan stop you stay on your plan stop.** Tapping a stop in the short list opens its details in a small box over the list, and the sign stays in view. The X takes you right back to your plan stop',
@@ -8318,7 +8327,7 @@ body.tier-free #freelist{display:block}
   /* v1.3.81: your buy stops get a flag in the brand's color: TA blue, Love's yellow, Petro green */
   /* v1.3.87: your buy stops get a pit-stop sign on a pole in the brand's color: TA blue, Love's yellow, Petro green */
   /* v1.3.88: a little pit crew guy holds up a pit sign in the brand's color: TA blue, Love's yellow, Petro green */
-  function flag(b,num){
+  function flag(b,num,cheap){
     var n=String(b||'').toLowerCase(), isL=/love/.test(n), isP=/petro/.test(n), isT=/\bta\b|ta express|travelcenters/.test(n);
     var c=isL?'#f5c518':isP?'#2fa85a':isT?'#2f7fe0':'#f26a21', tx=isL?'L':isP?'P':isT?'TA':'\u26fd', tc=isL?'#10233f':'#fff';
     /* v1.3.92: the old-style diesel pump marks each buy stop, with a brand badge: TA blue, L yellow, P green, each with a thin red ring */
@@ -8338,16 +8347,20 @@ body.tier-free #freelist{display:block}
       '<text x="30" y="'+by+'" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="'+(isT?11:bf)+'" fill="'+tc+'">'+tx+'</text>'+
       '</svg>';
     /* v1.3.127: plan stops fly a numbered checkered flag on a pole above the pump: 1, 2, 3 in plan order */
-    if(num){ var ck=''; for(var r=0;r<3;r++) for(var q=0;q<4;q++) if((r+q)%2===0) ck+='<rect x="'+(46+q*16)+'" y="'+(2+r*14.67).toFixed(2)+'" width="16" height="14.67" fill="#111"/>';
-      /* v1.3.129: the flag is twice its first size and the pole four times taller, so flags stand up above crowded spots */
-      /* v1.3.131: poles cut in half */
-      svg='<svg width="67" height="117" viewBox="0 0 112 194">'+
-        '<line x1="44" y1="2" x2="44" y2="88" stroke="#333" stroke-width="3.5"/>'+
-        '<rect x="46" y="2" width="64" height="44" fill="#fff"/>'+ck+'<rect x="46" y="2" width="64" height="44" fill="none" stroke="#333" stroke-width="1.3"/>'+
-        '<circle cx="78" cy="24" r="15" fill="#fff" stroke="#333" stroke-width="1.3"/>'+
-        '<text x="78" y="'+(num>9?30.5:32)+'" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="'+(num>9?17:23)+'" fill="#111">'+num+'</text>'+
-        '<g transform="translate(0 82)">'+svg.replace(/^<svg[^>]*>/,'').replace(/<\/svg>$/,'')+'</g></svg>';
-      return L.divIcon({className:'',html:svg,iconSize:[67,117],iconAnchor:[18,116],popupAnchor:[0,-110]}); }
+    /* v1.3.127: plan stops fly a numbered checkered flag on a pole above the pump: 1, 2, 3 in plan order */
+    /* v1.3.133: the cheapest stop on the whole route flies a bigger green Cheapest flag. A plan stop that's also the cheapest flies both on one pole, green on top */
+    if(num||cheap){ var top=2, fl='';
+      if(cheap){ fl+='<rect x="46" y="'+top+'" width="92" height="52" rx="2" fill="#1f9a44" stroke="#0f5a26" stroke-width="1.5"/>'+
+          '<text x="92" y="'+(top+33)+'" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="15" fill="#fff">CHEAPEST</text>'; top+=56; }
+      if(num){ var ck=''; for(var r=0;r<3;r++) for(var q=0;q<4;q++) if((r+q)%2===0) ck+='<rect x="'+(46+q*16)+'" y="'+(top+r*14.67).toFixed(2)+'" width="16" height="14.67" fill="#111"/>';
+        fl+='<rect x="46" y="'+top+'" width="64" height="44" fill="#fff"/>'+ck+'<rect x="46" y="'+top+'" width="64" height="44" fill="none" stroke="#333" stroke-width="1.3"/>'+
+          '<circle cx="78" cy="'+(top+22)+'" r="15" fill="#fff" stroke="#333" stroke-width="1.3"/>'+
+          '<text x="78" y="'+(top+(num>9?28.5:30))+'" text-anchor="middle" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="'+(num>9?17:23)+'" fill="#111">'+num+'</text>'; top+=46; }
+      var tr=top+34, vw=cheap?140:112, vh=tr+112, k=67/112, pw=Math.round(vw*k), ph=Math.round(vh*k);
+      svg='<svg width="'+pw+'" height="'+ph+'" viewBox="0 0 '+vw+' '+vh+'">'+
+        '<line x1="44" y1="2" x2="44" y2="'+(top+40)+'" stroke="#333" stroke-width="3.5"/>'+fl+
+        '<g transform="translate(0 '+tr+')">'+svg.replace(/^<svg[^>]*>/,'').replace(/<\/svg>$/,'')+'</g></svg>';
+      return L.divIcon({className:'',html:svg,iconSize:[pw,ph],iconAnchor:[18,ph-1],popupAnchor:[0,-ph+6]}); }
     return L.divIcon({className:'',html:svg,iconSize:[36,66],iconAnchor:[18,65],popupAnchor:[0,-60]});
   }
   function gnav(la,lo){ return 'https://www.google.com/maps/dir/?api=1&destination='+la+','+lo+'&travelmode=driving'; }
@@ -8596,6 +8609,8 @@ body.tier-free #freelist{display:block}
   document.getElementById('hmtd').addEventListener('click',function(){ tdOpen(); });
   var ppMk={}, ppCur=null;
   function ppOpen(h){
+    /* v1.3.133: remember the plan stop while the driver looks at a stop he tapped in the list */
+    if(!window.PP_FROMLIST) window.PP_RETURN=null; window.PP_FROMLIST=false;
     var d=window.PP_OWN?ppDataOwn(h):(ppData(h)||ppDataOff(h)); if(!d) return false;
     window.PP_LAST=h;
     if(ppCur){ try{ ppCur.setOpacity(1); }catch(e){} ppCur=null; }
@@ -8620,18 +8635,25 @@ body.tier-free #freelist{display:block}
       (d.list.length<2?'<div style="font-size:12px;color:#777;padding:8px 0">No other stops in this state on your route</div>':'')+'</div></div></div>'; }
     o.innerHTML='<div style="width:100%;max-width:520px;flex:1;display:flex;flex-direction:column">'+card+'<div id="ppbox" style="position:relative;margin:auto">'+ppSvg(d)+lst+'</div>'+
       /* v1.3.126: one row: Previous, Menu, Next. Back to map, List view, New route, Details and Run Fuel Optimizer are in Menu */
-      '<div style="display:flex;justify-content:space-between;gap:8px;margin:-6px 0 0 9%;width:87%">'+
-      '<button type="button" id="hmppv" style="display:'+(d.pv?'block':'none')+';flex:1;padding:11px 6px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 clamp(13px,3.9vw,17px) Arial,sans-serif">Previous</button>'+
-      '<button type="button" id="hmppm" style="flex:1.2;padding:11px 6px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 clamp(13px,3.9vw,17px) Arial,sans-serif">Menu</button>'+
-      '<button type="button" id="hmppn" style="display:'+((d.nx&&!d.off)?'block':'none')+';flex:1;padding:11px 6px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 clamp(13px,3.9vw,17px) Arial,sans-serif">Next</button>'+
+      /* v1.3.133: Take me there on the left, Menu in the middle, and one spot on the right that stays the same size:
+         Next at the start of the trip, two arrows in the middle, Previous at the end */
+      (function(){ var hp=!!d.pv, hn=!!(d.nx&&!d.off), B='padding:11px 6px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 clamp(13px,3.9vw,17px) Arial,sans-serif;cursor:pointer';
+        var tri=function(r){ return '<svg width="20" height="20" viewBox="0 0 20 20" style="display:block;margin:auto"><path d="'+(r?'M6 3 L16 10 L6 17Z':'M14 3 L4 10 L14 17Z')+'" fill="#fff"/></svg>'; };
+        var right=(hp&&hn)?'<button type="button" id="hmppv" aria-label="Previous stop" style="flex:1;'+B+'">'+tri(0)+'</button><button type="button" id="hmppn" aria-label="Next stop" style="flex:1;'+B+'">'+tri(1)+'</button>'
+          :hn?'<button type="button" id="hmppn" style="flex:1;'+B+'">Next</button>':hp?'<button type="button" id="hmppv" style="flex:1;'+B+'">Previous</button>':'';
+        return '<div style="display:flex;justify-content:space-between;gap:8px;margin:-6px 0 0 9%;width:87%">'+
+          '<button type="button" id="hmppgo" style="flex:1.25;'+B.replace('clamp(13px,3.9vw,17px)','clamp(12px,3.6vw,16px)')+'">Take me there</button>'+
+          '<button type="button" id="hmppm" style="flex:1;'+B+'">Menu</button>'+
+          '<div style="flex:1.15;display:flex;gap:6px;visibility:'+((hp||hn)?'visible':'hidden')+'">'+right+'</div>'; })()+
       '</div></div>';
     var go=function(n){ if(!n) return; try{ M.panTo([n.la,n.lo]); }catch(x){} ppOpen(n); };
     var bv=document.getElementById('hmppv'), bn=document.getElementById('hmppn');
     if(bv) bv.addEventListener('click',function(e){ e.stopPropagation(); go(d.pv); });
     if(bn) bn.addEventListener('click',function(e){ e.stopPropagation(); go(d.nx); });
+    document.getElementById('hmppgo').addEventListener('click',function(e){ e.stopPropagation(); window.open(gnav(h.la,h.lo),'_blank'); });   /* v1.3.133 */
     document.getElementById('hmppm').addEventListener('click',function(e){ e.stopPropagation();
-      var L=[{t:'Back to map',go:function(){ ppClose(); }},{t:'List view',go:function(){ listView(); }},
-        {t:'New route',go:function(){ newRoute(); }},{t:'Details',go:function(){ if(d.own) ppDet(h); else ppDetails(h); }}];
+      var L=[{t:'Back to map',go:function(){ ppClose(); }},
+        {t:'New route',go:function(){ newRoute(); }},{t:'Details',wide:1,go:function(){ if(d.own) ppDet(h); else ppDetails(h); }}];   /* v1.3.133: List view taken out */
       if(d.own) L.push({t:'Run Fuel Optimizer',wide:1,go:function(){ runOpt(); }});
       L.push({t:'Check fuel anywhere',wide:1,go:function(){ fcaOpen(); }});   /* v1.3.131 */
       /* v1.3.132: always a way back to the pump */
@@ -8643,7 +8665,7 @@ body.tier-free #freelist{display:block}
     (function(){ var sc=o.querySelector('.pplscr'), inr=sc&&sc.querySelector('.pplin'); if(!inr) return;
       setTimeout(function(){ if(!sc.isConnected||sc.scrollHeight<=sc.clientHeight+4) return;
         var half=inr.offsetHeight; inr.innerHTML+=inr.innerHTML;
-        [].slice.call(inr.querySelectorAll('.pplrow')).forEach(function(r){ r.addEventListener('click',function(e){ e.stopPropagation(); var x=(LASTHITS||[])[+r.getAttribute('data-k')]; if(x){ if(d.own||d.off) go(x); ppDet(x); } }); });
+        [].slice.call(inr.querySelectorAll('.pplrow')).forEach(function(r){ r.addEventListener('click',function(e){ e.stopPropagation(); var x=(LASTHITS||[])[+r.getAttribute('data-k')]; if(x){ if(!d.own&&!d.off&&!window.PP_RETURN) window.PP_RETURN=h; window.PP_FROMLIST=!!window.PP_RETURN; go(x); ppDet(x); } }); });
         /* v1.3.132: the first touch only stops it. Swiping never opens a stop. Only a clean tap, on a list that was already still, opens one.
            (Phones send a fake mouse press right after a touch; those are ignored so they can't sneak a tap through) */
         var pos=sc.scrollTop, last=performance.now(), moving=true, held=false, tm=null, was=false, moved=false, ok=false, sx=0, sy=0, lt=0;
@@ -8664,7 +8686,7 @@ body.tier-free #freelist{display:block}
           requestAnimationFrame(step); }
         requestAnimationFrame(step); },400); })();
     /* v1.3.126: tap a stop in the list: the pump changes to it and its details open on top of the list */
-    [].slice.call(o.querySelectorAll('.pplrow')).forEach(function(r){ r.addEventListener('click',function(e){ e.stopPropagation(); var x=(LASTHITS||[])[+r.getAttribute('data-k')]; if(x){ if(d.own||d.off) go(x); ppDet(x); } }); });
+    [].slice.call(o.querySelectorAll('.pplrow')).forEach(function(r){ r.addEventListener('click',function(e){ e.stopPropagation(); var x=(LASTHITS||[])[+r.getAttribute('data-k')]; if(x){ if(!d.own&&!d.off&&!window.PP_RETURN) window.PP_RETURN=h; window.PP_FROMLIST=!!window.PP_RETURN; go(x); ppDet(x); } }); });
     /* v1.3.108: the pump layer starts under the top bar so Trip details, Radar and Satellite work on the first tap; everything sits low so the trip label stays in view */
     { var hb=document.getElementById('hmbar'); o.style.top=(hb?hb.offsetHeight:0)+'px'; }
     o.style.display='flex'; window.HM_PP=true; try{ optBtn(false); }catch(x){} ppDim(true); ppFit(o); ppWx(h); ppRoll(d); return true;
@@ -8727,7 +8749,7 @@ body.tier-free #freelist{display:block}
       o.addEventListener('click',function(e){ e.stopPropagation(); }); }
     if(o.parentNode!==bx) bx.appendChild(o);
     /* v1.3.132: on a plan stop the details stay the size of the short list, so the sign never gets covered */
-    if(window.PP_FULL){ o.style.left='63%'; o.style.top='1.6%'; o.style.width='36%'; o.style.height='95.2%'; }
+    if(window.PP_FULL||window.PP_RETURN){ o.style.left='63%'; o.style.top='1.6%'; o.style.width='36%'; o.style.height='95.2%'; }
     else { o.style.left='64.6%'; o.style.top='1.6%'; o.style.width='35%'; o.style.height='52.4%'; }
     o.style.display='flex'; return o; }
   function ppDetHead(h,sub){ var bc=ppBrandCol(h); return '<div style="display:flex;align-items:flex-start;gap:6px;padding:7px 7px 6px;border-bottom:1.5px solid #f26a21;background:'+bc[0]+'">'+
@@ -8744,9 +8766,11 @@ body.tier-free #freelist{display:block}
       (save!=null?ppRow('You save','$'+ppC(save)+'/gal','#1f8a43'):'')+(h.ifta!=null?ppRow(esc(h.st)+' IFTA tax','$'+ppC(h.ifta)):'')+
       (h.pre!=null?ppRow('Pre-tax cost','$'+ppC(h.pre),'#f26a21'):'')+((typeof h.def==='number'&&h.def>0)?ppRow('DEF','$'+ppC(h.def)):'')+
       (ph?'<a href="tel:'+String(ph).replace(/\D/g,'')+'" style="display:block;margin-top:8px;text-align:center;font:700 clamp(11px,3.1vw,14px) Arial,sans-serif;color:#0070e4;text-decoration:none">Call '+esc(ph)+'</a>':'')+
-      '<button type="button" class="ppsvc" style="display:block;width:100%;margin-top:8px;padding:9px 4px;border-radius:10px;border:1.5px solid #f26a21;background:#fff;color:#0070e4;font:700 clamp(11px,3.2vw,14px) Arial,sans-serif;cursor:pointer">See all services</button></div>';
-    o.querySelector('.ppdx').addEventListener('click',function(e){ e.stopPropagation(); ppDetClose(); });
+      '<button type="button" class="ppsvc" style="display:block;width:100%;margin-top:8px;padding:9px 4px;border-radius:10px;border:1.5px solid #f26a21;background:#fff;color:#0070e4;font:700 clamp(11px,3.2vw,14px) Arial,sans-serif;cursor:pointer">See all services</button>'+
+      '<button type="button" class="ppgo" style="display:block;width:100%;margin-top:8px;padding:9px 4px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 clamp(11px,3.2vw,14px) Arial,sans-serif;cursor:pointer">Take me there</button></div>';
+    o.querySelector('.ppdx').addEventListener('click',function(e){ e.stopPropagation(); ppDetX(); });
     o.querySelector('.ppsvc').addEventListener('click',function(e){ e.stopPropagation(); ppSvc(h); });
+    o.querySelector('.ppgo').addEventListener('click',function(e){ e.stopPropagation(); window.open(gnav(h.la,h.lo),'_blank'); });   /* v1.3.133 */
   }
   function ppSvc(h){
     var o=ppDetBox(); if(!o) return; var rows=null;
@@ -8757,6 +8781,9 @@ body.tier-free #freelist{display:block}
     o.querySelector('.ppdx').addEventListener('click',function(e){ e.stopPropagation(); ppDet(h); });   /* X here goes back to the details */
   }
   function ppDetClose(){ if(window.FCA_ON){ var f=document.getElementById('fcadet'); if(f&&f.style.display!=='none'){ f.style.display='none'; return; } } var o=document.getElementById('ppdet'); if(o) o.style.display='none'; }
+  /* v1.3.133: the details X. Out of a stop he tapped in the list, it goes back to his plan stop with the short list and the sign */
+  function ppDetX(){ var inF=window.FCA_ON&&(function(){ var f=document.getElementById('fcadet'); return f&&f.style.display!=='none'; })();
+    ppDetClose(); if(inF) return; var r=window.PP_RETURN; if(r){ window.PP_RETURN=null; try{ M.panTo([r.la,r.lo]); }catch(e){} ppOpen(r); } }
   window.ppDetOpenNow=function(){ var o=document.getElementById('ppdet'); return !!(o&&o.style.display!=='none'&&o.parentNode&&window.HM_PP); };
   window.ppDetClose=ppDetClose;
   /* v1.3.126: weather where the pump is, under the trip label. Tap it for the 7-day forecast */
@@ -8766,7 +8793,9 @@ body.tier-free #freelist{display:block}
       b.style.cssText='position:absolute;left:54px;z-index:5;display:flex;align-items:center;gap:6px;max-width:calc(100% - 70px);background:#fff;border:2px solid #f26a21;border-radius:9px;padding:4px 10px;font:700 13px Arial,sans-serif;color:#0070e4;box-shadow:0 2px 6px rgba(0,0,0,.35);cursor:pointer;white-space:nowrap;overflow:hidden';
       b.addEventListener('click',function(e){ e.stopPropagation(); var x=window.PP_LAST, i=(LASTHITS||[]).indexOf(x); if(i<0) return; window.WX_LITE=true; try{ openWx(i); }finally{ window.WX_LITE=false; } }); }
     if(b.parentNode!==o) o.appendChild(b);
-    var lb=document.getElementById('hmtlbl'), top=46; try{ var r1=lb.getBoundingClientRect(), r0=o.getBoundingClientRect(); if(r1.height) top=Math.max(4,r1.bottom-r0.top+6); }catch(e){}
+    var lb=document.getElementById('hmtlbl'), top=46; try{ var r1=lb.getBoundingClientRect(), r0=o.getBoundingClientRect(); if(r1.height) top=Math.max(4,r1.bottom-r0.top+6);
+      /* v1.3.133: always the same width as the trip label above it */
+      if(r1.width>40){ b.style.left=(r1.left-r0.left)+'px'; b.style.width=r1.width+'px'; b.style.maxWidth='none'; b.style.boxSizing='border-box'; b.style.justifyContent='safe center'; } }catch(e){}
     b.style.top=top+'px';
     var town=esc(h.c)+', '+esc(h.st);
     b.innerHTML='<span style="color:#6b7686;font-weight:400">Weather</span> \u00b7 '+town;
@@ -8860,11 +8889,13 @@ body.tier-free #freelist{display:block}
     var best=null; try{ best=(LASTHITS||[])[0]; }catch(e){}
     var ownCheap=window.PP_OWN?ppCheapSet():{}; window.PP_BIG=ownCheap;
     var pnum={}; (window.LASTHITS||LASTHITS||[]).filter(function(x){ return plan[x.la+','+x.lo] && isFinite(x.rmi); }).sort(function(a,b){ return a.rmi-b.rmi; }).forEach(function(x,i){ pnum[x.la+','+x.lo]=i+1; });
+    /* v1.3.133: the cheapest stop on the whole route */
+    var chq=null; (window.LASTHITS||LASTHITS||[]).forEach(function(x){ var v=null; try{ v=rankVal(x); }catch(e){} if(v!=null&&isFinite(v)&&isFinite(x.la)&&(!chq||v<chq.v)) chq={h:x,v:v}; });
     (window.LASTHITS||LASTHITS||[]).forEach(function(h){
       if(!isFinite(h.la)||!isFinite(h.lo)) return;
-      var inPlan=plan[h.la+','+h.lo];
-      var big=inPlan||(window.PP_OWN&&ownCheap[h.la+','+h.lo]);
-      var mk=L.marker([h.la,h.lo],big?{icon:flag(h.b,inPlan?pnum[h.la+','+h.lo]:0),zIndexOffset:1000}:{icon:miniPump()}).addTo(M);
+      var inPlan=plan[h.la+','+h.lo], isC=!!(chq&&chq.h===h);
+      var big=inPlan||isC||(window.PP_OWN&&ownCheap[h.la+','+h.lo]);
+      var mk=L.marker([h.la,h.lo],big?{icon:flag(h.b,inPlan?pnum[h.la+','+h.lo]:0,isC),zIndexOffset:isC?1200:1000}:{icon:miniPump()}).addTo(M);
       if((window.PP_OWN&&ppDataOwn(h))||(inPlan&&ppData(h))||(!inPlan&&ppDataOff(h))){ ppMk[h.la+','+h.lo]=mk; mk.on('click',function(){ ppOpen(h); }); } else mk.bindPopup(stopPop(h));
       mk.on('popupopen',function(){ mk.setOpacity(0); }); mk.on('popupclose',function(){ mk.setOpacity(1); });   /* v1.3.85: the tapped flag or dot hides while its card shows */
       layers.push(mk);
