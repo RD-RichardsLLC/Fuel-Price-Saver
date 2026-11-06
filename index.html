@@ -737,7 +737,7 @@ body:not(.on-results):not(.on-plan):not(.on-tools):not(.on-svc):not(.on-news):no
 /* v1.3.136: orange X box */
 .popbox{position:relative}
 .popx{position:absolute;top:10px;right:10px;width:34px;height:34px;border-radius:8px;border:0;background:#f26a21;color:#fff;font:700 20px Arial,sans-serif;line-height:34px;padding:0;cursor:pointer;z-index:2}
-#setpop .poptitle,#truckpop .poptitle,#nearpop .poptitle{padding-right:42px}
+#setpop .poptitle,#truckpop .poptitle,#nearpop .poptitle{padding-right:42px} #nearpop{z-index:9800!important} /* v1.3.140: opens over the map and pump */
 /* v1.3.136: Your truck and Fuel near me in the new colors */
 #truckpop .popbox,#nearpop .popbox{background:#fff!important;color:#10233f!important;border:2px solid #f26a21;box-shadow:0 6px 18px rgba(0,0,0,.45)}
 #truckpop .poptitle,#nearpop .poptitle{color:#0070e4!important}
@@ -3209,6 +3209,10 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    To ship an update: add a new block at the TOP of CHANGELOG with the date and the lines.
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
+  { date:'2026-11-06', items:[
+    'Version 1.3.140',
+    '**Fuel near me is back in the Menu on your pump.** It takes the place of Home. The X on the Menu already takes you back to your pump'
+  ]},
   { date:'2026-11-06', items:[
     'Version 1.3.139',
     '**Open the app and you land on your pump.** Your last trip runs again quietly with today\u2019s prices, so you don\u2019t have to tap Find fuel again. It uses the same choice and the same gallons you entered last time, and works for trips you ran in the last 3 days',
@@ -8909,7 +8913,7 @@ body.tier-free #freelist{display:block}
       L.push({t:'Check fuel and services anywhere',wide:1,go:function(){ fcaOpen(); }});   /* v1.3.131 */
       /* v1.3.132: always a way back to the pump */
       if((d.own||d.off)&&window.PP_PLANH&&window.PP_PLANH!==h) L.unshift({t:'Back to my plan stop',wide:1,go:function(){ ppOpen(window.PP_PLANH); }});
-      else L.unshift({t:'Home',wide:1,go:function(){}});   /* v1.3.136: Home */
+      else L.unshift({t:'Fuel near me',wide:1,go:function(){ askNear(); }});   /* v1.3.140: Home taken out (the X already goes back), Fuel near me in its place */
       hmenuOpen(L); });
     /* v1.3.130: the stop list drifts slowly upward in a constant loop, so the driver can see there's more in it */
     /* v1.3.131: the first touch only stops it (it doesn't open a stop). Swipe it by hand all you want; 3 seconds after you let go it starts drifting again */
