@@ -798,6 +798,11 @@ body.on-results #backbar{display:none!important}
 #fprtpop .rtw [style*="color:#fff"],#fprtpop .rtw [style*="color:#e8eef6"],#fprtpop .rtw [style*="color:#cfdbe9"]{color:#10233f!important}
 #fprtpop .rtw [style*="color:#9fb4ce"]{color:#555!important}
 </style>
+<style>
+/* v1.3.139: pop-ups scroll smoothly with your finger */
+.ppopb,#fpwhy .popbox{overflow-y:auto!important;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y}
+#fpwhy .popbox{max-height:84vh}
+</style>
 </head>
 <body>
 <script>
@@ -2522,7 +2527,7 @@ async function ttRoute(pts,opt){            /* pts: [[lon,lat],...]  opt: {h,w,l
 let FF_RUN=0;
 const ALT_LEN=60*0.3048;               /* the length used to check whether a shorter route is being blocked */
 async function findFuel(){
-  window.FP_DIP=null; window.FP_DIPK=null; window.FP_DIPTOLD=false;   /* v1.3.136: every Find fuel asks about the reserve again */
+  window.FP_DIP=(window.FP_AUTO&&FP_AUTO.dip)||null; window.FP_DIPK=null; window.FP_DIPTOLD=!!window.FP_AUTO;   /* v1.3.136: every Find fuel asks about the reserve again. v1.3.139: a background refresh keeps your answer */
   const force60=!!window.FF_FORCE60; window.FF_FORCE60=false;
   if(!getTruck()){ openTruck(findFuel); return; }     // one-time truck setup, then carry on
   prepStart();                                            // blank start = where the driver is now (filled in visibly)
@@ -3204,6 +3209,13 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    To ship an update: add a new block at the TOP of CHANGELOG with the date and the lines.
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
+  { date:'2026-11-06', items:[
+    'Version 1.3.139',
+    '**Open the app and you land on your pump.** Your last trip runs again quietly with today\u2019s prices, so you don\u2019t have to tap Find fuel again. It uses the same choice and the same gallons you entered last time, and works for trips you ran in the last 3 days',
+    '**A refresh keeps your reserve answer.** It only asks about your reserve again when you tap Find fuel yourself',
+    '**After you answer the reserve question you go straight to your pump,** with the plan updated',
+    '**Smoother scrolling** in How did we do this?, Route detail and See your fuel plan'
+  ]},
   { date:'2026-11-06', items:[
     'Version 1.3.138',
     '**Nothing shows behind How do you want to buy fuel.** The screen behind the three choices is solid white',
@@ -7606,6 +7618,9 @@ function fqGo(){ try{ localStorage.setItem('fps_fsopt_last',String(Date.now()));
   window.FP_SILENT=true; try{ fpOpenReal(); }catch(x){} window.FP_SILENT=false;
   if(window.FP_SAVE_SHORT||!window.FP_PLANK||!FP_PLANK.length){ fpOpenReal(); return; }   /* plan can't reach a stop: show the warning */
   try{ FP_VIEW='plan'; fpApplyView(); window.scrollTo(0,0); }catch(x){}
+  /* v1.3.139: remember this plan so the app opens right to your pump next time */
+  try{ var lp0=JSON.parse(localStorage.getItem('fps_lastplan')||'null')||{};
+    localStorage.setItem('fps_lastplan',JSON.stringify({mode:window.FP_MODE==='each'?'each':'cheap',now:g,t:Date.now(),dip:(window.FP_DIP==='yes'||window.FP_DIP==='no')?FP_DIP:(window.FP_AUTO_RUN?lp0.dip:null)})); }catch(x){}
   setTimeout(function(){ if(window.hmOpenPlan) hmOpenPlan(); },150);
 }
 function fqFr(f){
@@ -7663,6 +7678,32 @@ function fgInit(){
 }
 (function(){ var o=window.openFuelPlan; if(typeof o!=='function') return;
   openFuelPlan=function(){ var r=o.apply(this,arguments); try{ if(document.getElementById('fqpop').classList.contains('show')) fgInit(); }catch(e){} return r; }; window.openFuelPlan=openFuelPlan; })();
+/* v1.3.139: on a background refresh, use the gallons you entered last time and go */
+(function(){ var o=window.openFuelPlan; if(typeof o!=='function') return;
+  openFuelPlan=function(){ var r=o.apply(this,arguments); var A=window.FP_AUTO;
+    if(A && document.getElementById('fqpop').classList.contains('show')){ window.FP_AUTO=null;
+      try{ document.getElementById('fqnow').value=A.now; window.FP_AUTO_RUN=true; fqGo(); }catch(e){} window.FP_AUTO_RUN=false;
+      if(document.getElementById('fqpop').classList.contains('show')) try{ fgInit(); }catch(e){} }
+    return r; }; window.openFuelPlan=openFuelPlan; })();
+/* v1.3.139: open the app and you land on your pump. Your last trip runs again quietly with today's prices */
+(function(){ var tries=0, live=false, done=false;
+  var ol=window.loadLiveData;
+  function blocked(){ var ids=['splash','fpslock']; for(var i=0;i<ids.length;i++){ var e=document.getElementById(ids[i]); if(e&&getComputedStyle(e).display!=='none'&&getComputedStyle(e).visibility!=='hidden') return true; } return false; }
+  function busy(){ var b=document.body.classList; if(window.HM_OPEN||b.contains('on-results')||b.contains('on-plan')) return true;
+    var a=document.activeElement; if(a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA')) return true;
+    return [].some.call(document.querySelectorAll('.popwrap'),function(p){ return getComputedStyle(p).display!=='none'; }); }
+  function go(){ if(done) return; tries++;
+    var lp=null; try{ lp=JSON.parse(localStorage.getItem('fps_lastplan')||'null'); }catch(e){}
+    if(!lp||!lp.mode||!(Date.now()-lp.t<3*86400000)||!getTruck()){ done=true; return; }
+    var ins=[].slice.call(document.querySelectorAll('#stops input')).map(function(i){ return i.value.trim(); }).filter(Boolean);
+    if(ins.length<2){ done=true; return; }
+    if(blocked()||(!live&&tries<16)){ if(tries<60) setTimeout(go,500); else done=true; return; }
+    if(busy()){ done=true; return; }   /* you already started doing something: leave it alone */
+    if(lp.mode!=='own'&&!(lp.now>=0)){ done=true; return; }
+    done=true; window.FP_AUTO={mode:lp.mode,now:lp.now,dip:lp.dip||null};
+    try{ findFuel(); }catch(e){ window.FP_AUTO=null; } }
+  try{ var f0=fpsStat; fpsStat=function(t){ if(/live/i.test(String(t))) live=true; return f0.apply(this,arguments); }; }catch(e){}
+  setTimeout(go,1500); })();
 
 function fpOpenReal(){
   var t=getTruck()||TRUCK_DEF, sel=document.getElementById('fplvl');
@@ -7898,9 +7939,11 @@ function fpDipPop(gain,dipG,st){
   document.body.appendChild(o);
   var close=function(){ o.remove(); };
   o.querySelector('#dipx').onclick=close;   /* X: nothing changes, it asks again next time */
-  o.querySelector('#dipno').onclick=function(){ window.FP_DIP='no'; close(); };
+  var keep=function(a){ try{ var lp=JSON.parse(localStorage.getItem('fps_lastplan')||'null'); if(lp){ lp.dip=a; localStorage.setItem('fps_lastplan',JSON.stringify(lp)); } }catch(e){} };
+  var toPump=function(){ try{ if(!window.hmOpenPlan) return; if(window.HM_PP) ppClose(); setTimeout(function(){ hmOpenPlan(); },60); }catch(e){} };   /* v1.3.139 */
+  o.querySelector('#dipno').onclick=function(){ window.FP_DIP='no'; keep('no'); close(); if(!window.HM_OPEN) toPump(); };
   o.querySelector('#dipyes').onclick=function(){ try{ if(o.querySelector('#dipauto').checked) localStorage.setItem('fps_dipauto','1'); }catch(e){}
-    window.FP_DIP='yes'; close(); try{ fpCalc(); }catch(e){} };
+    window.FP_DIP='yes'; keep('yes'); close(); try{ fpCalc(); }catch(e){} toPump(); };
 }
 (function(){
   var g=document.getElementById('gmaps');
@@ -9296,6 +9339,7 @@ body.tier-free #freelist{display:block}
   window.fpChooser=function(){
     try{ if(typeof fpOn==='function'&&!fpOn()) return false; }catch(e){ return false; }
     if(!window.FP_CH_WANT) return false; window.FP_CH_WANT=false;   /* v1.3.104: every time Find fuel is tapped */
+    if(window.FP_AUTO){ var am=FP_AUTO.mode; setTimeout(function(){ fpChoose(am); if(am==='own') window.FP_AUTO=null; },0); return true; }   /* v1.3.139: refresh picks what you picked last time */
     var o=document.getElementById('fpch');
     if(!o){ o=document.createElement('div'); o.id='fpch';
       o.style.cssText='position:fixed;inset:0;z-index:9400;background:#fff;display:none;align-items:center;justify-content:center;padding:18px;box-sizing:border-box';   /* v1.3.138: solid white, nothing shows through */
@@ -9315,7 +9359,8 @@ body.tier-free #freelist{display:block}
   window.fpChClose=function(){ var o=document.getElementById('fpch'); if(o) o.style.display='none'; try{ newRoute(); }catch(e){} };
   window.fpChoose=function(m){
     var o=document.getElementById('fpch'); if(o) o.style.display='none';
-    if(m==='own'){ window.FP_MODE=null; window.FP_PLANK=null; window.FP_PLANG={}; FP_VIEW='all'; fpApplyView(); window.scrollTo(0,0);
+    if(m==='own'){ try{ localStorage.setItem('fps_lastplan',JSON.stringify({mode:'own',t:Date.now()})); }catch(e){}   /* v1.3.139 */
+      window.FP_MODE=null; window.FP_PLANK=null; window.FP_PLANG={}; FP_VIEW='all'; fpApplyView(); window.scrollTo(0,0);
       if(window.ROUTE_LINE){ window.PP_OWN=true;   /* v1.3.104: Pick my own stops goes to the map with every stop's price */
         var ins=[].slice.call(document.querySelectorAll('#stops input')).map(function(i){ return i.value.trim(); }).filter(Boolean);
         var t=ins.length>1?(ins[0]===HERE?'Your location':ins[0])+' to '+ins[ins.length-1]:'Pick your stops';
