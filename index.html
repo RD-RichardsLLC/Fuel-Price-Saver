@@ -3243,6 +3243,13 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
   { date:'2026-11-06', items:[
+    'Version 1.3.145',
+    '**The black label on Fuel near me shows only the search,** like Fuel near Perrysburg, OH \u00b7 200 mi. It no longer shows the miles from your last trip',
+    '**Miles away in the list on Fuel near me.** Each stop in the list beside the pump shows how many road miles away it is, like 42 mi away',
+    '**The list header on Fuel near me says the circle and the states,** like 200 MILE RADIUS: OH, MI, IN',
+    '**On a route, the list header says Also on your route in** and the state, like ALSO ON YOUR ROUTE IN ILLINOIS. If the state name won\u2019t fit on one line, it uses the two letters after a colon, like ALSO ON YOUR ROUTE: IN'
+  ]},
+  { date:'2026-11-06', items:[
     'Version 1.3.144',
     '**Fuel near me measures road miles.** The miles away are the real driving miles for your truck, not a straight line, so a stop across a lake or a border no longer shows up as close. You see Measuring road miles while it works, which can take a few seconds',
     '**Fuel near me stays in the U.S.** The road miles never route through Canada or Mexico',
@@ -8937,19 +8944,21 @@ body.tier-free #freelist{display:block}
     var lst='';
     /* v1.3.127: a plan stop (or any stop with the sign) gets the same state list, as a shorter window above the sign */
     if(!d.own){ d.list=ppStateList(d.h.st); }
-    var nearL=!!window.NEAR_MAP, lsHdr='OTHER STOPS IN '+esc(ppStName(d.h.st).toUpperCase());
+    var nearL=!!window.NEAR_MAP, lsHdr='ALSO ON YOUR ROUTE IN '+esc(ppStName(d.h.st).toUpperCase());   /* v1.3.145 */
     if(nearL){ d.list=(LASTHITS||[]).filter(function(x){ var v=null; try{ v=rankVal(x); }catch(e){} return v!=null&&isFinite(v); }).sort(function(a,b){ return rankVal(a)-rankVal(b); });   /* v1.3.143 */
       var sts=[]; d.list.forEach(function(x){ var c=String(x.st||'').toUpperCase(); if(c&&sts.indexOf(c)<0) sts.push(c); });
       var mine=String(d.h.st||'').toUpperCase(); if(sts.indexOf(mine)>0){ sts.splice(sts.indexOf(mine),1); sts.unshift(mine); }
-      lsHdr='OTHER STOPS IN '+esc(sts.join(', ')); }
+      lsHdr=((typeof NEAR_R!=='undefined'&&NEAR_R)||window.NEAR_R||'')+' MILE RADIUS: '+esc(sts.join(', ')); }   /* v1.3.145 */
     var fullL=d.own||d.off;   /* v1.3.129: a stop that isn't on your plan gets the full-height list, no sign */
     window.PP_FULL=!!fullL; if(!fullL) window.PP_PLANH=h;   /* v1.3.132 */
     { var ht=fullL?'95.2%':'52.4%';   /* v1.3.131: full list runs the pump's full height and sits clear of its base */ lst='<div style="position:absolute;left:'+(fullL?'63%':'64.6%')+';top:1.6%;width:'+(fullL?'36%':'35%')+';height:'+ht+';display:flex;flex-direction:column;background:#fff;border:2px solid #1A2B4C;border-radius:12px;overflow:hidden;box-shadow:0 3px 8px rgba(0,0,0,.35);font-family:Arial,sans-serif">'+
-      '<div style="background:#141414;color:#fff;padding:7px 6px;border-bottom:1.5px solid #141414;font:900 clamp(10px,2.8vw,12px) Arial;letter-spacing:.5px;text-align:center">'+lsHdr+'</div>'+
+      '<div style="background:#141414;color:#fff;padding:7px 6px;border-bottom:1.5px solid #141414;font:900 clamp(10px,2.8vw,12px) Arial;letter-spacing:.5px;text-align:center" class="pplhdr" data-sh="'+(nearL?'':'ALSO ON YOUR ROUTE: '+esc(String(d.h.st||'').toUpperCase()))+'">'+lsHdr+'</div>'+
       '<div style="font-size:11px;color:#6b7686;padding:4px 8px 2px">Cheapest first \u00b7 tap one</div><div class="pplscr" style="flex:1;overflow-y:auto;padding:0 8px 6px"><div class="pplin">'+
       d.list.filter(function(x){ return x!==d.h; }).map(function(x){ var k=(LASTHITS||[]).indexOf(x);
-        return '<div class="pplrow" data-k="'+k+'" style="display:flex;justify-content:space-between;gap:6px;padding:7px 0;border-bottom:1px solid #eef0f4;font-size:13px;cursor:pointer;color:#141414"><div style="min-width:0"><b>'+esc(x.b)+'</b><div style="font-size:11px;color:#666">'+esc(x.c)+(nearL?', '+esc(x.st):'')+'</div>'+ppShEx(x,28)+'</div><b style="color:#1f8a43">$'+ppC(rankVal(x))+'</b></div>'; }).join('')+
+        return '<div class="pplrow" data-k="'+k+'" style="display:flex;justify-content:space-between;gap:6px;padding:7px 0;border-bottom:1px solid #eef0f4;font-size:13px;cursor:pointer;color:#141414"><div style="min-width:0"><b>'+esc(x.b)+'</b><div style="font-size:11px;color:#666">'+esc(x.c)+(nearL?', '+esc(x.st):'')+'</div>'+(nearL&&x.away!=null?'<div style="font-size:11px;color:#0070e4;font-weight:700">'+Math.round(x.away)+' mi away</div>':'')+ppShEx(x,28)+'</div><b style="color:#1f8a43">$'+ppC(rankVal(x))+'</b></div>'; }).join('')+
       (d.list.length<2?'<div style="font-size:12px;color:#777;padding:8px 0">'+(nearL?'No other stops in this circle':'No other stops in this state on your route')+'</div>':'')+'</div></div></div>'; }
+    (function(){ var fx=function(){ var e=document.querySelector('#hmpp .pplhdr'); if(!e||!e.dataset.sh) return;   /* v1.3.145: wraps? use the two letters */
+        var lh=parseFloat(getComputedStyle(e).fontSize)*1.6+14; if(e.offsetHeight>lh) e.textContent=e.dataset.sh; }; setTimeout(fx,0); setTimeout(fx,400); })();
     o.innerHTML='<div style="width:100%;max-width:520px;flex:1;display:flex;flex-direction:column">'+card+'<div id="ppbox" style="position:relative;margin:auto">'+ppSvg(d)+lst+'</div>'+
       /* v1.3.126: one row: Previous, Menu, Next. Back to map, List view, New route, Details and Run Fuel Optimizer are in Menu */
       /* v1.3.134: Take me there and Menu sit further left. Next, Previous and the arrows are gone: one See your fuel plan button
@@ -9322,7 +9331,7 @@ body.tier-free #freelist{display:block}
     /* v1.3.107: the trip name floats on the map beside the zoom buttons */
     window.PP_LAST=null;   /* v1.3.120: new map, no pump to go back to yet */
     { var tl=document.getElementById('hmtlbl'); if(!tl){ tl=document.createElement('div'); tl.id='hmtlbl'; document.getElementById('hmmap').appendChild(tl); }
-      tl.textContent=String(title).replace(/ to /g,' \u2192 ')+(ROUTE_TOTAL>0?'\u2003\u00b7\u2003'+Math.round(ROUTE_TOTAL).toLocaleString('en-US')+' mi':''); tl.style.display='block'; }
+      tl.textContent=String(title).replace(/ to /g,' \u2192 ')+(ROUTE_TOTAL>0&&!/^Fuel near /.test(String(title))?'\u2003\u00b7\u2003'+Math.round(ROUTE_TOTAL).toLocaleString('en-US')+' mi':''); tl.style.display='block'; }
     document.getElementById('hmap').classList.add('show'); window.HM_OPEN=true;
     try{ enterScreen(); }catch(e){} try{ optBtn(true); }catch(e){}
     return loadLeaflet().then(function(){
