@@ -732,6 +732,40 @@ body:not(.on-results):not(.on-plan):not(.on-tools):not(.on-svc):not(.on-news):no
 body:not(.on-results):not(.on-plan):not(.on-tools):not(.on-svc):not(.on-news):not(.on-detail):not(.on-trip):not(.on-vspec):not(.on-vspec2):not(.on-flog) header .gear{color:#f26a21!important}
 body:not(.on-results):not(.on-plan):not(.on-tools):not(.on-svc):not(.on-news):not(.on-detail):not(.on-trip):not(.on-vspec):not(.on-vspec2):not(.on-flog) #pinbar{background:#fff!important;border-top:2px solid #f26a21!important}
 </style>
+
+<style>
+/* v1.3.136: orange X box */
+.popbox{position:relative}
+.popx{position:absolute;top:10px;right:10px;width:34px;height:34px;border-radius:8px;border:0;background:#f26a21;color:#fff;font:700 20px Arial,sans-serif;line-height:34px;padding:0;cursor:pointer;z-index:2}
+#setpop .poptitle,#truckpop .poptitle,#nearpop .poptitle{padding-right:42px}
+/* v1.3.136: Your truck and Fuel near me in the new colors */
+#truckpop .popbox,#nearpop .popbox{background:#fff!important;color:#10233f!important;border:2px solid #f26a21;box-shadow:0 6px 18px rgba(0,0,0,.45)}
+#truckpop .poptitle,#nearpop .poptitle{color:#0070e4!important}
+#truckpop .poptext,#nearpop .poptext,#nearpop .nearlbl{color:#10233f!important}
+#truckpop label,#truckpop .trk label{color:#10233f!important}
+#truckpop small,#truckpop div[style*="color:#9fb4ce"]{color:#555!important}
+#truckpop input,#truckpop select,#nearpop #nearcity{background:#fff!important;color:#0070e4!important;border:1.5px solid #f26a21!important;font-weight:700}
+#truckpop #tk_err{color:#d62828!important}
+/* v1.3.136: Fuel stop optimizer page in the new colors */
+#fppop{background:#fff!important;color:#10233f!important}
+#fppop h2{color:#0070e4!important}
+#fppop .fptrip,#fppop .fpfine,#fppop .fpnote,#fppop small{color:#555!important}
+#fppop .fpback{background:#f26a21!important;border-color:#f26a21!important;color:#fff!important}
+#fppop .fpsave{background:#eaf7ee!important;border:1.5px solid #1f9a44!important}
+#fppop .fpsave b{color:#1f7a36!important}
+#fppop .fpsave span{color:#10233f!important}
+#fppop .fpwarn{background:#fff3ea!important;border:1.5px solid #f26a21!important;color:#10233f!important}
+#fppop .fptot,#fppop .fptot b{color:#10233f!important}
+#fppop table{color:#10233f}
+#fppop th{color:#0070e4!important;background:#fff!important;box-shadow:inset 0 -2px 0 #f26a21!important}
+#fppop td{border-color:#e3e8ef!important}
+#fppop tfoot td{color:#10233f!important;border-top:2px solid #f26a21!important}
+#fppop .stn{color:#0070e4!important}
+#fppop tr.skip td{color:#7a8799!important}
+#fppop .fpset label,#fppop #fprep{color:#10233f!important}
+#fppop #fprep b{color:#0070e4!important}
+#fppop .fprtin{background:#fff!important;color:#10233f!important;border:2px solid #f26a21!important}
+</style>
 </head>
 <body>
 <script>
@@ -912,7 +946,7 @@ body:not(.on-results):not(.on-plan):not(.on-tools):not(.on-svc):not(.on-news):no
   
   <div id="routehint" style="font-size:18px;font-weight:bold;color:#eaf0f7;text-align:center;margin:2px 0 14px;line-height:1.35">Plan your fuel stops below.</div>
   <div id="setpop" class="popwrap" style="display:none" onclick="if(event.target===this)closeSettings()">
-    <div class="popbox">
+    <div class="popbox"><button type="button" class="popx" aria-label="Close" onclick="closeSettings()">&times;</button>
       <div class="poptitle">Settings <span id="setver" style="font-size:13px;font-weight:400;color:#7a8799;margin-left:6px"></span></div>
       <div class="poptext">Rank the cheapest stops by:</div>
       <label class="opt"><input type="radio" name="rankby" value="pre" onchange="setRankBy(this.value)">
@@ -943,7 +977,7 @@ body:not(.on-results):not(.on-plan):not(.on-tools):not(.on-svc):not(.on-news):no
     </div>
   </div>
   <div id="truckpop" class="popwrap" style="display:none">
-    <div class="popbox">
+    <div class="popbox"><button type="button" class="popx" aria-label="Close" onclick="document.getElementById('truckpop').style.display='none'">&times;</button>
       <div class="poptitle">Your truck</div>
       <div class="poptext" id="truckintro" style="font-size:14px;color:#9fb4ce;line-height:1.4">Routes are planned for your truck. Change anything that's different, then tap Save.</div>
       <div class="trk">
@@ -1026,7 +1060,7 @@ body:not(.on-results):not(.on-plan):not(.on-tools):not(.on-svc):not(.on-news):no
     <button class="bluebtn" style="color:#ff2a2a;font-weight:800;border-color:#d11f1f" onclick="askClear()">Clear</button>
   </div>
   <div id="nearpop" class="popwrap" style="display:none" onclick="if(event.target===this)closeNear()">
-    <div class="popbox">
+    <div class="popbox"><button type="button" class="popx" aria-label="Close" onclick="closeNear()">&times;</button>
       <div class="poptitle">Fuel near me</div>
       <label class="nearlbl" for="nearcity">Type a city to check somewhere else</label>
       <div id="nearwrap" style="position:relative"><input id="nearcity" type="text" placeholder="Your location" readonly class="cpick" autocomplete="off" autocapitalize="words" enterkeyhint="done"><div class="suggest" id="nearsug" style="display:none"></div></div>
@@ -1034,7 +1068,7 @@ body:not(.on-results):not(.on-plan):not(.on-tools):not(.on-svc):not(.on-news):no
       <div class="btnrow nearmi"><button class="go" onclick="fuelNear(5)">5 mi</button><button class="go" onclick="fuelNear(10)">10 mi</button><button class="go" onclick="fuelNear(15)">15 mi</button></div>
       <div class="btnrow nearmi"><button class="go" onclick="fuelNear(25)">25 mi</button><button class="go" onclick="fuelNear(50)">50 mi</button><button class="go" onclick="fuelNear(75)">75 mi</button></div>
       <div class="btnrow nearmi"><span></span><button class="go" onclick="fuelNear(100)">100 mi</button><span></span></div>
-      <button class="addbtn" style="margin:0" onclick="closeNear()">Cancel</button>
+
     </div>
   </div>
   <div id="clearpop" class="popwrap" style="display:none">
@@ -2179,6 +2213,9 @@ async function fuelNear(radius){
     render(hits);
     openResults();
     if(hits.length){ ding(); flagBestPrice(); }
+    if(hits.length && window.hmOpenNear){   /* v1.3.136: straight to the map and pump, no cards */
+      hits.forEach(h=>{ h.rmi=h.away; }); window.ROUTE_LINE=null; window.FP_PLANK=null; window.FP_PLANG={};
+      hmOpenNear('Fuel near '+(NEAR_AT==='you'?'you':NEAR_AT)+' · '+radius+' mi',la0,lo0); }
   }catch(e){ hideBar(); res.innerHTML='<p class="hint">'+e.message+'.</p>'; }
 }
 
@@ -2453,6 +2490,7 @@ async function ttRoute(pts,opt){            /* pts: [[lon,lat],...]  opt: {h,w,l
 let FF_RUN=0;
 const ALT_LEN=60*0.3048;               /* the length used to check whether a shorter route is being blocked */
 async function findFuel(){
+  window.FP_DIP=null; window.FP_DIPK=null; window.FP_DIPTOLD=false;   /* v1.3.136: every Find fuel asks about the reserve again */
   const force60=!!window.FF_FORCE60; window.FF_FORCE60=false;
   if(!getTruck()){ openTruck(findFuel); return; }     // one-time truck setup, then carry on
   prepStart();                                            // blank start = where the driver is now (filled in visibly)
@@ -3134,6 +3172,15 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    To ship an update: add a new block at the TOP of CHANGELOG with the date and the lines.
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
+  { date:'2026-11-06', items:[
+    'Version 1.3.136',
+    '**Every Find fuel asks about your reserve fresh.** Saying Yes counts for that run only, unless you checked "From now on, just do this automatically"',
+    '**On automatic, a short notice with a ding** tells you how many gallons of your reserve the plan is using, which stop, and what it saves. It goes away by itself after about 8 seconds',
+    '**Home.** In the Menu, Back to my pump is now Home. On the map, List view is now Home, and it takes you back to your pump',
+    '**The old list of stop cards is gone.** Fuel near me now shows its stops on the map and the pump, the same as a route',
+    '**Orange X to close** on Settings, Your truck, Fuel near me and How do you want to buy fuel. On How do you want to buy fuel, the X takes you back to where you type in your trip. Fuel near me\u2019s Cancel button is gone',
+    '**New colors** on Your truck, Fuel near me and the Fuel stop optimizer page'
+  ]},
   { date:'2026-11-06', items:[
     'Version 1.3.135',
     '**The fuel plan can use your reserve to reach cheaper fuel.** If going into your reserve gets you to a cheaper stop and saves $5 or more, the app asks first and shows the stop, the gallons and the savings. Your tank never goes below 15 gallons. Check "From now on, just do this automatically" and it won\u2019t ask again',
@@ -7759,13 +7806,28 @@ function fpDipCheck(cost,short,res0){
   var dc=window.FP_COST, gain=cost-dc, dipG=Math.round((res0-15)-(window.FP_LOW||0)), dipK=(window.FP_PLANK||[]).slice();
   var auto=false; try{ auto=localStorage.getItem('fps_dipauto')==='1'; }catch(e){}
   var worth=!window.FP_SHORT && gain>=5 && dipG>=1;
-  if(worth && (auto || window.FP_DIP==='yes')){ window.FP_DIPON=true; return; }   /* the dip plan is what's showing */
+  var nw0=dipK.filter(function(k){ return keepK.indexOf(k)<0; }); if(!nw0.length) nw0=dipK; var st0=null;
+  if(nw0.length) (LASTHITS||[]).concat(window.FP_EXTRA||[]).some(function(h){ if(h.la+','+h.lo===nw0[0]){ st0=h; return true; } });
+  if(worth && (auto || window.FP_DIP==='yes')){ window.FP_DIPON=true;   /* the dip plan is what's showing */
+    if(auto && !window.FP_DIPTOLD){ window.FP_DIPTOLD=true; fpDipToast(dipG,Math.round(gain),st0); }
+    return; }
   window.FP_DIPON=false; window.FP_NODIP=true; try{ fpCalc(); }catch(e){} window.FP_NODIP=false;   /* back to the normal plan */
   if(!worth || window.FP_DIP!=null) return;
   window.FP_DIP='asked';
   var nw=dipK.filter(function(k){ return keepK.indexOf(k)<0; }), st=null; if(!nw.length) nw=dipK;
   if(nw.length) (LASTHITS||[]).concat(window.FP_EXTRA||[]).some(function(h){ if(h.la+','+h.lo===nw[0]){ st=h; return true; } });
   fpDipPop(Math.round(gain),dipG,st);
+}
+/* v1.3.136: on automatic, a short notice with a ding so the driver knows it's working */
+function fpDipToast(dipG,gain,st){
+  try{ ding(); }catch(e){}
+  var o=document.getElementById('diptoast'); if(o) o.remove();
+  o=document.createElement('div'); o.id='diptoast';
+  o.style.cssText='position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:9800;width:min(92vw,420px);box-sizing:border-box;background:#fff;border:2px solid #f26a21;border-radius:12px;padding:10px 12px;box-shadow:0 6px 18px rgba(0,0,0,.4);font:15px Arial,sans-serif;color:#10233f;line-height:1.35;transition:opacity .4s';
+  o.innerHTML='<b style="color:#0070e4">Using your reserve</b><br>About <b>'+dipG+' gallons</b> of your reserve to reach '+(st?'<b>'+esc(st.b)+' in '+esc(st.c)+', '+esc(st.st)+'</b>':'cheaper fuel')+'. Saves about <b style="color:#1f7a36">$'+gain.toLocaleString('en-US')+'</b>.';
+  o.onclick=function(){ o.remove(); };
+  document.body.appendChild(o);
+  setTimeout(function(){ o.style.opacity='0'; setTimeout(function(){ o.remove(); },450); },8000);
 }
 function fpDipPop(gain,dipG,st){
   var o=document.getElementById('dippop'); if(o) o.remove();
@@ -8583,14 +8645,14 @@ body.tier-free #freelist{display:block}
     '<text x="185" y="372" text-anchor="middle" font-family="Courier New,monospace" font-weight="700" font-size="26" fill="#fff">'+(d.off?(d.ret!=null?Math.max(0,Math.round((d.ret-d.pr)*100))+'\u00a2':'--'):'$'+fmt(d.pr))+'</text>'+
     '<rect x="64" y="414" width="242" height="8" fill="#141414"/>'+
     (d.own?'<text x="185" y="460" text-anchor="middle" '+L+' font-size="17" letter-spacing="1">'+(d.rank===0?'CHEAPEST':'#'+(d.rank+1)+' OF '+d.list.length)+'</text>'+
-      '<text x="185" y="482" text-anchor="middle" '+L+' font-size="17" letter-spacing=".5">ON YOUR ROUTE</text>'+
+      '<text x="185" y="482" text-anchor="middle" '+L+' font-size="17" letter-spacing=".5">'+((typeof NEAR_R!=='undefined'&&NEAR_R&&!window.ROUTE_LINE)?'NEAR YOU':'ON YOUR ROUTE')+'</text>'+
       '<text x="185" y="504" text-anchor="middle" '+L+' font-size="'+Math.min(17,220/Math.max(1,(3+ppStName(d.h.st).length)*0.72)).toFixed(1)+'" letter-spacing="1">IN '+esc(ppStName(d.h.st).toUpperCase())+'</text>'
     :d.off?'<text x="185" y="462" text-anchor="middle" '+L+' font-size="17" letter-spacing="1">NOT PART OF</text>'+
       '<text x="185" y="484" text-anchor="middle" '+L+' font-size="17" letter-spacing="1">YOUR FUEL PLAN</text>'+ppAhead(d.h)
     :'<path d="M185 434 L197 448 L189 448 L189 466 L181 466 L181 448 L173 448 Z" fill="url(#ppGn)" stroke="#141414" stroke-width="1.3" stroke-linejoin="round"/>'+
     '<text x="185" y="492" text-anchor="middle" '+L+' font-size="17" letter-spacing="1">AMOUNT TO BUY</text>'+
     '<text x="185" y="514" text-anchor="middle" '+L+' font-size="17" letter-spacing="1">AT THIS STOP</text>')+
-    (d.off&&!d.own?'<g transform="translate(0 32)">'+ppTag(d.h)+'</g>':ppTag(d.h))+(d.own&&d.miAhead!=null?'<text x="185" y="660" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="16" fill="#d62828" letter-spacing="1">'+d.miAhead.toLocaleString('en-US')+' MI AHEAD</text>':'')+
+    (d.off&&!d.own?'<g transform="translate(0 32)">'+ppTag(d.h)+'</g>':ppTag(d.h))+(d.own&&d.miAhead!=null?'<text x="185" y="660" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="16" fill="#d62828" letter-spacing="1">'+d.miAhead.toLocaleString('en-US')+((typeof NEAR_R!=='undefined'&&NEAR_R&&!window.ROUTE_LINE)?' MI AWAY':' MI AHEAD')+'</text>':'')+
     '<g transform="translate(0 70)"><rect x="34" y="150" width="20" height="40" rx="4" fill="#138A36"/>'+
     '<path d="M22 156 h22 v34 h-8 v18 a6 6 0 0 1 -12 0 v-18 h-2 z" fill="url(#ppCh)" stroke="#5E6672" stroke-width="1.5"/>'+
     '<path d="M46 190 q-16 12 -2 32" fill="none" stroke="#5E6672" stroke-width="5.5" stroke-linecap="round"/><path d="M46 190 q-16 12 -2 32" fill="none" stroke="#DDE1E7" stroke-width="3.2" stroke-linecap="round"/><rect x="26" y="146" width="16" height="12" rx="3" fill="url(#ppGn)"/></g>'+
@@ -8753,7 +8815,7 @@ body.tier-free #freelist{display:block}
       L.push({t:'Check fuel and services anywhere',wide:1,go:function(){ fcaOpen(); }});   /* v1.3.131 */
       /* v1.3.132: always a way back to the pump */
       if((d.own||d.off)&&window.PP_PLANH&&window.PP_PLANH!==h) L.unshift({t:'Back to my plan stop',wide:1,go:function(){ ppOpen(window.PP_PLANH); }});
-      else L.unshift({t:'Back to my pump',wide:1,go:function(){}});
+      else L.unshift({t:'Home',wide:1,go:function(){}});   /* v1.3.136: Home */
       hmenuOpen(L); });
     /* v1.3.130: the stop list drifts slowly upward in a constant loop, so the driver can see there's more in it */
     /* v1.3.131: the first touch only stops it (it doesn't open a stop). Swipe it by hand all you want; 3 seconds after you let go it starts drifting again */
@@ -9148,6 +9210,17 @@ body.tier-free #freelist{display:block}
     open(hit?(hit.b+' '+hit.c+', '+hit.st):'Fuel stop',f,a.href,false).catch(function(){ hmClose(); window.open(a.href,'_blank'); });
   },false);
   /* v1.3.98: after the fuel optimizer, land right on the map at your first fuel stop with its pump up */
+  /* v1.3.136: Home: the pump you were last on, else your first plan stop, else the cheapest stop */
+  function hmHome(){
+    var h=window.PP_LAST;
+    if(!h){ var plan={}; (window.FP_PLANK||[]).forEach(function(k){ plan[k]=1; });
+      h=(LASTHITS||[]).filter(function(x){ return plan[x.la+','+x.lo] && isFinite(x.rmi); }).sort(function(a,b){ return a.rmi-b.rmi; })[0]; }
+    if(!h && (LASTHITS||[]).length) h=LASTHITS.slice().sort(function(a,b){ return rankVal(a)-rankVal(b); })[0];
+    if(h){ try{ M.panTo([h.la,h.lo]); }catch(e){} ppOpen(h); } }
+  /* v1.3.136: Fuel near me shows its stops on the map and pump, same as Pick my own stops */
+  window.hmOpenNear=function(t,la,lo){ window.PP_OWN=true; window.PP_CARD=false;
+    return open(t,[la,lo],'',false).then(function(){ try{ ownHint(true); optBtn(true); document.getElementById('hmbro').style.display='none'; }catch(e){}
+      setTimeout(function(){ try{ M.fitBounds(L.latLngBounds((LASTHITS||[]).map(function(h){ return [h.la,h.lo]; }).concat([[la,lo]])).pad(0.15)); }catch(e){} },300); }).catch(function(){ hmClose(); }); };
   window.hmOpenPlan=function(){
     if(!window.ROUTE_LINE||!window.FP_PLANK||!FP_PLANK.length) return;
     var plan={}; FP_PLANK.forEach(function(k){ plan[k]=1; });
@@ -9168,14 +9241,17 @@ body.tier-free #freelist{display:block}
       document.body.appendChild(o); }
     var sv=(window.FP_SAVE>=1)?'<div style="font-size:14px;color:#1f8a43;font-weight:700;margin-top:4px">The Fuel Optimizer saves about $'+Math.round(FP_SAVE).toLocaleString('en-US')+' on this trip</div>':'';
     var b=function(m,t,sub){ return '<button type="button" onclick="fpChoose(\''+m+'\')" style="display:block;width:100%;margin-top:12px;padding:12px 14px;border:0;border-radius:12px;background:#f26a21;color:#fff;text-align:left;font-family:Arial,sans-serif"><b style="font-size:18px">'+t+'</b><div style="font-size:13px;opacity:.92;margin-top:2px">'+sub+'</div></button>'; };
-    o.innerHTML='<div style="background:#fff;color:#141414;border-radius:16px;max-width:420px;width:100%;padding:18px;box-sizing:border-box;font-family:Arial,sans-serif">'+
-      '<b style="font-size:19px">How do you want to buy fuel on this trip?</b>'+sv+
+    o.innerHTML='<div style="position:relative;background:#fff;color:#141414;border:2px solid #f26a21;border-radius:16px;max-width:420px;width:100%;padding:18px;box-sizing:border-box;font-family:Arial,sans-serif">'+
+      '<button type="button" class="popx" aria-label="Close" onclick="fpChClose()">&times;</button>'+
+      '<b style="font-size:19px;color:#0070e4;display:block;padding-right:40px">How do you want to buy fuel on this trip?</b>'+sv+
       b('cheap','Fuel Optimizer','The cheapest plan, with the fewest stops')+
       b('each','State by state','Buy what each state burns, at its cheapest stop')+
       b('own','Pick my own stops','See every stop on your route, cheapest first')+'</div>';
     o.style.display='flex'; try{ enterScreen(); }catch(e){}
     return true;
   };
+  /* v1.3.136: X backs out to where you type in your trip, nothing runs */
+  window.fpChClose=function(){ var o=document.getElementById('fpch'); if(o) o.style.display='none'; try{ newRoute(); }catch(e){} };
   window.fpChoose=function(m){
     var o=document.getElementById('fpch'); if(o) o.style.display='none';
     if(m==='own'){ window.FP_MODE=null; window.FP_PLANK=null; window.FP_PLANG={}; FP_VIEW='all'; fpApplyView(); window.scrollTo(0,0);
@@ -9191,15 +9267,15 @@ body.tier-free #freelist{display:block}
     if(!b){ b=document.createElement('div'); b.id='hmopt';
       b.style.cssText='position:absolute;left:12px;right:12px;bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:1500;display:flex;gap:10px;justify-content:center';
       b.innerHTML='<button type="button" id="hmbbp" style="flex:1;max-width:220px;border:0;border-radius:12px;background:#f26a21;color:#fff;font:700 16px Arial,sans-serif;padding:12px 10px;box-shadow:0 3px 8px rgba(0,0,0,.4);display:none">Back to pump</button>'+
-        '<button type="button" id="hmblv" style="flex:1;max-width:220px;border:0;border-radius:12px;background:#f26a21;color:#fff;font:700 16px Arial,sans-serif;padding:12px 10px;box-shadow:0 3px 8px rgba(0,0,0,.4)">List view</button>'+
+        '<button type="button" id="hmblv" style="flex:1;max-width:220px;border:0;border-radius:12px;background:#f26a21;color:#fff;font:700 16px Arial,sans-serif;padding:12px 10px;box-shadow:0 3px 8px rgba(0,0,0,.4)">Home</button>'+
         '<button type="button" id="hmbro" style="flex:1;max-width:220px;border:0;border-radius:12px;background:#1f8a43;color:#fff;font:700 16px Arial,sans-serif;padding:12px 10px;box-shadow:0 3px 8px rgba(0,0,0,.4)">Run Fuel Optimizer</button>';
       document.getElementById('hmap').appendChild(b);
-      document.getElementById('hmblv').addEventListener('click',function(){ listView(); });
+      document.getElementById('hmblv').addEventListener('click',function(){ hmHome(); });   /* v1.3.136: Home goes back to your pump */
       /* v1.3.120: Back to pump reopens the pump you were last on */
       document.getElementById('hmbbp').addEventListener('click',function(){ if(window.PP_LAST) ppOpen(window.PP_LAST); });
       document.getElementById('hmbro').addEventListener('click',function(){ runOpt(); }); }
     document.getElementById('hmbro').style.display=window.PP_OWN?'block':'none';
-    document.getElementById('hmbbp').style.display=window.PP_LAST?'block':'none';
+    document.getElementById('hmbbp').style.display='none';   /* v1.3.136: Home does this now */
     b.style.display=on?'flex':'none'; }
   function ownHint(on){ var h=document.getElementById('hmown');
     if(!h){ h=document.createElement('div'); h.id='hmown';
