@@ -3100,6 +3100,14 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
   { date:'2026-11-06', items:[
+    'Version 1.3.134',
+    '**See your fuel plan.** A green button on the pump page lists your trip from Start to Finish, with each fuel stop numbered like its flag on the map, the gallons to buy and the price. Tap a stop to go to it. It also shows about how much the plan saves you. No fuel plan, no button',
+    '**Next, Previous and the arrows are gone** from the pump page. See your fuel plan takes their place',
+    '**Take me there and Menu moved left** on the pump page',
+    '**Change route is in the Menu.** Add a stop and the app puts it in the right spot on your route, or remove one. Update my route finds fuel again, starting from where you are now if you want, so you can run the Fuel stop optimizer on the new route',
+    '**Every pop-up has an orange X** that takes you back right where you were. On Change route, the X leaves your route the way it was'
+  ]},
+  { date:'2026-11-06', items:[
     'Version 1.3.133',
     '**Tap a stop in the list and the pump switches to it.** You see that stop\'s prices and weather, and its details open full height so See all services is right there. Close out with the X and you\'re back on your plan stop',
     '**Take me there.** A new button on the pump page, on the left, opens the stop in Google Maps for directions. The details box has one too, under See all services',
@@ -8635,25 +8643,24 @@ body.tier-free #freelist{display:block}
       (d.list.length<2?'<div style="font-size:12px;color:#777;padding:8px 0">No other stops in this state on your route</div>':'')+'</div></div></div>'; }
     o.innerHTML='<div style="width:100%;max-width:520px;flex:1;display:flex;flex-direction:column">'+card+'<div id="ppbox" style="position:relative;margin:auto">'+ppSvg(d)+lst+'</div>'+
       /* v1.3.126: one row: Previous, Menu, Next. Back to map, List view, New route, Details and Run Fuel Optimizer are in Menu */
-      /* v1.3.133: Take me there on the left, Menu in the middle, and one spot on the right that stays the same size:
-         Next at the start of the trip, two arrows in the middle, Previous at the end */
-      (function(){ var hp=!!d.pv, hn=!!(d.nx&&!d.off), B='padding:11px 6px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 clamp(13px,3.9vw,17px) Arial,sans-serif;cursor:pointer';
-        var tri=function(r){ return '<svg width="20" height="20" viewBox="0 0 20 20" style="display:block;margin:auto"><path d="'+(r?'M6 3 L16 10 L6 17Z':'M14 3 L4 10 L14 17Z')+'" fill="#fff"/></svg>'; };
-        var right=(hp&&hn)?'<button type="button" id="hmppv" aria-label="Previous stop" style="flex:1;'+B+'">'+tri(0)+'</button><button type="button" id="hmppn" aria-label="Next stop" style="flex:1;'+B+'">'+tri(1)+'</button>'
-          :hn?'<button type="button" id="hmppn" style="flex:1;'+B+'">Next</button>':hp?'<button type="button" id="hmppv" style="flex:1;'+B+'">Previous</button>':'';
-        return '<div style="display:flex;justify-content:space-between;gap:8px;margin:-6px 0 0 9%;width:87%">'+
-          '<button type="button" id="hmppgo" style="flex:1.25;'+B.replace('clamp(13px,3.9vw,17px)','clamp(12px,3.6vw,16px)')+'">Take me there</button>'+
-          '<button type="button" id="hmppm" style="flex:1;'+B+'">Menu</button>'+
-          '<div style="flex:1.15;display:flex;gap:6px;visibility:'+((hp||hn)?'visible':'hidden')+'">'+right+'</div>'; })()+
+      /* v1.3.134: Take me there and Menu sit further left. Next, Previous and the arrows are gone: one See your fuel plan button
+         lists every plan stop, and you tap one to go there. No fuel plan (no optimizer), no button, but the spot keeps its space */
+      (function(){ var hasPlan=!d.own&&!!(window.FP_PLANK&&FP_PLANK.length), B='padding:11px 6px;border-radius:10px;border:0;background:#f26a21;color:#fff;font:700 clamp(13px,3.9vw,17px) Arial,sans-serif;cursor:pointer';
+        return '<div style="display:flex;justify-content:space-between;gap:7px;margin:-6px 0 0 3%;width:94%">'+
+          '<button type="button" id="hmppgo" style="flex:1.05;'+B.replace('clamp(13px,3.9vw,17px)','clamp(12px,3.6vw,16px)')+'">Take me there</button>'+
+          '<button type="button" id="hmppm" style="flex:.8;'+B+'">Menu</button>'+
+          '<button type="button" id="hmppfp" style="flex:1.35;visibility:'+(hasPlan?'visible':'hidden')+';'+B.replace('padding:11px 6px','padding:5px 6px').replace('background:#f26a21','background:#1f9a44').replace('clamp(13px,3.9vw,17px)','clamp(12px,3.6vw,16px)')+';line-height:1.1">See your<br>fuel plan</button>'+
+          '</div>'; })()+
       '</div></div>';
     var go=function(n){ if(!n) return; try{ M.panTo([n.la,n.lo]); }catch(x){} ppOpen(n); };
     var bv=document.getElementById('hmppv'), bn=document.getElementById('hmppn');
     if(bv) bv.addEventListener('click',function(e){ e.stopPropagation(); go(d.pv); });
     if(bn) bn.addEventListener('click',function(e){ e.stopPropagation(); go(d.nx); });
     document.getElementById('hmppgo').addEventListener('click',function(e){ e.stopPropagation(); window.open(gnav(h.la,h.lo),'_blank'); });   /* v1.3.133 */
+    document.getElementById('hmppfp').addEventListener('click',function(e){ e.stopPropagation(); fpPlanPop(h); });   /* v1.3.134 */
     document.getElementById('hmppm').addEventListener('click',function(e){ e.stopPropagation();
       var L=[{t:'Back to map',go:function(){ ppClose(); }},
-        {t:'New route',go:function(){ newRoute(); }},{t:'Details',wide:1,go:function(){ if(d.own) ppDet(h); else ppDetails(h); }}];   /* v1.3.133: List view taken out */
+        {t:'New route',go:function(){ newRoute(); }},{t:'Change route',go:function(){ crOpen(); }},{t:'Details',go:function(){ if(d.own) ppDet(h); else ppDetails(h); }}];   /* v1.3.133: List view taken out. v1.3.134: Change route */
       if(d.own) L.push({t:'Run Fuel Optimizer',wide:1,go:function(){ runOpt(); }});
       L.push({t:'Check fuel anywhere',wide:1,go:function(){ fcaOpen(); }});   /* v1.3.131 */
       /* v1.3.132: always a way back to the pump */
@@ -8847,6 +8854,88 @@ body.tier-free #freelist{display:block}
     window.HM_OPEN=false; document.getElementById('hmap').classList.remove('show'); }
   function listView(){ var own=window.PP_OWN; mapAway(); window.PP_OWN=false;
     FP_VIEW=(!own&&window.FP_PLANK&&FP_PLANK.length)?'plan':'all'; fpApplyView(); window.scrollTo(0,0); }
+  /* v1.3.134: a white pop-up with an orange X. The X always puts you back right where you were */
+  function ppPop(id,title){
+    var o=document.getElementById(id); if(o) o.remove();
+    o=document.createElement('div'); o.id=id;
+    o.style.cssText='position:fixed;left:0;top:0;right:0;bottom:0;z-index:9700;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:14px;font-family:Arial,sans-serif';
+    o.innerHTML='<div style="position:relative;width:100%;max-width:440px;max-height:90vh;display:flex;flex-direction:column;background:#fff;border:2px solid #f26a21;border-radius:14px;overflow:hidden;box-shadow:0 6px 18px rgba(0,0,0,.45)">'+
+      '<div style="display:flex;align-items:center;gap:8px;padding:10px 10px 8px;border-bottom:1.5px solid #f26a21"><b style="flex:1;font-size:18px;color:#0070e4">'+title+'</b>'+
+      '<button type="button" class="ppopx" aria-label="Close" style="width:34px;height:34px;border-radius:8px;border:0;background:#f26a21;color:#fff;font:700 20px Arial,sans-serif;line-height:34px;padding:0;cursor:pointer">&times;</button></div>'+
+      '<div class="ppopb" style="padding:10px 12px 12px;overflow:auto"></div></div>';
+    o.addEventListener('click',function(e){ e.stopPropagation(); if(e.target===o) o.querySelector('.ppopx').click(); });
+    document.body.appendChild(o); return o;
+  }
+  function ppRouteNames(){ var v=[].slice.call(document.querySelectorAll('#stops input')).map(function(i){ return i.value.trim(); }).filter(Boolean);
+    return v.map(function(x){ return x===HERE?'Your location':x; }); }
+  /* v1.3.134: See your fuel plan. Start, every plan stop numbered like its flag, then Finish. Tap a stop to go to its pump */
+  function fpPlanPop(cur){
+    var plan={}; (window.FP_PLANK||[]).forEach(function(k){ plan[k]=1; });
+    var st=(LASTHITS||[]).filter(function(x){ return plan[x.la+','+x.lo] && isFinite(x.rmi); }).sort(function(a,b){ return a.rmi-b.rmi; });
+    var nm=ppRouteNames(), o=ppPop('fpplanpop','Your fuel plan'), bd=o.querySelector('.ppopb');
+    var gal=0; st.forEach(function(x){ gal+=(window.FP_PLANG||{})[x.la+','+x.lo]||0; });
+    var sv=(window.FP_SAVE!=null&&FP_SAVE>=1)?'<div style="background:#eaf7ee;border:1.5px solid #1f9a44;border-radius:10px;padding:8px 10px;margin-bottom:8px;color:#10233f;font-size:15px"><b style="color:#1f7a36">This plan saves you about $'+Math.round(FP_SAVE).toLocaleString('en-US')+'</b><br><span style="font-size:13px;color:#555">'+st.length+' stop'+(st.length===1?'':'s')+', '+Math.round(gal).toLocaleString('en-US')+' gallons. Good for today\u2019s prices.</span></div>':'';
+    var row=function(lbl,txt){ if(!txt) return ''; return '<div style="display:flex;align-items:center;gap:10px;padding:8px 4px;color:#555;font-size:14px"><b style="min-width:52px;color:#10233f">'+lbl+'</b><span>'+esc(txt||'')+'</span></div>'; };
+    var h=sv+'<div style="color:#555;font-size:14px;margin:0 0 6px">Tap a stop to go to it.</div>'+row('Start',nm[0]);
+    st.forEach(function(x,i){ var g=(window.FP_PLANG||{})[x.la+','+x.lo], pr=null; try{ pr=rankVal(x); }catch(e){} var on=x===cur;
+      h+='<button type="button" class="fppst" data-i="'+i+'" style="display:flex;align-items:center;gap:10px;width:100%;text-align:left;margin:4px 0;padding:9px 10px;border-radius:10px;border:2px solid #f26a21;background:'+(on?'#fff3ea':'#fff')+';cursor:pointer;font-family:Arial,sans-serif">'+
+        '<span style="flex:0 0 30px;height:30px;border-radius:50%;border:2px solid #333;display:flex;align-items:center;justify-content:center;font:900 15px Arial Black,Arial,sans-serif;color:#111;background:#fff">'+(i+1)+'</span>'+
+        '<span style="flex:1;min-width:0"><b style="display:block;color:#0070e4;font-size:16px">'+esc(x.b)+' \u00b7 '+esc(x.c)+', '+esc(x.st)+'</b>'+
+        '<span style="color:#10233f;font-size:14px">'+(g>0?'Buy '+Math.round(g)+' gallons':'')+(pr!=null?' \u00b7 $'+ppC(pr):'')+(on?' \u00b7 <i>you\u2019re here</i>':'')+'</span></span></button>'; });
+    h+=row('Finish',nm[nm.length-1]);
+    bd.innerHTML=h;
+    o.querySelector('.ppopx').addEventListener('click',function(){ o.remove(); });
+    [].slice.call(bd.querySelectorAll('.fppst')).forEach(function(b){ b.addEventListener('click',function(){ var x=st[+b.getAttribute('data-i')]; o.remove(); if(!x) return;
+      window.PP_RETURN=null; try{ ppDetClose(); }catch(e){} try{ M.panTo([x.la,x.lo]); }catch(e){} ppOpen(x); }); });
+  }
+  /* v1.3.134: Change route. Add a stop (the app puts it in the right spot on your route) or remove one, then Update my route runs it fresh
+     from where you are now. The X leaves your route the way it was */
+  function crDist(a,b){ var R=3959, t=Math.PI/180, dl=(b[0]-a[0])*t, dn=(b[1]-a[1])*t, q=Math.sin(dl/2)*Math.sin(dl/2)+Math.cos(a[0]*t)*Math.cos(b[0]*t)*Math.sin(dn/2)*Math.sin(dn/2); return 2*R*Math.asin(Math.sqrt(q)); }
+  function crLL(v){ return geocode(v).then(function(g){ if(!g) return null; var la=+(Array.isArray(g)?g[1]:g.lat), lo=+(Array.isArray(g)?g[0]:(g.lon!=null?g.lon:g.lng));   /* geocode gives [lon, lat, name] */ return (isFinite(la)&&isFinite(lo))?[la,lo]:null; }).catch(function(){ return null; }); }
+  async function crPlace(row){
+    var rows=[].slice.call(stopsEl.children).filter(function(r){ return r!==row && r.querySelector('input').value.trim(); });
+    if(rows.length<2) return;
+    var p=await crLL(row.querySelector('input').value.trim()); if(!p) return;
+    var ll=[]; for(var i=0;i<rows.length;i++) ll.push(await crLL(rows[i].querySelector('input').value.trim()));
+    var best=rows.length-1, bc=Infinity;
+    for(var k=1;k<rows.length;k++){ var a=ll[k-1], b=ll[k]; if(!a||!b) continue; var c=crDist(a,p)+crDist(p,b)-crDist(a,b); if(c<bc){ bc=c; best=k; } }
+    stopsEl.insertBefore(row,rows[best]); relabel(); saveRoute();
+  }
+  function crOpen(){
+    var snap=[].slice.call(document.querySelectorAll('#stops input')).map(function(i){ return i.value; }), changed=false, here=true;
+    var o=ppPop('crpop','Change route'), bd=o.querySelector('.ppopb');
+    var B='border-radius:10px;font:700 16px Arial,sans-serif;cursor:pointer;padding:11px 8px;';
+    function draw(msg){
+      var rows=[].slice.call(stopsEl.children), n=rows.length, h='';
+      h+='<div style="color:#555;font-size:14px;margin:0 0 6px">'+(msg||'Add a stop and the app puts it in the right spot on your route. Tap Remove to take one off.')+'</div>';
+      rows.forEach(function(r,i){ var v=r.querySelector('input').value.trim(); if(!v&&i>0&&i<n-1) return;
+        var lb=i===0?'Start':i===n-1?'Finish':'Stop '+i;
+        h+='<div style="display:flex;align-items:center;gap:8px;padding:8px 2px;border-bottom:1px solid #eef1f5"><b style="min-width:52px;color:#10233f;font-size:14px">'+lb+'</b>'+
+          '<span style="flex:1;min-width:0;color:#0070e4;font-weight:700;font-size:15px">'+esc(v===HERE?'Your location':(v||'\u2014'))+'</span>'+
+          ((i>0&&n>2)?'<button type="button" class="crrm" data-i="'+i+'" style="'+B+'padding:6px 10px;font-size:14px;border:1.5px solid #d62828;background:#fff;color:#d62828">Remove</button>':'')+'</div>'; });
+      h+='<label style="display:flex;align-items:center;gap:8px;margin:12px 2px 4px;color:#10233f;font-size:15px"><input type="checkbox" id="crhere" '+(here?'checked':'')+' style="width:20px;height:20px;accent-color:#f26a21"> Start from where I am now</label>'+
+        '<button type="button" id="cradd" style="display:block;width:100%;margin-top:8px;'+B+'border:2px solid #f26a21;background:#fff;color:#0070e4">+ Add a stop</button>'+
+        '<button type="button" id="crgo" style="display:block;width:100%;margin-top:8px;'+B+'border:0;background:#f26a21;color:#fff">Update my route</button>'+
+        '<div style="color:#555;font-size:13px;margin-top:8px">Update my route finds fuel again on the new route so you can run the Fuel stop optimizer.</div>';
+      bd.innerHTML=h;
+      [].slice.call(bd.querySelectorAll('.crrm')).forEach(function(b){ b.addEventListener('click',function(){ var r=stopsEl.children[+b.getAttribute('data-i')]; if(r&&stopsEl.children.length>2){ r.remove(); relabel(); saveRoute(); changed=true; draw(); } }); });
+      bd.querySelector('#crhere').addEventListener('change',function(e){ here=e.target.checked; });
+      bd.querySelector('#cradd').addEventListener('click',function(){
+        var before=stopsEl.children.length; o.style.display='none'; addStop();
+        var row=stopsEl.children[stopsEl.children.length-2];
+        var t=setInterval(function(){ if(window.CP_OPEN) return; clearInterval(t); o.style.display='flex';
+          if(stopsEl.children.length>before&&row&&row.isConnected&&row.querySelector('input').value.trim()){ changed=true; draw('Putting it on your route\u2026');
+            crPlace(row).then(function(){ draw(); },function(){ draw(); }); } else draw(); },200); });
+      bd.querySelector('#crgo').addEventListener('click',function(){
+        if(here){ var f=stopsEl.children[0]&&stopsEl.children[0].querySelector('input');
+          if(f&&f.value!==HERE){ [].slice.call(stopsEl.querySelectorAll('input')).forEach(function(x){ if(x!==f&&x.value===HERE){ var r=x.closest('.stop'); if(r&&stopsEl.children.length>2) r.remove(); } });
+            f.value=HERE; relabel(); saveRoute(); } }
+        o.remove(); newRoute(); setTimeout(function(){ try{ findFuel(); }catch(e){} },150); });
+    }
+    draw();
+    o.querySelector('.ppopx').addEventListener('click',function(){ o.remove();
+      if(changed){ stopsEl.innerHTML=''; snap.forEach(function(v){ stopsEl.appendChild(makeRow(v)); }); relabel(); saveRoute(); } });
+  }
   /* v1.3.121: New route closes the map and goes back to where you type in a trip */
   function newRoute(){ mapAway(); window.PP_OWN=false;
     try{ var fp=document.getElementById('fppop'); if(fp&&fp.classList.contains('show')) fpClose(); }catch(e){}
