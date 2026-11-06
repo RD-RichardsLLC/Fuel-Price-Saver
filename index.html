@@ -766,6 +766,14 @@ body:not(.on-results):not(.on-plan):not(.on-tools):not(.on-svc):not(.on-news):no
 #fppop #fprep b{color:#0070e4!important}
 #fppop .fprtin{background:#fff!important;color:#10233f!important;border:2px solid #f26a21!important}
 </style>
+
+<style>
+/* v1.3.137: the old stop cards are gone. The page under the chooser is plain white; only "Finding..." or an error message shows */
+body.on-results #respage,body.on-results .reswrap{background:#fff!important}
+body.on-results #results > *:not(p.hint){display:none!important}
+body.on-results #results > p.hint{color:#0070e4!important;text-align:center;font:700 17px Arial,sans-serif;margin-top:40px}
+body.on-results #backbar{display:none!important}
+</style>
 </head>
 <body>
 <script>
@@ -3173,6 +3181,11 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
   { date:'2026-11-06', items:[
+    'Version 1.3.137',
+    '**The old stop cards are gone for good.** After Find fuel you go straight to How do you want to buy fuel, with no cards showing behind it',
+    '**Backing out never lands you on an empty page.** It takes you back to where you type in your trip'
+  ]},
+  { date:'2026-11-06', items:[
     'Version 1.3.136',
     '**Every Find fuel asks about your reserve fresh.** Saying Yes counts for that run only, unless you checked "From now on, just do this automatically"',
     '**On automatic, a short notice with a ding** tells you how many gallons of your reserve the plan is using, which stop, and what it saves. It goes away by itself after about 8 seconds',
@@ -4097,6 +4110,14 @@ window.addEventListener('popstate', function(){
   }
 });
 history.replaceState({app:0}, '');
+/* v1.3.137: with the cards gone, backing out onto the empty results page goes home to your trip instead */
+window.addEventListener('popstate', function(){ setTimeout(function(){ try{
+  if(!document.body.classList.contains('on-results')||window.HM_OPEN) return;
+  var vis=function(id,cls){ var e=document.getElementById(id); if(!e) return false; return cls?e.classList.contains(cls):getComputedStyle(e).display!=='none'; };
+  if(vis('fpch')||vis('fppop','show')||vis('fqpop','show')||vis('dippop')) return;
+  if(document.querySelector('#results > p.hint')) return;
+  document.body.classList.remove('on-results','on-detail','on-svc','on-news','on-plan','on-trip'); window.scrollTo(0,0);
+}catch(e){} },80); });
 
 // ---------- Trip Summary ----------
 function roadName(r){
@@ -7991,7 +8012,7 @@ function fpPreview(){
 }
 (function(){ var r=document.getElementById('results'); if(!r) return;
   new MutationObserver(function(){ if(!document.getElementById('fpbtn')) return; FP_VIEW='all'; window.FP_PLANK=null; window.FP_SAVE=null;
-    clearTimeout(window.FP_PVT); window.FP_PVT=setTimeout(function(){ window.FP_MODE=null; fpPreview(); fpApplyView(); try{ if(document.body.classList.contains('on-results')){ if(!(window.fpChooser&&fpChooser())) fpsRemind(); } }catch(e){} },400); }).observe(r,{childList:true});
+    clearTimeout(window.FP_PVT); window.FP_PVT=setTimeout(function(){ window.FP_MODE=null; fpPreview(); fpApplyView(); try{ if(document.body.classList.contains('on-results')){ if(window.fpChooser) fpChooser();   /* v1.3.137: the old tip pointed at a button on the cards, which are gone */ } }catch(e){} },400); }).observe(r,{childList:true});
 })();
 </script>
 
