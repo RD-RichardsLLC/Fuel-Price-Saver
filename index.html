@@ -3244,6 +3244,10 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
   { date:'2026-11-07', items:[
+    'Version 1.3.155',
+    '**The savings always show on the Fuel Optimizer and State by state buttons,** even when it is $0. If a plan comes out behind after the cost of stopping, it says how much more it costs than average'
+  ]},
+  { date:'2026-11-07', items:[
     'Version 1.3.154',
     '**Fuel Optimizer and State by state savings are now measured on the same number of gallons,** so the two buttons compare fairly. If one plan buys more or less fuel, the difference is counted at the average price on your route'
   ]},
@@ -9582,7 +9586,7 @@ body.tier-free #freelist{display:block}
     var b=function(m,t,sub,bg,fg,x){ return '<button type="button" onclick="fpChoose(\''+m+'\')" style="display:block;width:100%;margin-top:12px;padding:12px 14px;border:0;border-radius:12px;background:'+bg+';color:'+fg+';text-align:left;font-family:Arial,sans-serif"><b style="font-size:18px">'+t+'</b>'+(x||'')+'<div style="font-size:13px;opacity:.92;margin-top:2px">'+sub+'</div></button>'; };   /* v1.3.151: green, blue, gray buttons; savings on the Fuel Optimizer button */
     var nst=function(n,c){ if(!(n>0)) return '';
       var hr=(n===1)?'30 min to 1 hour':(n===2?'1 to 2 hours':(n/2)+' to '+n+' hours');
-      return '<div style="font:700 15px Arial;margin-top:3px">'+n+(n===1?' stop':' stops')+((c>=1)?' \u00b7 Saves about $'+Math.round(c).toLocaleString('en-US'):'')+'</div>'+
+      return '<div style="font:700 15px Arial;margin-top:3px">'+n+(n===1?' stop':' stops')+((typeof c==='number'&&isFinite(c))?(c>=0.5?' \u00b7 Saves about $'+Math.round(c).toLocaleString('en-US'):(c<=-0.5?' \u00b7 Costs about $'+Math.round(-c).toLocaleString('en-US')+' more than average':' \u00b7 Saves about $0')):'')+'</div>'+
         '<div style="font:600 13px Arial;margin-top:2px">Stopping costs about '+n+(n===1?' gal':' gal')+' and '+hr+'</div>'; };   /* v1.3.153 */
     var svb=nst(window.FP_N2,window.FP_S2)+((false)?'<div style="font:800 16px Arial;margin-top:3px">Saves about $'+Math.round(FP_SAVE).toLocaleString('en-US')+' on this trip</div>':'');
     o.innerHTML='<div style="position:relative;background:#fff;color:#141414;border:2px solid #f26a21;border-radius:16px;max-width:420px;width:100%;padding:18px;box-sizing:border-box;font-family:Arial,sans-serif">'+
