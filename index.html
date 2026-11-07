@@ -1084,6 +1084,7 @@ body.on-results #backbar{display:none!important}
   <div class="btnrow" id="pinbar">
     <button class="go" id="homemenu" type="button" onclick="hmenuOpen()">Menu</button>
     <button class="go" onclick="findFuel()">Find fuel</button>
+    <button class="go" id="homeadd" type="button" onclick="addStop()">Add stop</button>
   </div>
   <div class="btnrow">
     <button class="bluebtn" onclick="askNear()" aria-label="Fuel near me" title="Fuel near me"><svg viewBox="0 0 44 44" width="50" height="50"><circle cx="22" cy="22" r="20" fill="none" stroke="#f26a21" stroke-width="2.6"/>
@@ -3242,6 +3243,20 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    To ship an update: add a new block at the TOP of CHANGELOG with the date and the lines.
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
+  { date:'2026-11-07', items:[
+    'Version 1.3.148',
+    '**Add stop has its own button** on the home screen, next to Menu and Find fuel. It\u2019s out of the Menu now',
+    '**The window where you type a town is white now,** with the orange X in the top corner instead of the Back button'
+  ]},
+  { date:'2026-11-06', items:[
+    'Version 1.3.147',
+    '**Stops you already passed show how far they are from you,** like 45 mi from you, instead of Behind you. The miles are in black so they stand out',
+    '**The report starts a little lower** so the X at the top doesn\u2019t cover anything',
+    '**Tap a stop in the report for its details page:** the fuel prices, the four things you picked in Settings, like showers or an RV dump, and a See all services button. The X takes you back to the report',
+    '**Each stop name has a thin blue border** so you know you can tap it',
+    '**A How to use this page pop-up** shows when the report opens. Check Don\u2019t show this again when you\u2019ve got it',
+    '**Each state name in the report looks like a button,** with a thin blue border, so you know you can tap it to see every stop in that state'
+  ]},
   { date:'2026-11-06', items:[
     'Version 1.3.146',
     '**Pick my own stops opens a report.** Every state on your route is listed in the order you reach it, like Texas, New Mexico, Arizona, California, with the cheapest stop in that state under it',
@@ -7326,9 +7341,20 @@ if(document.readyState!=='loading')s();else document.addEventListener('DOMConten
   #cplist .useloc{gap:10px;color:#f26a21;font-weight:700}
   #cplist .zipmsg{min-height:34px;font-size:14px;color:#9fb4ce;cursor:default;border-bottom:0;padding-top:8px}
   #cplist .cpempty{color:#9fb4ce;font-size:15px;border:0;cursor:default}
+  /* v1.3.148: the city typing window is white, with the orange X in the corner */
+  #cpop{background:#fff;color:#141414}
+  #cpop .cphead{position:relative;padding-right:60px}
+  #cpop .cptitle{color:#0070e4}
+  #cpop .cpclose{position:absolute;top:calc(8px + env(safe-area-inset-top));right:12px}
+  #cpin{background:#fff;color:#141414}
+  #cpin::placeholder{color:#7a8597}
+  #cpop .cpx{color:#7a8597}
+  #cplist > div{border-bottom:1px solid #e3e7ee;color:#141414}
+  #cplist > div:active{background:#eef4fc}
+  #cplist .zipmsg,#cplist .cpempty{color:#6b7686}
 </style>
 <div id="cpop" role="dialog" aria-modal="true" aria-labelledby="cptitle">
-  <div class="cphead"><button type="button" class="cpback" onclick="history.back()">Back</button><div class="cptitle" id="cptitle"></div></div>
+  <div class="cphead"><div class="cptitle" id="cptitle"></div><button type="button" class="popx cpclose" aria-label="Close" onclick="history.back()">&times;</button></div>
   <div class="cpbox"><input id="cpin" type="text" autocomplete="off" autocapitalize="words" spellcheck="false" enterkeyhint="search" placeholder="State, then city, like NC Char"><button type="button" class="cpx" aria-label="Clear">&times;</button></div>
   <div id="cplist"></div>
 </div>
@@ -9412,11 +9438,12 @@ body.tier-free #freelist{display:block}
   var OWN_OPEN={};
   function ownMiTxt(h){ var t=null; try{ if(ROUTE_CUM&&ROUTE_CUM.length) t=ppTruckMi(); }catch(e){} if(!isFinite(h.rmi)) return '';
     if(t==null) return Math.round(h.rmi).toLocaleString('en-US')+' mi from the start';
-    var m=Math.round(h.rmi-t); return m>0?m.toLocaleString('en-US')+' mi from you':m<0?'Behind you':'Right here'; }
+    var m=Math.round(h.rmi-t); return m?Math.abs(m).toLocaleString('en-US')+' mi from you':'Right here'; }   /* v1.3.147 */
+  function ownBehind(x){ var t=null; try{ if(ROUTE_CUM&&ROUTE_CUM.length) t=ppTruckMi(); }catch(e){} return t!=null&&Math.round(x.rmi-t)<0; }
   function ownRow(x,big){ var v=rankVal(x), k=(LASTHITS||[]).indexOf(x), mt=ownMiTxt(x);
     return '<div class="ownstop" data-k="'+k+'" style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:10px 4px;border-top:1px solid #eef0f4;cursor:pointer">'+
-      '<div style="min-width:0"><div style="font:700 '+(big?17:16)+'px Arial;color:#141414">'+esc(x.b)+', '+esc(x.c)+'</div>'+ppShEx(x,26)+
-      (mt?'<div style="font:700 13px Arial;color:'+(mt==='Behind you'?'#d62828':'#0070e4')+';margin-top:3px">'+mt+'</div>':'')+'</div>'+
+      '<div style="min-width:0"><div style="display:inline-block;font:700 '+(big?17:16)+'px Arial;color:#141414;border:1px solid #0070e4;border-radius:9px;padding:5px 10px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.15)">'+esc(x.b)+', '+esc(x.c)+'</div>'+ppShEx(x,26)+
+      (mt?'<div style="font:700 13px Arial;color:#141414;margin-top:3px">'+mt+'</div>':'')+'</div>'+
       '<b style="font:900 19px Arial;color:#1f9a44;white-space:nowrap">$'+ppC(v)+'</b></div>'; }
   function ownReport(){ window.OWN_REP_ON=true;
     var o=document.getElementById('ownrep');
@@ -9425,26 +9452,71 @@ body.tier-free #freelist{display:block}
       o.addEventListener('click',function(e){
         if(e.target.closest('#ownx')){ ownRepClose(); return; }
         var st=e.target.closest('.ownst'); if(st){ var c=st.dataset.st; OWN_OPEN[c]=!OWN_OPEN[c]; ownReport(); return; }
-        var r=e.target.closest('.ownstop'); if(r){ var h=(LASTHITS||[])[+r.dataset.k]; if(!h) return;
-          o.style.display='none'; window.OWN_REP_BACK=true; try{ M.panTo([h.la,h.lo]); }catch(e2){} ppOpen(h); } });
+        var r=e.target.closest('.ownstop'); if(r){ var h=(LASTHITS||[])[+r.dataset.k]; if(h) ownDet(h); } });
       document.body.appendChild(o); }
     var hits=(LASTHITS||[]).filter(function(x){ var v=null; try{ v=rankVal(x); }catch(e){} return v!=null&&isFinite(v); });
     var by={}, order=[]; hits.forEach(function(x){ var c=x.st; if(!by[c]){ by[c]=[]; order.push(c); } by[c].push(x); });
     order.sort(function(a,b){ var f=function(c){ return Math.min.apply(null,by[c].map(function(x){ return isFinite(x.rmi)?x.rmi:1e9; })); }; return f(a)-f(b); });
     var ttl=(document.getElementById('hmtitle')||{}).textContent||'Your route';
     var h='<button type="button" id="ownx" class="popx" aria-label="Close" style="position:fixed;top:calc(10px + env(safe-area-inset-top,0px));right:12px;z-index:2">&times;</button>'+
-      '<div style="max-width:560px;margin:0 auto"><div style="background:#141414;color:#fff;border-radius:10px;padding:9px 46px 9px 12px;font:800 15px Arial">'+esc(String(ttl).replace(/ to /g,' \u2192 '))+(ROUTE_TOTAL>0?' \u00b7 '+Math.round(ROUTE_TOTAL).toLocaleString('en-US')+' mi':'')+'</div>'+
+      '<div style="max-width:560px;margin:48px auto 0"><div style="background:#141414;color:#fff;border-radius:10px;padding:9px 46px 9px 12px;font:800 15px Arial">'+esc(String(ttl).replace(/ to /g,' \u2192 '))+(ROUTE_TOTAL>0?' \u00b7 '+Math.round(ROUTE_TOTAL).toLocaleString('en-US')+' mi':'')+'</div>'+
       '<div style="color:#0070e4;font:700 15px Arial;margin:10px 2px 4px">Pick my own stops</div><div style="color:#555;font-size:13px;margin:0 2px 10px">The cheapest stop in each state, in the order you reach them. Tap a state to see every stop in it.</div>';
     if(!order.length) h+='<div style="padding:20px 4px;color:#777">No stops with prices on this route.</div>';
     order.forEach(function(c){ var L2=by[c].slice().sort(function(a,b){ return rankVal(a)-rankVal(b); }), op=!!OWN_OPEN[c];
       h+='<div style="border:2px solid #f26a21;border-radius:12px;margin:0 0 12px;overflow:hidden">'+
         '<div class="ownst" data-st="'+esc(c)+'" style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:#fff6f0;cursor:pointer">'+
-        '<b style="font:900 17px Arial;color:#141414;letter-spacing:.4px">'+esc(String(ppStName(c)).toUpperCase())+'</b>'+
+        '<b style="font:900 16px Arial;color:#141414;letter-spacing:.4px;background:#fff;border:1px solid #0070e4;border-radius:10px;padding:7px 14px;box-shadow:0 2px 4px rgba(0,0,0,.18)">'+esc(String(ppStName(c)).toUpperCase())+'</b>'+   /* v1.3.147: looks like a button */
         '<span style="font:700 14px Arial;color:#0070e4">'+L2.length+' stop'+(L2.length>1?'s':'')+' '+(op?'\u25be':'\u25b8')+'</span></div>'+
         '<div style="padding:0 10px 2px">'+(op?L2.map(function(x,i){ return ownRow(x,i===0); }).join(''):
           '<div style="font:700 11px Arial;color:#6b7686;padding:8px 4px 0;letter-spacing:.5px">CHEAPEST IN '+esc(c)+'</div>'+ownRow(L2[0],true))+'</div></div>'; });
     h+='</div>'; var y=o.scrollTop; o.innerHTML=h; o.style.display='block'; o.scrollTop=y; }
-  function ownRepClose(){ window.OWN_REP_ON=false; window.OWN_REP_BACK=false; var o=document.getElementById('ownrep'); if(o) o.style.display='none'; }
+  /* v1.3.147: how to use the report, every time it opens until he checks Don't show this again */
+  function ownHelp(){ try{ if(localStorage.getItem('fps_ownhelp_off')==='1') return; }catch(e){}
+    var o=document.getElementById('ownhelp');
+    if(!o){ o=document.createElement('div'); o.id='ownhelp';
+      o.style.cssText='position:fixed;inset:0;z-index:9700;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:18px;box-sizing:border-box;font-family:Arial,sans-serif';
+      o.innerHTML='<div style="position:relative;background:#fff;border-radius:16px;max-width:420px;width:100%;padding:18px 18px 16px;box-sizing:border-box;box-shadow:0 6px 20px rgba(0,0,0,.35)">'+
+        '<button type="button" class="popx" id="ownhx" aria-label="Close">&times;</button>'+
+        '<b style="display:block;font-size:19px;color:#0070e4;padding-right:40px">How to use this page</b>'+
+        '<div style="font-size:16px;line-height:1.5;color:#141414;margin-top:10px">Tap a state to see every stop in it.<br>Tap the state again to close the list.<br>Tap a stop to see its full details.</div>'+
+        '<label style="display:flex;align-items:center;gap:8px;margin-top:14px;font-size:15px;color:#333"><input type="checkbox" id="ownhchk" style="width:20px;height:20px"> Don\u2019t show this again</label>'+
+        '<button type="button" id="ownhok" style="display:block;width:100%;margin-top:14px;padding:12px;border:0;border-radius:12px;background:#f26a21;color:#fff;font:700 17px Arial">Got it</button></div>';
+      o.addEventListener('click',function(e){ if(e.target===o||e.target.closest('#ownhx')||e.target.closest('#ownhok')){
+        try{ if(document.getElementById('ownhchk').checked) localStorage.setItem('fps_ownhelp_off','1'); }catch(x){} o.style.display='none'; } });
+      document.body.appendChild(o); }
+    document.getElementById('ownhchk').checked=false; o.style.display='flex'; }
+  window.ownHelp=ownHelp;
+  /* v1.3.147: a stop's details page: fuel prices, your four Settings picks, See all services. The X goes back to the report */
+  function ownSvcRows(h){ try{ if(brandClass(h.b)==='loves'){ var lr=lovesFind(h); return lr?lovesRows(lr):null; }
+    var r=SVC[svcKey(brandClass(h.b)==='petro'?'petro':'ta',h.c,h.st)]; return r?svcRows(r):null; }catch(e){ return null; } }
+  function ownDet(h,all){
+    var o=document.getElementById('owndet');
+    if(!o){ o=document.createElement('div'); o.id='owndet';
+      o.style.cssText='position:fixed;inset:0;z-index:9600;background:#fff;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:calc(12px + env(safe-area-inset-top,0px)) 14px calc(30px + env(safe-area-inset-bottom,0px));box-sizing:border-box;font-family:Arial,sans-serif';
+      o.addEventListener('click',function(e){ if(e.target.closest('#owndx')){ o.style.display='none'; return; }
+        if(e.target.closest('#owdsvc')){ ownDet(window.OWN_DET_H,true); } });
+      document.body.appendChild(o); }
+    window.OWN_DET_H=h;
+    var save=(h.ret!=null&&h.disc!=null)?h.ret-h.disc:null, mt=ownMiTxt(h), ph='', am='', sv=all?ownSvcRows(h):null;
+    try{ ph=stopPhone(h); }catch(e){} try{ am=amenHTML(h); }catch(e){}
+    var R=function(k,v,c){ return '<div style="display:flex;justify-content:space-between;gap:8px;padding:10px 2px;border-bottom:1px solid #eef0f4;font-size:16px"><span style="color:#3d4a5c">'+k+'</span><b style="color:'+(c||'#141414')+';text-align:right">'+v+'</b></div>'; };
+    o.innerHTML='<button type="button" id="owndx" class="popx" aria-label="Close" style="position:fixed;top:calc(10px + env(safe-area-inset-top,0px));right:12px;z-index:2">&times;</button>'+
+      '<div style="max-width:560px;margin:48px auto 0">'+
+      '<div style="font:900 22px Arial;color:#141414">'+esc(h.b)+'</div><div style="font:700 16px Arial;color:#3d4a5c;margin-top:2px">'+esc(h.c)+', '+esc(h.st)+'</div>'+
+      ppShEx(h,32)+(mt?'<div style="font:700 15px Arial;color:#141414;margin-top:6px">'+mt+'</div>':'')+
+      '<div style="font:800 13px Arial;color:#0070e4;letter-spacing:.5px;margin:16px 0 2px">FUEL PRICES</div>'+
+      (h.ret!=null?R('Pump price','$'+ppC(h.ret)):'')+(h.disc!=null?R('Your discount','$'+ppC(h.disc),'#0070e4'):'')+
+      (save!=null?R('You pay','$'+ppC(save)+'/gal','#1f9a44'):'')+(h.ifta!=null?R(esc(h.st)+' IFTA tax','$'+ppC(h.ifta)):'')+
+      (h.pre!=null?R('Pre-tax cost','$'+ppC(h.pre),'#f26a21'):'')+((typeof h.def==='number'&&h.def>0)?R('DEF','$'+ppC(h.def)):'')+
+      (am?'<div style="font:800 13px Arial;color:#0070e4;letter-spacing:.5px;margin:16px 0 4px">AT THIS STOP</div><div style="font-size:16px">'+am+'</div>':'')+
+      (all?'<div style="font:800 13px Arial;color:#0070e4;letter-spacing:.5px;margin:16px 0 2px">ALL SERVICES</div>'+
+        (sv&&sv.length?sv.map(function(r){ return R(esc(r[0]),esc(r[1])); }).join(''):'<div style="color:#777;padding:8px 2px">No service list for this stop yet.</div>'):
+        '<button type="button" id="owdsvc" style="display:block;width:100%;margin-top:16px;padding:12px;border-radius:12px;border:1px solid #0070e4;background:#fff;color:#0070e4;font:700 16px Arial">See all services</button>')+
+      (ph?'<a href="tel:'+String(ph).replace(/\D/g,'')+'" style="display:block;margin-top:14px;text-align:center;font:700 16px Arial;color:#0070e4;text-decoration:none">Call '+esc(ph)+'</a>':'')+
+      '</div>';
+    o.style.display='block'; if(!all) o.scrollTop=0; }
+  window.ownDet=ownDet;
+  function ownRepClose(){ var dd=document.getElementById('owndet'); if(dd) dd.style.display='none'; window.OWN_REP_ON=false; window.OWN_REP_BACK=false; var o=document.getElementById('ownrep'); if(o) o.style.display='none'; }
   function ownRepBack(){ if(window.OWN_REP_BACK&&window.PP_OWN&&!window.NEAR_MAP&&!window.HM_PP){ window.OWN_REP_BACK=false; ownReport(); } }
   window.ownReport=ownReport; window.ownRepClose=ownRepClose;
   window.hmOpenNear=function(t,la,lo){ try{ ownRepClose(); }catch(e){} try{ if(window.HM_PP) ppClose(); }catch(e){} window.PP_LAST=null; window.PP_PLANH=null;   /* v1.3.141: from the pump Menu, the old pump closes so the stops near you show */
@@ -9500,7 +9572,7 @@ body.tier-free #freelist{display:block}
       if(window.ROUTE_LINE){ window.PP_OWN=true;   /* v1.3.104: Pick my own stops goes to the map with every stop's price */
         var ins=[].slice.call(document.querySelectorAll('#stops input')).map(function(i){ return i.value.trim(); }).filter(Boolean);
         var t=ins.length>1?(ins[0]===HERE?'Your location':ins[0])+' to '+ins[ins.length-1]:'Pick your stops';
-        open(t,null,'',false).then(function(){ ownHint(true); optBtn(true); OWN_OPEN={}; ownReport(); }).catch(function(){ hmClose(); }); }
+        open(t,null,'',false).then(function(){ ownHint(true); optBtn(true); OWN_OPEN={}; ownReport(); ownHelp(); }).catch(function(){ hmClose(); }); }
       return; }
     window.PP_OWN=false; window.FP_MODE=(m==='each')?'each':'cheap'; openFuelPlan();
   };
@@ -9582,7 +9654,7 @@ body.tier-free #freelist{display:block}
     var nStops=st?st.children.length:0;
     var br=el('backres');
     if(br && br.style.display!=='none') L.push({t:'Back to my fuel stops',wide:1,go:function(){ br.click(); }});
-    if(!isBasic()) L.push({t:'Add stop',go:function(){ addStop(); }});
+    /* v1.3.148: Add stop is its own button now, next to Find fuel */
     if(nStops>=2) L.push({t:'Reverse route',go:function(){ el('revbtn').click(); }});
     L.push({t:'Fuel near me',go:function(){ askNear(); }});
     L.push({t:'Map full route',go:function(){ el('gmaps').click(); }});
