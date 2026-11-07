@@ -3244,6 +3244,13 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
   { date:'2026-11-07', items:[
+    'Version 1.3.151',
+    '**New colors on the How do you want to buy fuel page.** Fuel Optimizer is green, Pick my own stops is blue, and State by state is gray',
+    '**Pick my own stops moved up** to second, right under Fuel Optimizer',
+    '**How to use this page (Pick my own stops) now says the cheapest stop in each state is listed first**',
+    '**Fuel Optimizer and State by state show how many stops and how much you save** with each plan, like 3 stops \u00b7 Saves about $60. The savings is after your discounts, compared with buying at an average stop on your route'
+  ]},
+  { date:'2026-11-07', items:[
     'Version 1.3.150',
     '**The phone line under See all services is fixed.** It was showing web code instead of the number. The phone number is the Call link at the bottom of the page'
   ]},
@@ -7952,7 +7959,9 @@ function fpCalc(){
   var $=function(x){ return '$'+Math.round(x).toLocaleString('en-US'); }, M=function(x){ return Math.round(x).toLocaleString('en-US'); };
   var price=function(h){ return '$'+fmt(rankVal(h)); };
   var save=real1-real2, h='';
-  try{ window.FP_SAVE=short?0:save;
+  try{ window.FP_SAVE=short?0:save; window.FP_N1=n1; window.FP_N2=n2; (function(){ var av={}, cn={}; stns.forEach(function(h){ var c=fpCost(h); if(!(c>0)) return; av[h.st]=(av[h.st]||0)+c; cn[h.st]=(cn[h.st]||0)+1; });
+      var base=0, bg=0; p1.forEach(function(x){ if(x.stop&&x.g>0&&cn[x.stop.st]){ base+=x.g*av[x.stop.st]/cn[x.stop.st]; bg+=x.g; } });
+      var per=bg?base/bg:0; window.FP_S1=(short||!per)?0:base-real1; window.FP_S2=(short||!per)?0:per*gal2-real2; })();   /* v1.3.151: savings against an average stop on the route, after discounts */
     var src=(FP_TAB==='each')?p1.filter(function(x){ return x.stop&&x.g>0; }).map(function(x){ return {s:x.stop,g:x.g}; }):buys;   /* v1.3.103: State by state puts its stops on the map */
     window.FP_PLANK=src.map(function(b){ return b.s.la+','+b.s.lo; }); window.FP_PLANG={}; src.forEach(function(b){ var k=b.s.la+','+b.s.lo; FP_PLANG[k]=(FP_PLANG[k]||0)+b.g; }); fpBtnSync(); }catch(e){}
   window.FP_SAVE_SHORT=!!short&&FP_TAB!=='each';
@@ -9486,7 +9495,7 @@ body.tier-free #freelist{display:block}
       o.innerHTML='<div style="position:relative;background:#fff;border-radius:16px;max-width:420px;width:100%;padding:18px 18px 16px;box-sizing:border-box;box-shadow:0 6px 20px rgba(0,0,0,.35)">'+
         '<button type="button" class="popx" id="ownhx" aria-label="Close">&times;</button>'+
         '<b style="display:block;font-size:19px;color:#0070e4;padding-right:40px">How to use this page</b>'+
-        '<div style="font-size:16px;line-height:1.5;color:#141414;margin-top:10px">Tap a state to see every stop in it.<br>Tap the state again to close the list.<br>Tap a stop to see its full details.</div>'+
+        '<div style="font-size:16px;line-height:1.5;color:#141414;margin-top:10px">The cheapest stop in each state is listed first.<br>Tap a state to see every stop in it.<br>Tap the state again to close the list.<br>Tap a stop to see its full details.</div>'+
         '<label style="display:flex;align-items:center;gap:8px;margin-top:14px;font-size:15px;color:#333"><input type="checkbox" id="ownhchk" style="width:20px;height:20px"> Don\u2019t show this again</label>'+
         '<button type="button" id="ownhok" style="display:block;width:100%;margin-top:14px;padding:12px;border:0;border-radius:12px;background:#f26a21;color:#fff;font:700 17px Arial">Got it</button></div>';
       o.addEventListener('click',function(e){ if(e.target===o||e.target.closest('#ownhx')||e.target.closest('#ownhok')){
@@ -9555,13 +9564,15 @@ body.tier-free #freelist{display:block}
       o.style.cssText='position:fixed;inset:0;z-index:9400;background:#fff;display:none;align-items:center;justify-content:center;padding:18px;box-sizing:border-box';   /* v1.3.138: solid white, nothing shows through */
       document.body.appendChild(o); }
     var sv=(window.FP_SAVE>=1)?'<div style="font-size:14px;color:#1f8a43;font-weight:700;margin-top:4px">The Fuel Optimizer saves about $'+Math.round(FP_SAVE).toLocaleString('en-US')+' on this trip</div>':'';
-    var b=function(m,t,sub){ return '<button type="button" onclick="fpChoose(\''+m+'\')" style="display:block;width:100%;margin-top:12px;padding:12px 14px;border:0;border-radius:12px;background:#f26a21;color:#fff;text-align:left;font-family:Arial,sans-serif"><b style="font-size:18px">'+t+'</b><div style="font-size:13px;opacity:.92;margin-top:2px">'+sub+'</div></button>'; };
+    var b=function(m,t,sub,bg,fg,x){ return '<button type="button" onclick="fpChoose(\''+m+'\')" style="display:block;width:100%;margin-top:12px;padding:12px 14px;border:0;border-radius:12px;background:'+bg+';color:'+fg+';text-align:left;font-family:Arial,sans-serif"><b style="font-size:18px">'+t+'</b>'+(x||'')+'<div style="font-size:13px;opacity:.92;margin-top:2px">'+sub+'</div></button>'; };   /* v1.3.151: green, blue, gray buttons; savings on the Fuel Optimizer button */
+    var nst=function(n,c){ return (n>0)?'<div style="font:700 15px Arial;margin-top:3px">'+n+(n===1?' stop':' stops')+((c>=1)?' \u00b7 Saves about $'+Math.round(c).toLocaleString('en-US'):'')+'</div>':''; };
+    var svb=nst(window.FP_N2,window.FP_S2)+((false)?'<div style="font:800 16px Arial;margin-top:3px">Saves about $'+Math.round(FP_SAVE).toLocaleString('en-US')+' on this trip</div>':'');
     o.innerHTML='<div style="position:relative;background:#fff;color:#141414;border:2px solid #f26a21;border-radius:16px;max-width:420px;width:100%;padding:18px;box-sizing:border-box;font-family:Arial,sans-serif">'+
       '<button type="button" class="popx" aria-label="Close" onclick="fpChClose()">&times;</button>'+
-      '<b style="font-size:19px;color:#0070e4;display:block;padding-right:40px">How do you want to buy fuel on this trip?</b>'+sv+
-      b('cheap','Fuel Optimizer','The cheapest plan, with the fewest stops')+
-      b('each','State by state','Buy what each state burns, at its cheapest stop')+
-      b('own','Pick my own stops','See every stop on your route, cheapest first')+'</div>';
+      '<b style="font-size:19px;color:#0070e4;display:block;padding-right:40px">How do you want to buy fuel on this trip?</b>'+
+      b('cheap','Fuel Optimizer','The cheapest plan, with the fewest stops','#1f9a44','#fff',svb)+
+      b('own','Pick my own stops','See every stop on your route, cheapest first','#0070e4','#fff')+
+      b('each','State by state','Buy what each state burns, at its cheapest stop','#d3d7dd','#141414',nst(window.FP_N1,window.FP_S1))+'</div>';
     /* v1.3.141: the route note shows at the top for about 6 seconds, and the chooser sits lower so it doesn't cover it */
     o.style.alignItems='flex-start'; o.style.paddingTop='calc(175px + env(safe-area-inset-top,0px))'; o.style.overflowY='auto';
     if(!window.ROUTE_CAR){ var dn=document.createElement('div'); dn.id='fpdisc';
