@@ -3244,6 +3244,10 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
   { date:'2026-11-07', items:[
+    'Version 1.3.150',
+    '**The phone line under See all services is fixed.** It was showing web code instead of the number. The phone number is the Call link at the bottom of the page'
+  ]},
+  { date:'2026-11-07', items:[
     'Version 1.3.149',
     '**No more big check marks on the stop details page.** The items under At this stop are plain text now, so See all services is easy to reach'
   ]},
@@ -9491,8 +9495,9 @@ body.tier-free #freelist{display:block}
     document.getElementById('ownhchk').checked=false; o.style.display='flex'; }
   window.ownHelp=ownHelp;
   /* v1.3.147: a stop's details page: fuel prices, your four Settings picks, See all services. The X goes back to the report */
-  function ownSvcRows(h){ try{ if(brandClass(h.b)==='loves'){ var lr=lovesFind(h); return lr?lovesRows(lr):null; }
-    var r=SVC[svcKey(brandClass(h.b)==='petro'?'petro':'ta',h.c,h.st)]; return r?svcRows(r):null; }catch(e){ return null; } }
+  function ownNoPh(rows){ return (rows||[]).filter(function(r){ return !/phone/i.test(r[0])&&String(r[1]).indexOf('<')<0; }); }
+  function ownSvcRows(h){ try{ if(brandClass(h.b)==='loves'){ var lr=lovesFind(h); return lr?ownNoPh(lovesRows(lr)):null; }
+    var r=SVC[svcKey(brandClass(h.b)==='petro'?'petro':'ta',h.c,h.st)]; return r?ownNoPh(svcRows(r)):null; }catch(e){ return null; } }
   function ownDet(h,all){
     var o=document.getElementById('owndet');
     if(!o){ o=document.createElement('div'); o.id='owndet';
