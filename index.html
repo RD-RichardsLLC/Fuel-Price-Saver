@@ -1015,7 +1015,7 @@ body.on-results #backbar{display:none!important}
       <div id="histrow" onclick="closeSettings();openNews()" style="margin-top:16px;padding:12px;border-radius:10px;background:#1d3a5e;cursor:pointer;display:flex;align-items:center">
         <span><b>History of changes</b><small style="display:block;color:#9fb4ce;margin-top:2px">Everything that's been updated, newest first</small></span>
         <span style="margin-left:auto;color:var(--orange);font-size:20px">&rsaquo;</span></div>
-      <div class="setsavebar"><button class="go" style="padding:10px;margin:0;width:100%" onclick="closeSettings()">Save and close</button></div>
+      <div class="setsavebar" style="display:flex;gap:8px"><button class="go" style="padding:10px;margin:0;flex:1;background:#fff;color:#0070e4;border:2px solid #f26a21" onclick="var b=this;b.textContent='Saved \u2713';setTimeout(function(){b.textContent='Save';},1500)">Save</button><button class="go" style="padding:10px;margin:0;flex:1" onclick="closeSettings()">Save and close</button></div>
     </div>
   </div>
   <div id="truckpop" class="popwrap" style="display:none">
@@ -3249,6 +3249,39 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    To ship an update: add a new block at the TOP of CHANGELOG with the date and the lines.
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
+  { date:'2026-11-10', items:[
+    'Version 1.3.168',
+    '**Your stop cards have a Menu button** next to See the map and Home'
+  ]},
+  { date:'2026-11-10', items:[
+    'Version 1.3.167',
+    '**The Fuel Optimizer uses your saved tank size and MPG.** It only asks for them if Your truck doesn\u2019t have them yet',
+    '**Closing the fuel question takes you back to the route page** instead of an empty page'
+  ]},
+  { date:'2026-11-10', items:[
+    'Version 1.3.166',
+    '**Back to my fuel stops is out of the Menu.** It opened an empty old page. Use Back or Home to get around'
+  ]},
+  { date:'2026-11-10', items:[
+    'Version 1.3.165',
+    '**Settings has a Save button and a Save and close button.** Save keeps Settings open so you can change something else'
+  ]},
+  { date:'2026-11-10', items:[
+    'Version 1.3.164',
+    '**Settings only opens when you tap it.** Home and Edit route take you to the route page, and Settings no longer pops back up when you reopen the app'
+  ]},
+  { date:'2026-11-10', items:[
+    'Version 1.3.163',
+    '**New route and Change route are now one button, Edit route.** It takes you to the route page with your trip still filled in, so you can change a stop or start a new trip'
+  ]},
+  { date:'2026-11-10', items:[
+    'Version 1.3.162',
+    '**FPS no longer reruns your last trip when it opens.** Your trip stays filled in on the route page. Tap Find fuel when you want to run it'
+  ]},
+  { date:'2026-11-10', items:[
+    'Version 1.3.161',
+    '**The Settings button in the Menu opens Settings** from any page, including the map and the pump'
+  ]},
   { date:'2026-11-10', items:[
     'Version 1.3.160',
     '**Settings is in every Menu**, with a gear next to it, down at the bottom with the buttons you don\u2019t use every day',
@@ -7370,7 +7403,7 @@ if(document.readyState!=='loading')s();else document.addEventListener('DOMConten
       if(has('on-flog')) call('openFlog');
       if(has('on-plan')) call('openPlan');
       if(has('on-trip')) await call('runTrip');
-      if(rs.set) call('openSettings');
+      /* v1.3.164: Settings no longer reopens by itself */
     }catch(e){}
     setTimeout(function(){
       try{ if(rs.y) window.scrollTo(0,rs.y);
@@ -7755,7 +7788,7 @@ function fpSync(){ var b=document.getElementById('fpbtn'); if(b) b.classList.tog
 var FP_NOWG=null;
 function openFuelPlan(){
   if(!fpOn()){ showPop('Tap Find fuel first','FUEL STOP OPTIMIZER'); return; }
-  var t=getTruck()||TRUCK_DEF, first=!t.fpset;
+  var t=getTruck()||TRUCK_DEF, first=!(t.fpset||(+t.tank>0&&+t.mpg>0));
   document.getElementById('fqfirst').style.display=first?'block':'none';
   document.getElementById('fqtank').value=first?'':(t.tank||'');
   document.getElementById('fqmpg').value=first?'':(t.mpg||'');
@@ -7766,7 +7799,7 @@ function openFuelPlan(){
 }
 function fqGo(){ try{ localStorage.setItem('fps_fsopt_last',String(Date.now())); }catch(e){} setTimeout(function(){ try{ fpsTip('fsroute'); }catch(e){} },600);
 
-  var t=getTruck()||Object.assign({},TRUCK_DEF), first=!t.fpset, e=document.getElementById('fqerr');
+  var t=getTruck()||Object.assign({},TRUCK_DEF), first=!(t.fpset||(+t.tank>0&&+t.mpg>0)), e=document.getElementById('fqerr');
   var g=parseFloat(document.getElementById('fqnow').value);
   if(first){
     var tk=parseFloat(document.getElementById('fqtank').value), m=parseFloat(document.getElementById('fqmpg').value);
@@ -7799,7 +7832,7 @@ function fqEnd(f){
   var t=getTruck()||TRUCK_DEF, tk=parseFloat(document.getElementById('fqtank').value)||(+t.tank||200);
   document.getElementById('fqend').value=f?Math.round(tk*f):(+t.res||25); document.getElementById('fqerr').textContent='';
 }
-function fqClose(){ document.getElementById('fqpop').classList.remove('show'); }
+function fqClose(){ document.getElementById('fqpop').classList.remove('show'); try{ newRoute(); }catch(e){} }   /* v1.3.167: closing goes back to the route page */
 
 /* ===== v1.3.68: two-needle fuel gauge in the Fuel plan questions. Orange = fuel now (grab the knob), green = end of trip (grab anywhere inside) ===== */
 var FG={v:0.5,w:0.25,drag:0,ok:false};
@@ -7860,7 +7893,7 @@ function fgInit(){
   function busy(){ var b=document.body.classList; if(window.HM_OPEN||b.contains('on-results')||b.contains('on-plan')) return true;
     var a=document.activeElement; if(a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA')) return true;
     return [].some.call(document.querySelectorAll('.popwrap'),function(p){ return getComputedStyle(p).display!=='none'; }); }
-  function go(){ if(done) return; tries++;
+  function go(){ return; /* v1.3.162: no auto-run; the trip stays filled in, the driver taps Find fuel */ if(done) return; tries++;
     var lp=null; try{ lp=JSON.parse(localStorage.getItem('fps_lastplan')||'null'); }catch(e){}
     if(!lp||!lp.mode||!(Date.now()-lp.t<3*86400000)||!getTruck()){ done=true; return; }
     var ins=[].slice.call(document.querySelectorAll('#stops input')).map(function(i){ return i.value.trim(); }).filter(Boolean);
@@ -9033,6 +9066,7 @@ body.tier-free #freelist{display:block}
   function tdClose(){ var o=document.getElementById('hmtdp'); if(o) o.style.display='none'; window.HM_TD=false; }
   document.getElementById('hmtd').addEventListener('click',function(){ tdOpen(); });
   var ppMk={}, ppCur=null;
+  window.ppOpen=function(h){ return ppOpen(h); };   /* v1.3.166: the home Menu can reopen the plan stop */
   function ppOpen(h){
     /* v1.3.133: remember the plan stop while the driver looks at a stop he tapped in the list */
     if(!window.PP_FROMLIST) window.PP_RETURN=null; window.PP_FROMLIST=false;
@@ -9104,7 +9138,7 @@ body.tier-free #freelist{display:block}
     document.getElementById('hmppfp').addEventListener('click',function(e){ e.stopPropagation(); fpPlanPop(h); });   /* v1.3.134 */
     document.getElementById('hmppm').addEventListener('click',function(e){ e.stopPropagation();
       var L=[{t:'Back to map',go:function(){ ppClose(); }},
-        {t:'New route',go:function(){ newRoute(); }},{t:'Change route',go:function(){ crOpen(); }},{t:'Details',go:function(){ if(d.own) ppDet(h); else ppDetails(h); }}];   /* v1.3.133: List view taken out. v1.3.134: Change route */
+        {t:'Edit route',go:function(){ newRoute(); }},{t:'Details',go:function(){ if(d.own) ppDet(h); else ppDetails(h); }}];   /* v1.3.133: List view taken out. v1.3.134: Change route */
       if(d.own) L.push({t:'Run Fuel Optimizer',wide:1,go:function(){ runOpt(); }});
       L.push({t:'Check fuel and services anywhere',wide:1,go:function(){ fcaOpen(); }});   /* v1.3.131 */
       L.push({t:window.FPS_GEAR||'Settings',wide:1,go:function(){ openSettings(); }});   /* v1.3.160: Settings in every menu */
@@ -9395,7 +9429,7 @@ body.tier-free #freelist{display:block}
       if(changed){ stopsEl.innerHTML=''; snap.forEach(function(v){ stopsEl.appendChild(makeRow(v)); }); relabel(); saveRoute(); } });
   }
   /* v1.3.121: New route closes the map and goes back to where you type in a trip */
-  function newRoute(){ mapAway(); window.PP_OWN=false;
+  function newRoute(){ mapAway(); window.PP_OWN=false; try{ closeSettings(); var tp=document.getElementById('truckpop'); if(tp) tp.style.display='none'; }catch(e){}   /* v1.3.164: Settings only when tapped */
     try{ var fp=document.getElementById('fppop'); if(fp&&fp.classList.contains('show')) fpClose(); }catch(e){}
     document.body.classList.remove('on-results','on-detail','on-svc','on-news','on-plan','on-trip');
     window.scrollTo(0,0); }
@@ -9548,7 +9582,13 @@ body.tier-free #freelist{display:block}
       o.style.cssText='position:fixed;inset:0;z-index:9500;background:#fff;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:calc(12px + env(safe-area-inset-top,0px)) 12px calc(96px + env(safe-area-inset-bottom,0px));box-sizing:border-box;font-family:Arial,sans-serif';
       o.addEventListener('click',function(e){
         if(e.target.closest('#ownx')||e.target.closest('#ownmap')){ ownRepClose(); return; }
-        if(e.target.closest('#ownhome')){ hmHome(); return; }   /* v1.3.160 */
+        if(e.target.closest('#ownhome')){ hmHome(); return; }
+        if(e.target.closest('#ownmenu')){   /* v1.3.168: Menu on the stop cards */
+          var M=[{t:'See the map',go:function(){ ownRepClose(); }},{t:'Edit route',go:function(){ hmHome(); }},
+            {t:'Fuel near me',go:function(){ ownRepClose(); askNear(); }},{t:'Check fuel and services anywhere',wide:1,go:function(){ ownRepClose(); fcaOpen(); }},
+            {t:window.FPS_GEAR||'Settings',wide:1,go:function(){ openSettings(); }}];
+          try{ ['hmenu','hmenuback'].forEach(function(id){ var x=document.getElementById(id); if(x) x.style.zIndex=id==='hmenu'?'9702':'9701'; }); }catch(x){}
+          hmenuOpen(M); return; }   /* v1.3.160 */
         var st=e.target.closest('.ownst'); if(st){ var c=st.dataset.st; OWN_OPEN[c]=!OWN_OPEN[c]; ownReport(); return; }
         var r=e.target.closest('.ownstop'); if(r){ var h=(LASTHITS||[])[+r.dataset.k]; if(h) ownDet(h); } });
       document.body.appendChild(o); }
@@ -9571,7 +9611,7 @@ body.tier-free #freelist{display:block}
     /* v1.3.160: always a way out: Map and Home at the bottom */
     var bb='flex:1;max-width:220px;border:0;border-radius:12px;color:#fff;font:700 16px Arial,sans-serif;padding:12px 10px;cursor:pointer';
     h+='<div style="position:fixed;left:0;right:0;bottom:0;z-index:3;background:#fff;border-top:1.5px solid #f26a21;padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));display:flex;gap:10px;justify-content:center">'+
-      '<button type="button" id="ownmap" style="'+bb+';background:#0070e4">See the map</button><button type="button" id="ownhome" style="'+bb+';background:#f26a21">Home</button></div>';
+      '<button type="button" id="ownmap" style="'+bb+';background:#0070e4">See the map</button><button type="button" id="ownhome" style="'+bb+';background:#f26a21">Home</button><button type="button" id="ownmenu" style="'+bb+';background:#10233f">Menu</button></div>';
     var y=o.scrollTop; o.innerHTML=h; o.style.display='block'; o.scrollTop=y; }
   /* v1.3.147: how to use the report, every time it opens until he checks Don't show this again */
   function ownHelp(){ try{ if(localStorage.getItem('fps_ownhelp_off')==='1') return; }catch(e){}
@@ -9675,7 +9715,7 @@ body.tier-free #freelist{display:block}
   };
   /* v1.3.136: X backs out to where you type in your trip, nothing runs */
   window.fpChClose=function(){ var o=document.getElementById('fpch'); if(o) o.style.display='none'; try{ newRoute(); }catch(e){} };
-  window.fpChoose=function(m){
+  window.fpChoose=function(m){ window.FPS_LASTMODE=m;   /* v1.3.166 */
     var o=document.getElementById('fpch'); if(o) o.style.display='none';
     if(m==='own'){ try{ localStorage.setItem('fps_lastplan',JSON.stringify({mode:'own',t:Date.now()})); }catch(e){}   /* v1.3.139 */
       window.FP_MODE=null; window.FP_PLANK=null; window.FP_PLANG={}; FP_VIEW='all'; fpApplyView(); window.scrollTo(0,0);
@@ -9765,7 +9805,7 @@ body.tier-free #freelist{display:block}
     var L=[], st=document.getElementById('stops');
     var nStops=st?st.children.length:0;
     var br=el('backres');
-    if(br && br.style.display!=='none') L.push({t:'Back to my fuel stops',wide:1,go:function(){ br.click(); }});
+    /* v1.3.166: Back to my fuel stops taken out of the Menu */
     /* v1.3.148: Add stop is its own button now, next to Find fuel */
     if(nStops>=2) L.push({t:'Reverse route',go:function(){ el('revbtn').click(); }});
     L.push({t:'Fuel near me',go:function(){ askNear(); }});
@@ -9985,6 +10025,10 @@ body.tier-free #freelist{display:block}
     window[nm]=function(){ try{ if(window.HM_OPEN&&window.fpsGoRoute) fpsGoRoute(); }catch(e){} return f.apply(this,arguments); }; });
   try{ openNews=window.openNews; openFc=window.openFc; }catch(e){}
 })();
+</script>
+<script>
+/* v1.3.161: Settings and Your truck sat inside the route page, which hides on the map and pump. Move them to the top level */
+(function(){ ['setpop','truckpop'].forEach(function(id){ var e=document.getElementById(id); if(e&&e.parentNode!==document.body) document.body.appendChild(e); }); })();
 </script>
 </body>
 </html>
