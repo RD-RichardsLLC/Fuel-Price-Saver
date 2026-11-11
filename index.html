@@ -3252,6 +3252,11 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
   { date:'2026-11-11', items:[
+    'Version 1.3.187',
+    '**Fixed: the phone\u2019s Back button now asks Close Fuel Price Saver?** on the route page instead of closing the app',
+    '**Fixed: Welcome back shows up after you\u2019ve run a trip**, even if the app closed while you were on the route page'
+  ]},
+  { date:'2026-11-11', items:[
     'Version 1.3.186',
     '**The Back button asks before closing the app.** On the route page, your phone\u2019s Back button asks Close Fuel Price Saver? Yes or No'
   ]},
@@ -10255,7 +10260,8 @@ body.tier-free #freelist{display:block}
 <script>
 /* v1.3.182: if the app closes by accident, reopening within 5 minutes puts you back where you were (pump, map, or stop cards) without running Find fuel. After 5 minutes it opens on the route page */
 (function(){
-  var KEY='fps_place';
+  var KEY='fps_place', LASTV='pump';
+  setInterval(function(){ try{ var w=where(); if(w!=='route') LASTV=w; }catch(e){} },1500);   /* v1.3.187 */
   function where(){
     if(window.OWN_REP_ON&&!window.HM_PP) return 'own';
     if(window.HM_PP&&window.PP_LAST) return 'pump';
@@ -10266,11 +10272,13 @@ body.tier-free #freelist{display:block}
     var v=where(), pop=null, sc=0, tp=document.getElementById('truckpop'), sp=document.getElementById('setpop');
     if(tp&&tp.style.display==='flex') pop='truck';
     else if(sp&&sp.style.display==='flex'){ pop='set'; var bx=sp.querySelector('.popbox'); sc=bx?bx.scrollTop:0; }   /* v1.3.185: Settings and Your truck too */
-    var stops=(v!=='route'&&LASTHITS&&LASTHITS.length&&window.ROUTE_LINE&&!window.NEAR_MAP);
+    var stops=(LASTHITS&&LASTHITS.length&&window.ROUTE_LINE&&!window.NEAR_MAP); if(stops&&v==='route') v=LASTV;   /* v1.3.187: closing from the route page still remembers your stops */
     if(!stops&&!pop){ localStorage.removeItem(KEY); return; }
     var p=window.PP_LAST;
+    var line=window.ROUTE_LINE; if(stops&&line&&line.length>4000){ var st=Math.ceil(line.length/4000); line=line.filter(function(x,i){ return i%st===0||i===line.length-1; }); }
+    if(stops&&line) line=line.map(function(x){ return [Math.round(x[0]*1e5)/1e5,Math.round(x[1]*1e5)/1e5]; });
     localStorage.setItem(KEY,JSON.stringify({t:Date.now(),v:stops?v:'route',pop:pop,sc:sc,mode:window.FPS_LASTMODE||null,own:!!window.PP_OWN,
-      hits:stops?LASTHITS:null,line:stops?window.ROUTE_LINE:null,cum:ROUTE_CUM,total:ROUTE_TOTAL,
+      hits:stops?LASTHITS:null,line:stops?line:null,cum:ROUTE_CUM,total:ROUTE_TOTAL,
       plank:window.FP_PLANK||null,plang:window.FP_PLANG||{},fpmode:window.FP_MODE||null,
       pump:p?[p.la,p.lo]:null, view:(window.fpsMapView?fpsMapView():null)}));
   }catch(e){ try{ localStorage.removeItem(KEY); }catch(x){} } }
@@ -10325,7 +10333,8 @@ body.tier-free #freelist{display:block}
 /* v1.3.186: the phone's Back button on the route page asks before closing the app */
 (function(){
   var armed=false, leaving=false;
-  function arm(){ if(armed||leaving) return; try{ if(!history.state){ history.pushState({fpsguard:1},''); } armed=true; }catch(e){} }
+  function base(st){ return !st || (st.app===0 && !st.fpsguard); }
+  function arm(){ if(armed||leaving) return; try{ if(base(history.state)) history.pushState({app:0,fpsguard:1},''); armed=true; }catch(e){} }   /* v1.3.187: the first page is marked app:0, so guard on top of it */
   document.addEventListener('click',arm,true); document.addEventListener('touchend',arm,true);
   function busy(){
     if(/\bon-[\w-]+/.test(document.body.className)) return true;
@@ -10349,7 +10358,7 @@ body.tier-free #freelist{display:block}
   }
   window.addEventListener('popstate',function(){
     if(leaving){ try{ history.back(); }catch(e){} return; }
-    if(history.state) return;            /* still inside the app's own pages */
+    if(!base(history.state)) return;            /* still inside the app's own pages */
     var q=document.getElementById('fpsquit'); if(q){ q.remove(); return; }
     setTimeout(function(){
       if(busy()){ armed=false; arm(); return; }   /* Back closed something else; keep the guard */
