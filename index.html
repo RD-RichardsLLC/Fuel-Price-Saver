@@ -1015,6 +1015,7 @@ body.on-results #backbar{display:none!important}
       <div id="histrow" onclick="closeSettings();openNews()" style="margin-top:16px;padding:12px;border-radius:10px;background:#1d3a5e;cursor:pointer;display:flex;align-items:center">
         <span><b>History of changes</b><small style="display:block;color:#9fb4ce;margin-top:2px">Everything that's been updated, newest first</small></span>
         <span style="margin-left:auto;color:var(--orange);font-size:20px">&rsaquo;</span></div>
+      <label id="spkrow" style="display:flex;align-items:center;gap:10px;margin:10px 0 4px;padding:10px;border:1.5px solid #f26a21;border-radius:10px;color:#10233f;font-weight:700;cursor:pointer"><input type="checkbox" id="spkon" onchange="spkSet(this.checked)" style="width:22px;height:22px;accent-color:#f26a21;flex:0 0 auto"><span>Show the Speak it button<br><small style="font-weight:400;color:#555">Say your route out loud and it fills in the boxes. Requires the Wispr Flow add-on or a Wispr Flow account.</small><br><a href="#" onclick="event.preventDefault();event.stopPropagation();document.getElementById('spkhow').style.display='flex'" style="color:#0070e4;font-size:14px;font-weight:700">How to install Wispr Flow</a></span></label>
       <div class="setsavebar" style="display:flex;gap:8px"><button class="go" style="padding:10px;margin:0;flex:1;background:#fff;color:#0070e4;border:2px solid #f26a21" onclick="var b=this;b.textContent='Saved \u2713';setTimeout(function(){b.textContent='Save';},1500)">Save</button><button class="go" style="padding:10px;margin:0;flex:1" onclick="closeSettings()">Save and close</button></div>
     </div>
   </div>
@@ -1082,6 +1083,7 @@ body.on-results #backbar{display:none!important}
       <button class="go" style="padding:10px;margin-top:10px" onclick="document.getElementById('fcpop').style.display='none'">Got it</button>
     </div>
   </div>
+  <button type="button" id="spkbtn" onclick="spkOpen()" style="display:none!important;width:100%;height:48px;margin:0 0 10px;border-radius:12px;background:#fff;border:2px solid #f26a21;color:#0070e4;font:700 18px Arial,sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" fill="#f26a21"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4M9 21h6" fill="none" stroke="#f26a21" stroke-width="2" stroke-linecap="round"/></svg>Speak it</button>
   <div id="stops"></div>
   <div id="routetools" class="norev"><button id="revbtn" type="button" onclick="reverseRoute()"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M8 20V5M8 5l-4 4M8 5l4 4M16 4v15M16 19l-4-4M16 19l4-4" fill="none" stroke="#f26a21" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Reverse route</button></div>
   <button type="button" id="backres" onclick="openResults();window.scrollTo(0,0)" style="display:none;width:100%;height:48px;margin:0 0 10px;border-radius:12px;background:#17304f;border:1.5px solid #f26a21;color:#fff;font-size:17px;font-weight:700;cursor:pointer">Back to my fuel stops &rarr;</button>
@@ -3249,6 +3251,27 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    To ship an update: add a new block at the TOP of CHANGELOG with the date and the lines.
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
+  { date:'2026-11-10', items:[
+    'Version 1.3.173',
+    '**How to install Wispr Flow.** A step-by-step page for Android and iPhone, with links to Wispr\u2019s own guides. Open it from Settings or from the Speak it note'
+  ]},
+  { date:'2026-11-10', items:[
+    'Version 1.3.172',
+    '**Speak it works with Wispr Flow.** When you turn it on in Settings, a note tells you Wispr Flow is a free app and gives you a link to get it',
+    '**In Speak it, tap the box, then your Wispr Flow button**, and say your route'
+  ]},
+  { date:'2026-11-10', items:[
+    'Version 1.3.171',
+    '**The Speak it setting now says it requires the Wispr Flow add-on or a Wispr Flow account**'
+  ]},
+  { date:'2026-11-10', items:[
+    'Version 1.3.170',
+    '**Speak it is turned on in Settings.** It\u2019s off to start with. Check Show the Speak it button in Settings and it appears above your Start box'
+  ]},
+  { date:'2026-11-10', items:[
+    'Version 1.3.169',
+    '**Speak it.** A new button on the route page. Tap it and say each city and state in the order you want to run it. It shows what it heard, then Fill in my route puts them in the boxes. Check them over and tap Find fuel when you\u2019re ready'
+  ]},
   { date:'2026-11-10', items:[
     'Version 1.3.168',
     '**Your stop cards have a Menu button** next to See the map and Home'
@@ -10030,5 +10053,123 @@ body.tier-free #freelist{display:block}
 /* v1.3.161: Settings and Your truck sat inside the route page, which hides on the map and pump. Move them to the top level */
 (function(){ ['setpop','truckpop'].forEach(function(id){ var e=document.getElementById(id); if(e&&e.parentNode!==document.body) document.body.appendChild(e); }); })();
 </script>
+<div id="spkpop" style="display:none;position:fixed;inset:0;z-index:9850;background:rgba(0,0,0,.5);align-items:center;justify-content:center;padding:14px;font-family:Arial,sans-serif">
+ <div style="position:relative;width:100%;max-width:440px;max-height:92vh;overflow:auto;background:#fffbea;border:2px solid #f26a21;border-radius:14px;padding:14px;box-sizing:border-box;box-shadow:0 6px 18px rgba(0,0,0,.45)">
+  <button type="button" onclick="spkClose()" aria-label="Close" style="position:absolute;right:8px;top:8px;width:36px;height:36px;border-radius:50%;border:1.5px solid #f26a21;background:#fff;color:#10233f;font:700 20px Arial;cursor:pointer">&times;</button>
+  <div style="font:700 20px Arial;color:#0070e4;margin:2px 44px 6px 2px">Speak it</div>
+  <div style="font:700 16px Arial;color:#10233f;margin:0 0 10px 2px">Say each city and state in the order you want to run it.</div>
+  <textarea id="spktxt" rows="5" placeholder="Amarillo, Texas, Tucumcari, New Mexico, Kingman, Arizona" style="width:100%;box-sizing:border-box;padding:10px;font:17px/1.6 Arial;color:#10233f;border:1.5px solid #e2c98a;border-radius:10px;background:repeating-linear-gradient(#fffbea,#fffbea 26px,#e9dcae 27px);resize:vertical"></textarea>
+  <button type="button" id="spkmic" onclick="spkMic()" style="width:100%;margin:10px 0 0;padding:12px;border-radius:10px;border:none;background:#f26a21;color:#fff;font:700 17px Arial;cursor:pointer">Tap to talk</button>
+  <div id="spknomic" style="display:none;color:#555;font-size:14px;margin-top:8px">Tap the box, then tap your Wispr Flow button and say your route.</div>
+  <div id="spklist" style="margin-top:12px"></div>
+  <div style="display:flex;gap:8px;margin-top:12px">
+   <button type="button" onclick="spkClear()" style="flex:1;padding:12px;border-radius:10px;border:2px solid #f26a21;background:#fff;color:#0070e4;font:700 16px Arial;cursor:pointer">Clear</button>
+   <button type="button" id="spkfill" onclick="spkFill()" style="flex:2;padding:12px;border-radius:10px;border:none;background:#0070e4;color:#fff;font:700 16px Arial;cursor:pointer">Fill in my route</button>
+  </div>
+ </div>
+</div>
+<script>
+/* v1.3.169: Speak it. Say the trip, it fills the route boxes. The driver still taps Find fuel himself */
+(function(){
+  var SR=window.SpeechRecognition||window.webkitSpeechRecognition, rec=null, on=false, base='';
+  var names=Object.keys(STATES).sort(function(a,b){return b.length-a.length;});
+  var abbr=Object.keys(STATES).map(function(k){return STATES[k];});
+  var re=new RegExp('\\b('+names.map(function(n){return n.replace(/ /g,'\\s+');}).join('|')+')\\b(?!\\s+(?:city|beach)\\b)|\\b('+abbr.join('|')+')\\b(?!\\s+(?:city|beach)\\b)','gi');
+  function tc(t){ return t.toLowerCase().replace(/\b[a-z]/g,function(c){return c.toUpperCase();}); }
+  function clean(t){ t=t.replace(/[.,;:!?]+/g,' ').replace(/\s+/g,' ').trim();
+    t=t.replace(/^(?:(?:and|then|to|from|go|going|start|starting|in|at|over|on|next|stop|ending|end|up)(?:\s+|$))+/i,'').trim(); return t; }
+  function parse(txt){
+    var out=[], cur=0, m; re.lastIndex=0;
+    while((m=re.exec(txt))){
+      var full=m[1], ab=m[2];
+      if(ab && ab!==ab.toUpperCase()) continue;            /* two letters only count when typed in capitals, e.g. TX */
+      var city=clean(txt.slice(cur,m.index));
+      if(!city) continue;                                    /* e.g. Washington, Pennsylvania: Washington is the city */
+      var st=ab?ab.toUpperCase():STATES[Object.keys(STATES).filter(function(k){return k.toLowerCase()===full.replace(/\s+/g,' ').toLowerCase();})[0]];
+      if(!st) continue;
+      out.push(tc(city)+', '+st); cur=m.index+m[0].length;
+    }
+    return out;
+  }
+  function draw(){
+    var L=parse(document.getElementById('spktxt').value), h='';
+    if(L.length){ h='<div style="font:700 15px Arial;color:#10233f;margin-bottom:4px">Here\u2019s what I heard:</div>';
+      L.forEach(function(c,i){ var lb=i===0?'Start':i===L.length-1?'Finish':'Stop '+i;
+        h+='<div style="display:flex;gap:8px;padding:6px 2px;border-bottom:1px solid #eadfb8"><b style="min-width:54px;color:#10233f">'+lb+'</b><span style="color:#0070e4;font-weight:700">'+c+'</span></div>'; }); }
+    document.getElementById('spklist').innerHTML=h;
+    var f=document.getElementById('spkfill'); f.disabled=L.length<2; f.style.opacity=L.length<2?'.5':'1';
+    return L;
+  }
+  function stop(){ on=false; try{ if(rec) rec.stop(); }catch(e){} var b=document.getElementById('spkmic'); if(b) b.textContent='Tap to talk'; }
+  window.spkOpen=function(){ document.getElementById('spkpop').style.display='flex';
+    document.getElementById('spkmic').style.display='none'; document.getElementById('spknomic').style.display='block'; draw(); };   /* v1.3.172: Wispr Flow only */
+  window.spkClose=function(){ stop(); document.getElementById('spkpop').style.display='none'; };
+  window.spkClear=function(){ stop(); document.getElementById('spktxt').value=''; draw(); };
+  window.spkMic=function(){
+    if(on){ stop(); return; }
+    rec=new SR(); rec.lang='en-US'; rec.continuous=true; rec.interimResults=true;
+    var ta=document.getElementById('spktxt'); base=ta.value.trim(); if(base) base+=', ';
+    rec.onresult=function(e){ var fin='', tmp='';
+      for(var i=0;i<e.results.length;i++){ var t=e.results[i][0].transcript; if(e.results[i].isFinal) fin+=t+' '; else tmp+=t; }
+      ta.value=(base+fin+tmp).trim(); draw(); };
+    rec.onend=function(){ if(on){ base=ta.value.trim(); if(base) base+=', '; try{ rec.start(); }catch(x){ stop(); } } };
+    rec.onerror=function(){ stop(); };
+    try{ rec.start(); on=true; document.getElementById('spkmic').textContent='Listening\u2026 tap when done'; }catch(e){ stop(); }
+  };
+  window.spkFill=function(){
+    var L=draw(); if(L.length<2) return; stop();
+    while(stopsEl.firstChild) stopsEl.removeChild(stopsEl.firstChild);
+    L.forEach(function(c){ stopsEl.appendChild(makeRow(c)); });
+    relabel(); saveRoute();
+    document.getElementById('spkpop').style.display='none'; window.scrollTo(0,0);
+  };
+  document.addEventListener('input',function(e){ if(e.target&&e.target.id==='spktxt') draw(); });
+  /* v1.3.170: Speak it only shows when it's turned on in Settings */
+  function spkShow(){ var on=false; try{ on=localStorage.getItem('fps_speakit')==='1'; }catch(e){}
+    var b=document.getElementById('spkbtn'); if(b) b.style.setProperty('display',on?'flex':'none','important');
+    var k=document.getElementById('spkon'); if(k) k.checked=on; }
+  window.spkSet=function(v){ try{ localStorage.setItem('fps_speakit',v?'1':'0'); }catch(e){} spkShow(); if(v) document.getElementById('spkwis').style.display='flex'; };
+  spkShow();
+  var _os=window.openSettings; if(typeof _os==='function') window.openSettings=function(){ var r=_os.apply(this,arguments); spkShow(); return r; };
+})();
+</script>
+<div id="spkwis" onclick="if(event.target===this)this.style.display='none'" style="display:none;position:fixed;inset:0;z-index:9860;background:rgba(0,0,0,.5);align-items:center;justify-content:center;padding:14px;font-family:Arial,sans-serif">
+ <div style="width:100%;max-width:420px;background:#fff;border:2px solid #f26a21;border-radius:14px;padding:16px;box-sizing:border-box;color:#10233f;font-size:16px;line-height:1.45">
+  <div style="font:700 20px Arial;color:#0070e4;margin-bottom:8px">Speak it uses Wispr Flow</div>
+  <div>Wispr Flow is a free voice app. On Android, talking is unlimited for free. On iPhone, the free plan gives you 2,000 words a week, which is plenty for your routes.</div>
+  <a href="https://wisprflow.ai" target="_blank" rel="noopener" style="display:block;text-align:center;margin:14px 0;padding:12px;border-radius:10px;background:#0070e4;color:#fff;font-weight:700;text-decoration:none">Get Wispr Flow</a>
+  <div style="color:#d62828;font-weight:700">Installing takes a few steps. Follow each one exactly, or it won’t work.</div>
+  <button type="button" onclick="document.getElementById('spkwis').style.display='none';document.getElementById('spkhow').style.display='flex'" style="width:100%;margin-top:12px;padding:12px;border-radius:10px;border:none;background:#f26a21;color:#fff;font:700 16px Arial;cursor:pointer">How to install it</button>
+  <button type="button" onclick="document.getElementById('spkwis').style.display='none'" style="width:100%;margin-top:14px;padding:12px;border-radius:10px;border:2px solid #f26a21;background:#fff;color:#0070e4;font:700 16px Arial;cursor:pointer">Got it</button>
+ </div>
+</div>
+<div id="spkhow" onclick="if(event.target===this)this.style.display='none'" style="display:none;position:fixed;inset:0;z-index:9870;background:rgba(0,0,0,.5);align-items:center;justify-content:center;padding:14px;font-family:Arial,sans-serif">
+ <div style="width:100%;max-width:440px;max-height:92vh;overflow:auto;background:#fff;border:2px solid #f26a21;border-radius:14px;padding:16px;box-sizing:border-box;color:#10233f;font-size:16px;line-height:1.45">
+  <div style="font:700 20px Arial;color:#0070e4;margin-bottom:6px">How to install Wispr Flow</div>
+  <div style="color:#d62828;font-weight:700;margin-bottom:10px">Do every step in order, or it won’t work.</div>
+  <div style="font:700 17px Arial;margin:6px 0 4px">Android</div>
+  <ol style="margin:0 0 8px;padding-left:22px">
+   <li>Check your phone: Settings, then About phone. Wispr Flow needs Android 13 or newer.</li>
+   <li>Install <b>Wispr Flow</b> from the Google Play Store.</li>
+   <li>Open Wispr Flow and sign in. The free account is fine.</li>
+   <li>Allow the microphone when it asks.</li>
+   <li>Allow <b>Display over other apps</b>. This is what puts the Wispr button on your screen.</li>
+   <li>Tap <b>Open settings</b>, then <b>Agree</b>, and turn on Wispr Flow’s <b>Accessibility</b> access. Leave the Wispr Flow shortcut off. On a Samsung, it’s under Installed apps.</li>
+   <li>So it keeps working: Settings, then Battery, and set Wispr Flow to <b>Don’t optimize</b> (or Unrestricted).</li>
+  </ol>
+  <div style="font:700 17px Arial;margin:10px 0 4px">iPhone</div>
+  <ol style="margin:0 0 8px;padding-left:22px">
+   <li>Install <b>Wispr Flow</b> from the App Store and sign in.</li>
+   <li>Tap <b>Go to Settings</b>, turn on Wispr Flow, and turn on <b>Allow Full Access</b>.</li>
+   <li>Allow the microphone.</li>
+   <li>In a text box, switch to the Wispr Flow keyboard (the globe key) and tap its microphone.</li>
+  </ol>
+  <div style="font:700 17px Arial;margin:10px 0 4px">Then in Fuel Price Saver</div>
+  <div style="margin-bottom:8px">Tap Speak it, tap the notepad, tap your Wispr Flow button, and say each city and state.</div>
+  <a href="https://docs.wisprflow.ai/articles/2809924024-android-download-installation-guide" target="_blank" rel="noopener" style="display:block;text-align:center;margin:10px 0 6px;padding:11px;border-radius:10px;background:#0070e4;color:#fff;font-weight:700;text-decoration:none">Wispr’s Android guide</a>
+  <a href="https://docs.wisprflow.ai/articles/3152211871-setup-guide" target="_blank" rel="noopener" style="display:block;text-align:center;margin:6px 0;padding:11px;border-radius:10px;background:#0070e4;color:#fff;font-weight:700;text-decoration:none">Wispr’s iPhone guide</a>
+  <button type="button" onclick="document.getElementById('spkhow').style.display='none'" style="width:100%;margin-top:10px;padding:12px;border-radius:10px;border:2px solid #f26a21;background:#fff;color:#0070e4;font:700 16px Arial;cursor:pointer">Close</button>
+ </div>
+</div>
 </body>
 </html>
