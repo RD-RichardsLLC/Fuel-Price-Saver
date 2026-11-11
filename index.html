@@ -3252,6 +3252,14 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
   { date:'2026-11-11', items:[
+    'Version 1.3.189',
+    '**The Close Fuel Price Saver? question is gone.** If the app closes by accident, Pick up where I left off takes you right back'
+  ]},
+  { date:'2026-11-11', items:[
+    'Version 1.3.188',
+    '**Fixed: Pick up where I left off takes you back to Settings or Your truck** if that\u2019s where you were, not an old pump'
+  ]},
+  { date:'2026-11-11', items:[
     'Version 1.3.187',
     '**Fixed: the phone\u2019s Back button now asks Close Fuel Price Saver?** on the route page instead of closing the app',
     '**Fixed: Welcome back shows up after you\u2019ve run a trip**, even if the app closed while you were on the route page'
@@ -10272,7 +10280,7 @@ body.tier-free #freelist{display:block}
     var v=where(), pop=null, sc=0, tp=document.getElementById('truckpop'), sp=document.getElementById('setpop');
     if(tp&&tp.style.display==='flex') pop='truck';
     else if(sp&&sp.style.display==='flex'){ pop='set'; var bx=sp.querySelector('.popbox'); sc=bx?bx.scrollTop:0; }   /* v1.3.185: Settings and Your truck too */
-    var stops=(LASTHITS&&LASTHITS.length&&window.ROUTE_LINE&&!window.NEAR_MAP); if(stops&&v==='route') v=LASTV;   /* v1.3.187: closing from the route page still remembers your stops */
+    var stops=(LASTHITS&&LASTHITS.length&&window.ROUTE_LINE&&!window.NEAR_MAP); if(stops&&v==='route'&&!pop) v=LASTV;   /* v1.3.187: closing from the route page still remembers your stops */
     if(!stops&&!pop){ localStorage.removeItem(KEY); return; }
     var p=window.PP_LAST;
     var line=window.ROUTE_LINE; if(stops&&line&&line.length>4000){ var st=Math.ceil(line.length/4000); line=line.filter(function(x,i){ return i%st===0||i===line.length-1; }); }
@@ -10307,9 +10315,13 @@ body.tier-free #freelist{display:block}
     o.querySelector('#fpsbk1').onclick=function(){ o.remove(); go(r); };
   }
   function go(r){
-    if(r.pop){ setTimeout(function(){ try{
+    if(r.pop){   /* v1.3.188: he was in Settings or Your truck. Bring the stops back quietly, but open only that page */
+      if(r.stops){ try{ LASTHITS=r.hits; window.ROUTE_LINE=r.line; ROUTE_CUM=r.cum||[]; ROUTE_TOTAL=r.total||0; window.FPS_LASTMODE=r.mode;
+        if(r.plank){ window.FP_PLANK=r.plank; window.FP_PLANG=r.plang||{}; window.FP_MODE=r.fpmode; } }catch(e){} }
+      r.stops=false;
+      setTimeout(function(){ try{
       if(r.pop==='set'){ openSettings(); setTimeout(function(){ var bx=document.querySelector('#setpop .popbox'); if(bx) bx.scrollTop=r.sc||0; },200); }
-      else if(r.pop==='truck'){ window.openTruck(); } }catch(e){} }, r.stops?1600:150); }
+      else if(r.pop==='truck'){ window.openTruck(); } }catch(e){} }, 150); }
     if(!r.stops) return;
     try{
       LASTHITS=r.hits; window.ROUTE_LINE=r.line; ROUTE_CUM=r.cum||[]; ROUTE_TOTAL=r.total||0;
@@ -10329,43 +10341,6 @@ body.tier-free #freelist{display:block}
   if(document.readyState==='complete') setTimeout(ready,300); else window.addEventListener('load',function(){ setTimeout(ready,300); });
 })();
 </script>
-<script>
-/* v1.3.186: the phone's Back button on the route page asks before closing the app */
-(function(){
-  var armed=false, leaving=false;
-  function base(st){ return !st || (st.app===0 && !st.fpsguard); }
-  function arm(){ if(armed||leaving) return; try{ if(base(history.state)) history.pushState({app:0,fpsguard:1},''); armed=true; }catch(e){} }   /* v1.3.187: the first page is marked app:0, so guard on top of it */
-  document.addEventListener('click',arm,true); document.addEventListener('touchend',arm,true);
-  function busy(){
-    if(/\bon-[\w-]+/.test(document.body.className)) return true;
-    if(window.HM_OPEN||window.OWN_REP_ON) return true;
-    try{ if(document.getElementById('hmenu').classList.contains('show')) return true; }catch(e){}
-    var ids=['setpop','truckpop','spkpop','spkwis','spkhow','clearpop','fpsback','fpch','fqpop','rtwarn','cpop'];
-    for(var i=0;i<ids.length;i++){ var e=document.getElementById(ids[i]); if(e&&e.offsetParent!==null&&getComputedStyle(e).display!=='none') return true; }
-    return false;
-  }
-  function ask(){
-    var o=document.getElementById('fpsquit'); if(o) return;
-    o=document.createElement('div'); o.id='fpsquit';
-    o.style.cssText='position:fixed;inset:0;z-index:9995;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:14px;font-family:Arial,sans-serif';
-    o.innerHTML='<div style="width:100%;max-width:360px;background:#fff;border:2px solid #f26a21;border-radius:14px;padding:16px;box-sizing:border-box;color:#10233f;text-align:center">'+
-      '<div style="font:700 20px Arial;color:#0070e4;margin-bottom:14px">Close Fuel Price Saver?</div>'+
-      '<div style="display:flex;gap:10px"><button type="button" id="fpsq1" style="flex:1;padding:13px;border-radius:10px;border:2px solid #f26a21;background:#fff;color:#0070e4;font:700 17px Arial;cursor:pointer">Yes</button>'+
-      '<button type="button" id="fpsq2" style="flex:1;padding:13px;border-radius:10px;border:none;background:#0070e4;color:#fff;font:700 17px Arial;cursor:pointer">No</button></div></div>';
-    document.body.appendChild(o);
-    o.querySelector('#fpsq2').onclick=function(){ o.remove(); armed=false; arm(); };
-    o.querySelector('#fpsq1').onclick=function(){ o.remove(); leaving=true; try{ history.go(-2); }catch(e){} setTimeout(function(){ try{ window.close(); }catch(e){} },300); };
-  }
-  window.addEventListener('popstate',function(){
-    if(leaving){ try{ history.back(); }catch(e){} return; }
-    if(!base(history.state)) return;            /* still inside the app's own pages */
-    var q=document.getElementById('fpsquit'); if(q){ q.remove(); return; }
-    setTimeout(function(){
-      if(busy()){ armed=false; arm(); return; }   /* Back closed something else; keep the guard */
-      armed=false; arm(); ask();
-    },80);
-  });
-})();
-</script>
+<!-- v1.3.189: Close Fuel Price Saver? taken out; Pick up where I left off covers an accidental close -->
 </body>
 </html>
