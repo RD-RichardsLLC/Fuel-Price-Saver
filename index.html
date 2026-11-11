@@ -3252,6 +3252,11 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
   { date:'2026-11-11', items:[
+    'Version 1.3.180',
+    '**In Speak it, Clear puts the cursor right back in the notepad**, so you can tap your voice button and talk again',
+    '**The Tap this box line is gone**, since the cursor is always in the box. The gray example stays'
+  ]},
+  { date:'2026-11-11', items:[
     'Version 1.3.179',
     '**The empty Speak it notepad tells you what to do.** In bold it says Tap this box and speak in your cities and states as follows, with an example under it'
   ]},
@@ -10096,7 +10101,7 @@ body.tier-free #freelist{display:block}
    <div style="font:700 15px Arial;color:#10233f;margin-bottom:8px">This is from your last route. Add to it or clear it?</div>
    <div style="display:flex;gap:8px"><button type="button" onclick="spkOld(true)" style="flex:1;padding:10px;border-radius:10px;border:none;background:#0070e4;color:#fff;font:700 15px Arial;cursor:pointer">Add to it</button><button type="button" onclick="spkOld(false)" style="flex:1;padding:10px;border-radius:10px;border:2px solid #f26a21;background:#fff;color:#0070e4;font:700 15px Arial;cursor:pointer">Clear it</button></div>
   </div>
-  <div style="position:relative"><textarea id="spktxt" rows="5" placeholder="" style="width:100%;box-sizing:border-box;padding:10px;font:17px/1.6 Arial;color:#10233f;border:1.5px solid #e2c98a;border-radius:10px;background:repeating-linear-gradient(#fffbea,#fffbea 26px,#e9dcae 27px);resize:vertical"></textarea><div id="spkhint" style="position:absolute;left:11px;right:11px;top:10px;pointer-events:none;font:17px/1.6 Arial;color:#8a8f98"><b style="color:#10233f">Tap this box and speak in your cities and states as follows:</b><br>Amarillo, Texas, Tucumcari, New Mexico, Kingman, Arizona</div></div>
+  <div style="position:relative"><textarea id="spktxt" rows="5" placeholder="" style="width:100%;box-sizing:border-box;padding:10px;font:17px/1.6 Arial;color:#10233f;border:1.5px solid #e2c98a;border-radius:10px;background:repeating-linear-gradient(#fffbea,#fffbea 26px,#e9dcae 27px);resize:vertical"></textarea><div id="spkhint" style="position:absolute;left:11px;right:11px;top:10px;pointer-events:none;font:17px/1.6 Arial;color:#8a8f98">Amarillo, Texas, Tucumcari, New Mexico, Kingman, Arizona</div></div>
   <button type="button" id="spkmic" onclick="spkMic()" style="width:100%;margin:10px 0 0;padding:12px;border-radius:10px;border:none;background:#f26a21;color:#fff;font:700 17px Arial;cursor:pointer">Tap to talk</button>
   <div id="spknomic" style="display:none;color:#555;font-size:14px;margin-top:8px">Tap your Wispr Flow button and say your route.</div>
   <div style="display:flex;gap:8px;margin-top:12px">
@@ -10148,7 +10153,7 @@ body.tier-free #freelist{display:block}
   window.spkOld=function(keep){ var ta=document.getElementById('spktxt'); document.getElementById('spkold').style.display='none';
     if(!keep){ ta.value=''; draw(); ta.focus(); } else { ta.value=ta.value.trim().replace(/[,\s]*$/,'')+', '; draw(); ta.focus(); var n=ta.value.length; try{ ta.setSelectionRange(n,n); }catch(e){} } };   /* v1.3.175: cursor starts in the notepad */   /* v1.3.172: Wispr Flow only */
   window.spkClose=function(){ stop(); document.getElementById('spkpop').style.display='none'; };
-  window.spkClear=function(){ stop(); document.getElementById('spktxt').value=''; draw(); };
+  window.spkClear=function(){ stop(); var ta=document.getElementById('spktxt'); ta.value=''; draw(); ta.focus(); };   /* v1.3.180: cursor goes back in the box */
   window.spkMic=function(){
     if(on){ stop(); return; }
     rec=new SR(); rec.lang='en-US'; rec.continuous=true; rec.interimResults=true;
