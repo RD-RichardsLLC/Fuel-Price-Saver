@@ -3252,6 +3252,22 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
   { date:'2026-11-11', items:[
+    'Version 1.3.186',
+    '**The Back button asks before closing the app.** On the route page, your phone\u2019s Back button asks Close Fuel Price Saver? Yes or No'
+  ]},
+  { date:'2026-11-11', items:[
+    'Version 1.3.185',
+    '**Pick up where I left off remembers Settings and Your truck too.** If you were in Settings or Your truck when the app closed, that\u2019s where it takes you back'
+  ]},
+  { date:'2026-11-11', items:[
+    'Version 1.3.184',
+    '**Pick up where I left off puts the map back exactly how you left it**, zoomed in or zoomed out on Full map view'
+  ]},
+  { date:'2026-11-11', items:[
+    'Version 1.3.183',
+    '**Welcome back.** When you reopen the app after looking at your fuel stops, it asks: Pick up where I left off, or Run a new route. Pick up puts you back on the same pump, map, or stop cards without running Find fuel. If it\u2019s been a while, it warns that prices may have changed'
+  ]},
+  { date:'2026-11-11', items:[
     'Version 1.3.181',
     '**Full map view.** A new button on the map, and in the map and pump Menus, zooms out to show your whole route and every stop'
   ]},
@@ -9513,6 +9529,9 @@ body.tier-free #freelist{display:block}
     return '<div class="hmpop"><b>'+esc(h.b)+' '+esc(h.c)+', '+esc(h.st)+'</b><br>'+(pr!=null?'<span class="p">$'+fmt(pr)+'</span>':'')+nextBuy(h)+'</div>';
   }
   /* v1.3.181: Full map view, the whole route and every stop */
+  /* v1.3.184: remember exactly where the map was, so Pick up comes back the same */
+  window.fpsMapView=function(){ try{ if(!M) return null; var c=M.getCenter(); return {la:c.lat,lo:c.lng,z:M.getZoom()}; }catch(e){ return null; } };
+  window.fpsMapSet=function(v){ try{ if(M&&v) { M.invalidateSize(); M.setView([v.la,v.lo],v.z,{animate:false}); } }catch(e){} };
   window.fpsFullMap=function(){ try{ if(!M) return;
     var pts=[]; (window.ROUTE_LINE||[]).forEach(function(p){ pts.push(p); });
     (window.LASTHITS||LASTHITS||[]).forEach(function(h){ if(isFinite(h.la)&&isFinite(h.lo)) pts.push([h.la,h.lo]); });
@@ -10233,5 +10252,111 @@ body.tier-free #freelist{display:block}
   <button type="button" onclick="document.getElementById('spkhow').style.display='none'" style="width:100%;margin-top:10px;padding:12px;border-radius:10px;border:2px solid #f26a21;background:#fff;color:#0070e4;font:700 16px Arial;cursor:pointer">Close</button>
  </div>
 </div>
+<script>
+/* v1.3.182: if the app closes by accident, reopening within 5 minutes puts you back where you were (pump, map, or stop cards) without running Find fuel. After 5 minutes it opens on the route page */
+(function(){
+  var KEY='fps_place';
+  function where(){
+    if(window.OWN_REP_ON&&!window.HM_PP) return 'own';
+    if(window.HM_PP&&window.PP_LAST) return 'pump';
+    if(window.HM_OPEN) return 'map';
+    return 'route';
+  }
+  function snap(){ try{
+    var v=where(), pop=null, sc=0, tp=document.getElementById('truckpop'), sp=document.getElementById('setpop');
+    if(tp&&tp.style.display==='flex') pop='truck';
+    else if(sp&&sp.style.display==='flex'){ pop='set'; var bx=sp.querySelector('.popbox'); sc=bx?bx.scrollTop:0; }   /* v1.3.185: Settings and Your truck too */
+    var stops=(v!=='route'&&LASTHITS&&LASTHITS.length&&window.ROUTE_LINE&&!window.NEAR_MAP);
+    if(!stops&&!pop){ localStorage.removeItem(KEY); return; }
+    var p=window.PP_LAST;
+    localStorage.setItem(KEY,JSON.stringify({t:Date.now(),v:stops?v:'route',pop:pop,sc:sc,mode:window.FPS_LASTMODE||null,own:!!window.PP_OWN,
+      hits:stops?LASTHITS:null,line:stops?window.ROUTE_LINE:null,cum:ROUTE_CUM,total:ROUTE_TOTAL,
+      plank:window.FP_PLANK||null,plang:window.FP_PLANG||{},fpmode:window.FP_MODE||null,
+      pump:p?[p.la,p.lo]:null, view:(window.fpsMapView?fpsMapView():null)}));
+  }catch(e){ try{ localStorage.removeItem(KEY); }catch(x){} } }
+  window.addEventListener('pagehide',snap);
+  document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='hidden') snap(); });
+  function find(ll){ if(!ll) return null; return (LASTHITS||[]).filter(function(h){ return Math.abs(h.la-ll[0])<1e-5&&Math.abs(h.lo-ll[1])<1e-5; })[0]||null; }
+  function back(){
+    var r=null; try{ r=JSON.parse(localStorage.getItem(KEY)||'null'); }catch(e){}
+    try{ localStorage.removeItem(KEY); }catch(e){}
+    if(!r) return; r.stops=!!(r.hits&&r.hits.length&&r.line);
+    if(!r.stops&&!r.pop) return;
+    ask(r); }
+  /* v1.3.183: ask every time, Pick up where you left off or Run a new route */
+  function ask(r){
+    var o=document.createElement('div'); o.id='fpsback';
+    o.style.cssText='position:fixed;inset:0;z-index:9990;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:14px;font-family:Arial,sans-serif';
+    var mins=Math.round((Date.now()-r.t)/60000), ago=mins<2?'a minute ago':mins<60?mins+' minutes ago':(Math.round(mins/60)===1?'an hour ago':Math.round(mins/60)+' hours ago');
+    o.innerHTML='<div style="width:100%;max-width:400px;background:#fff;border:2px solid #f26a21;border-radius:14px;padding:16px;box-sizing:border-box;color:#10233f">'+
+      '<div style="font:700 20px Arial;color:#0070e4;margin-bottom:6px">Welcome back</div>'+
+      '<div style="font-size:16px;line-height:1.4;margin-bottom:6px">You were '+(r.pop==='truck'?'in Your truck':r.pop==='set'?'in Settings':'looking at your fuel stops')+' '+ago+'.</div>'+
+      (r.stops&&mins>=30?'<div style="font-size:14px;color:#d62828;font-weight:700;margin-bottom:6px">Prices may have changed since then.</div>':'')+
+      '<button type="button" id="fpsbk1" style="width:100%;margin-top:8px;padding:13px;border-radius:10px;border:none;background:#0070e4;color:#fff;font:700 17px Arial;cursor:pointer">Pick up where I left off</button>'+
+      '<button type="button" id="fpsbk2" style="width:100%;margin-top:10px;padding:13px;border-radius:10px;border:2px solid #f26a21;background:#fff;color:#0070e4;font:700 17px Arial;cursor:pointer">Run a new route</button></div>';
+    document.body.appendChild(o);
+    o.querySelector('#fpsbk2').onclick=function(){ o.remove(); };
+    o.querySelector('#fpsbk1').onclick=function(){ o.remove(); go(r); };
+  }
+  function go(r){
+    if(r.pop){ setTimeout(function(){ try{
+      if(r.pop==='set'){ openSettings(); setTimeout(function(){ var bx=document.querySelector('#setpop .popbox'); if(bx) bx.scrollTop=r.sc||0; },200); }
+      else if(r.pop==='truck'){ window.openTruck(); } }catch(e){} }, r.stops?1600:150); }
+    if(!r.stops) return;
+    try{
+      LASTHITS=r.hits; window.ROUTE_LINE=r.line; ROUTE_CUM=r.cum||[]; ROUTE_TOTAL=r.total||0;
+      window.FPS_LASTMODE=r.mode;
+      var then=function(){ var h=find(r.pump);
+        if(r.v==='pump'&&h){ try{ if(window.OWN_REP_ON) ownRepClose(); }catch(e){} setTimeout(function(){ window.ppOpen(h); },250); }
+        else if(r.v==='map'){ setTimeout(function(){ try{ if(window.OWN_REP_ON) ownRepClose(); if(window.HM_PP&&window.ppClose) ppClose(); }catch(e){} },400);
+          if(r.view){ setTimeout(function(){ fpsMapSet(r.view); },900); setTimeout(function(){ fpsMapSet(r.view); },1800); } } };
+      if(r.mode==='own'||r.own){ window.fpChoose('own'); setTimeout(then,900); }
+      else if(r.plank&&r.plank.length&&window.hmOpenPlan){ window.FP_PLANK=r.plank; window.FP_PLANG=r.plang||{}; window.FP_MODE=r.fpmode; window.PP_OWN=false;
+        hmOpenPlan(); setTimeout(then,900); }
+    }catch(e){}
+  }
+  function ready(){ var n=0, iv=setInterval(function(){ n++;
+    var busy=false; ['splash','fpslock'].forEach(function(id){ var e=document.getElementById(id); if(e&&e.offsetParent!==null&&getComputedStyle(e).display!=='none') busy=true; });
+    if(!busy||n>40){ clearInterval(iv); back(); } },250); }
+  if(document.readyState==='complete') setTimeout(ready,300); else window.addEventListener('load',function(){ setTimeout(ready,300); });
+})();
+</script>
+<script>
+/* v1.3.186: the phone's Back button on the route page asks before closing the app */
+(function(){
+  var armed=false, leaving=false;
+  function arm(){ if(armed||leaving) return; try{ if(!history.state){ history.pushState({fpsguard:1},''); } armed=true; }catch(e){} }
+  document.addEventListener('click',arm,true); document.addEventListener('touchend',arm,true);
+  function busy(){
+    if(/\bon-[\w-]+/.test(document.body.className)) return true;
+    if(window.HM_OPEN||window.OWN_REP_ON) return true;
+    try{ if(document.getElementById('hmenu').classList.contains('show')) return true; }catch(e){}
+    var ids=['setpop','truckpop','spkpop','spkwis','spkhow','clearpop','fpsback','fpch','fqpop','rtwarn','cpop'];
+    for(var i=0;i<ids.length;i++){ var e=document.getElementById(ids[i]); if(e&&e.offsetParent!==null&&getComputedStyle(e).display!=='none') return true; }
+    return false;
+  }
+  function ask(){
+    var o=document.getElementById('fpsquit'); if(o) return;
+    o=document.createElement('div'); o.id='fpsquit';
+    o.style.cssText='position:fixed;inset:0;z-index:9995;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:14px;font-family:Arial,sans-serif';
+    o.innerHTML='<div style="width:100%;max-width:360px;background:#fff;border:2px solid #f26a21;border-radius:14px;padding:16px;box-sizing:border-box;color:#10233f;text-align:center">'+
+      '<div style="font:700 20px Arial;color:#0070e4;margin-bottom:14px">Close Fuel Price Saver?</div>'+
+      '<div style="display:flex;gap:10px"><button type="button" id="fpsq1" style="flex:1;padding:13px;border-radius:10px;border:2px solid #f26a21;background:#fff;color:#0070e4;font:700 17px Arial;cursor:pointer">Yes</button>'+
+      '<button type="button" id="fpsq2" style="flex:1;padding:13px;border-radius:10px;border:none;background:#0070e4;color:#fff;font:700 17px Arial;cursor:pointer">No</button></div></div>';
+    document.body.appendChild(o);
+    o.querySelector('#fpsq2').onclick=function(){ o.remove(); armed=false; arm(); };
+    o.querySelector('#fpsq1').onclick=function(){ o.remove(); leaving=true; try{ history.go(-2); }catch(e){} setTimeout(function(){ try{ window.close(); }catch(e){} },300); };
+  }
+  window.addEventListener('popstate',function(){
+    if(leaving){ try{ history.back(); }catch(e){} return; }
+    if(history.state) return;            /* still inside the app's own pages */
+    var q=document.getElementById('fpsquit'); if(q){ q.remove(); return; }
+    setTimeout(function(){
+      if(busy()){ armed=false; arm(); return; }   /* Back closed something else; keep the guard */
+      armed=false; arm(); ask();
+    },80);
+  });
+})();
+</script>
 </body>
 </html>
