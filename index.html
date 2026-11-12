@@ -3252,6 +3252,11 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
   { date:'2026-11-12', items:[
+    'Version 1.3.194',
+    '**The track record count now loads every time the app opens.** It no longer waits on the sign-in check',
+    '**The percent in the track record is now green.** It matches the check mark and stands out from the yellow numbers'
+  ]},
+  { date:'2026-11-12', items:[
     'Version 1.3.193',
     '**The track record now updates itself.** The right of the last 30 days count comes from the daily grading, so it changes on its own each day'
   ]},
@@ -8488,8 +8493,11 @@ function fcDayRec(f){ var el=document.getElementById('fcdrec'); if(!el) return;
   if(h==null||!n){ h=FCD_REC_FALLBACK.hits; n=FCD_REC_FALLBACK.graded; }
   if(!n){ el.style.display='none'; return; }
   var Y=function(t){ return '<span style="color:#ffd84d;font-weight:900">'+t+'</span>'; };
-  el.innerHTML='<span style="color:#3ab54a">\u2713</span> Our predictions were right '+Y(h)+' of the last '+Y(n)+' days ('+Y(Math.round(100*h/n)+'%')+')';
+  el.innerHTML='<span style="color:#3ab54a">\u2713</span> Our predictions were right '+Y(h)+' of the last '+Y(n)+' days ('+'<span style="color:#3ab54a;font-weight:900">'+Math.round(100*h/n)+'%</span>'+')';
   el.style.display='block'; }
+/* v1.3.194: ask FPS Access for the live track record on its own, every time the app opens */
+(function(){ try{ fetch('https://script.google.com/macros/s/AKfycbyR5zyILyw7FZ19dIs_Sz27bMeYHe-j9ST-0d-F0R2lU9a9aFqO2zlYLZR9criLJDpi/exec?page=rec',{cache:'no-store'})
+  .then(function(r){ return r.json(); }).then(function(j){ if(j&&isFinite(+j.hits)&&+j.graded>0){ localStorage.setItem('fps_rec',JSON.stringify({hits:+j.hits,graded:+j.graded})); try{ fcDayRec(); }catch(e){} } }).catch(function(){}); }catch(e){} })();
 function fcDayOpen(){
   try{
     var f=(typeof FC!=='undefined'&&FC)||(typeof FCL!=='undefined'&&FCL);
