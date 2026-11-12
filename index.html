@@ -908,7 +908,7 @@ body.on-results #backbar{display:none!important}
   function ask(n, quiet){
     fetch(ACCESS_URL+'?code='+encodeURIComponent(code)+'&dev='+encodeURIComponent(dev),{cache:'no-store'})
       .then(function(r){ ls('fps_dbg',(ls('fps_dbg')||'')+' | try '+n+': got reply '+r.status); return r.json(); })
-      .then(function(j){ ls('fps_dbg',(ls('fps_dbg')||'')+' | read: '+JSON.stringify(j)); if(j&&j.ok){ ls('fps_ok','1'); trusted=true; lift(); if(!('fuellog' in j) && n<10){ ls('fps_dbg',(ls('fps_dbg')||'')+' | no fuel log, asking again'); setTimeout(function(){ ask(n+1,true); },3000); return; } if(j.plan){ ls('fps_tier',String(j.plan).toLowerCase()); ls('fps_comp',j.comp?'1':'0'); if(window.fpsTierApply) window.fpsTierApply(); } flSet(j); ls('fps_dbg',(ls('fps_dbg')||'')+' | saved '+ls('fps_fl')); } else if(!quiet) deny(); })
+      .then(function(j){ ls('fps_dbg',(ls('fps_dbg')||'')+' | read: '+JSON.stringify(j)); if(j&&j.ok){ ls('fps_ok','1'); trusted=true; lift(); if(!('fuellog' in j) && n<10){ ls('fps_dbg',(ls('fps_dbg')||'')+' | no fuel log, asking again'); setTimeout(function(){ ask(n+1,true); },3000); return; } if(j.rec&&isFinite(+j.rec.hits)&&+j.rec.graded>0){ ls('fps_rec',JSON.stringify({hits:+j.rec.hits,graded:+j.rec.graded})); try{ fcDayRec(); }catch(e){} } if(j.plan){ ls('fps_tier',String(j.plan).toLowerCase()); ls('fps_comp',j.comp?'1':'0'); if(window.fpsTierApply) window.fpsTierApply(); } flSet(j); ls('fps_dbg',(ls('fps_dbg')||'')+' | saved '+ls('fps_fl')); } else if(!quiet) deny(); })
       .catch(function(e){ ls('fps_dbg',(ls('fps_dbg')||'')+' | try '+n+' FAILED: '+e);
         if(n<10){ setTimeout(function(){ ask(n+1, quiet); }, 3000); return; }
         // no answer (no signal, Google busy): a phone already approved keeps running; a new phone waits
@@ -3251,6 +3251,10 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    To ship an update: add a new block at the TOP of CHANGELOG with the date and the lines.
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
+  { date:'2026-11-12', items:[
+    'Version 1.3.193',
+    '**The track record now updates itself.** The right of the last 30 days count comes from the daily grading, so it changes on its own each day'
+  ]},
   { date:'2026-11-12', items:[
     'Version 1.3.192',
     '**The track record line is easier to read.** The words are white, the check mark is green, and the numbers are bold yellow so they stand out'
@@ -8480,6 +8484,7 @@ try{ if(typeof showForecast==='function'){ var _fpsSF=showForecast; showForecast
 var FCD_REC_FALLBACK={hits:29,graded:30};
 function fcDayRec(f){ var el=document.getElementById('fcdrec'); if(!el) return;
   var h=f&&isFinite(+f.hits)?+f.hits:null, n=f&&isFinite(+f.graded)?+f.graded:null;
+  if(h==null||!n){ try{ var sv=JSON.parse(localStorage.getItem('fps_rec')||'null'); if(sv&&isFinite(+sv.hits)&&+sv.graded>0){ h=+sv.hits; n=+sv.graded; } }catch(e){} }
   if(h==null||!n){ h=FCD_REC_FALLBACK.hits; n=FCD_REC_FALLBACK.graded; }
   if(!n){ el.style.display='none'; return; }
   var Y=function(t){ return '<span style="color:#ffd84d;font-weight:900">'+t+'</span>'; };
