@@ -3252,6 +3252,10 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
   { date:'2026-11-12', items:[
+    'Version 1.3.192',
+    '**The track record line is easier to read.** The words are white, the check mark is green, and the numbers are bold yellow so they stand out'
+  ]},
+  { date:'2026-11-12', items:[
     'Version 1.3.191',
     '**The green track record line now shows.** When the prediction pops up on its own, it now shows Our predictions were right 29 of the last 30 days (97%)'
   ]},
@@ -8400,7 +8404,7 @@ function fpPreview(){
 </style>
 <div id="fcday"><div class="bx">
   <div class="tt">Tomorrow's diesel prediction</div>
-  <div id="fcdrec" style="display:none;text-align:center;color:#3ab54a;font-size:17px;font-weight:800;line-height:1.35;margin:14px 0 16px"></div>
+  <div id="fcdrec" style="display:none;text-align:center;color:#ffffff;font-size:17px;font-weight:800;line-height:1.35;margin:14px 0 16px"></div>
   <div class="fine" style="margin-bottom:12px">Tomorrow's price prediction comes in each afternoon between 1 and 4 p.m. Eastern.</div>
   <div class="big" id="fcdbig"></div>
   <div class="tip" id="fcdtip"></div>
@@ -8478,7 +8482,8 @@ function fcDayRec(f){ var el=document.getElementById('fcdrec'); if(!el) return;
   var h=f&&isFinite(+f.hits)?+f.hits:null, n=f&&isFinite(+f.graded)?+f.graded:null;
   if(h==null||!n){ h=FCD_REC_FALLBACK.hits; n=FCD_REC_FALLBACK.graded; }
   if(!n){ el.style.display='none'; return; }
-  el.innerHTML='\u2713 Our predictions were right '+h+' of the last '+n+' days ('+Math.round(100*h/n)+'%)';
+  var Y=function(t){ return '<span style="color:#ffd84d;font-weight:900">'+t+'</span>'; };
+  el.innerHTML='<span style="color:#3ab54a">\u2713</span> Our predictions were right '+Y(h)+' of the last '+Y(n)+' days ('+Y(Math.round(100*h/n)+'%')+')';
   el.style.display='block'; }
 function fcDayOpen(){
   try{
