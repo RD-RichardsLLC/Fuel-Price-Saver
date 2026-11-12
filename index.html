@@ -3252,6 +3252,10 @@ function enterScreen(){ history.pushState({app:1}, ''); }
    The tag shows up again by itself for anyone who hasn't seen the newest date. */
 const CHANGELOG = [
   { date:'2026-11-12', items:[
+    'Version 1.3.191',
+    '**The green track record line now shows.** When the prediction pops up on its own, it now shows Our predictions were right 29 of the last 30 days (97%)'
+  ]},
+  { date:'2026-11-12', items:[
     'Version 1.3.190',
     '**See how often the prediction is right.** The daily prediction now shows a green line at the top, like Our predictions were right 29 of the last 30 days (97%)',
     '**The prediction box is roomier.** It is a little taller, with more space under the title'
@@ -8450,7 +8454,7 @@ function fcDayCheck(){
     var to=fpsParseDate(f.to), t=new Date(); t.setHours(0,0,0,0); if(!to||to<=t) return;
     if(localStorage.getItem('fps_fcday_off')===String(f.to)) return;
     if(fcDayBlocked()){ if(fcOnHome()) setTimeout(fcDayCheck,1500); return; }
-    var x=fcDayText(f);
+    var x=fcDayText(f); try{ fcDayRec(f); }catch(e){}
     document.getElementById('fcdbig').innerHTML=x.big; document.getElementById('fcdtip').textContent=x.tip;
     document.getElementById('fcdx').checked=false;
     document.getElementById('fcday').classList.add('show'); FCD_ON=true;
